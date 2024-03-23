@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "sociodem"
+version = "0.1.0"
+description = "projeto de projecao de dados sociodemograficos, provecenso demografico, pnad e pof."
+authors = ["Yan Prada <yanpradamoro@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.1"
+numpy = "^1.26.4"
+scikit-learn = "^1.4.1.post1"
+geemap = "^0.32.0"
+ipykernel = "^6.29.3"
+duckdb = "^0.10.1"
+duckdb-engine = "^0.11.2"
+jupysql = "^0.10.10"
+leafmap = "^0.31.5"
+sqlalchemy = "^2.0.28"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
