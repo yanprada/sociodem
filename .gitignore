@@ -2,3 +2,5 @@
 .pytest_cache
 .venv
 .vscode
+*.egg-info
+dist
