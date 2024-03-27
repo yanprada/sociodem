@@ -4,4 +4,4 @@
 .vscode
 *.egg-info
 dist
-*csv
+*.csv
