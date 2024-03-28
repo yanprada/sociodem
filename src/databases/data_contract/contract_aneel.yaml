@@ -1,44 +1,37 @@
 bronze:
-  tableName: 
-  physicalName: 
-  description:
-  columns:
-    - column: 
-    isPrimary: 
-    businessName:
-    description:
-    logicalTye:
-    physicalType:
-    isNullable:
-    description:
-    sampleValues:
-
-silver:
-  tableName: 
-  physicalName: 
-  description:
-  columns:
-    - column: 
-    isPrimary: 
-    businessName:
-    description:
-    logicalTye:
-    physicalType:
-    isNullable:
-    description:
-    sampleValues:
-
-gold:
-  tableName: 
-  physicalName: 
-  description:
-  columns:
-    - column: 
-    isPrimary: 
-    businessName:
-    description:
-    logicalTye:
-    physicalType:
-    isNullable:
-    description:
-    sampleValues:
+  - tableName: companies_id
+    path: databases/bronze/aneel/companies_id.csv
+    description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
+    queryYear: 2023
+    columns:
+    - column: id
+      isPrimary: True
+      businessName: Company ID
+      description: Unique identifier of the company
+      logicalTye: string
+      physicalType: varchar(36)
+      isNullable: False
+      sampleValues:
+      - 818a29b8f4a840e2b08eafc7de1ab68b
+      - 8059856c505a4d668363da1bb08e0e8f
+    - column: title
+      isPrimary: False
+      businessName: Company file name
+      description: Name of the file that contains the company data
+      logicalTye: string
+      physicalType: varchar(36)
+      isNullable: False
+      sampleValues:
+      - RGE_396_2017-12-31_M10_20180628-2106.gdb.zip
+      - CELESC-DIS_5697_2017-12-31_M10_20180420-1635.gdb.zip
+    - column: tags
+      isPrimary: False
+      businessName: Tags list
+      description: List of tags that describe the company
+      logicalTye: string
+      physicalType: varchar(36)
+      isNullable: False
+      sampleValues:
+      - COORSEL,2018,DIST
+      - CELESC-DIS,2017,DIST
+      - EDP_ES,2023,DIST
