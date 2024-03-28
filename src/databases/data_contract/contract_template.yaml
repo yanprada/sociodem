@@ -1,0 +1,15 @@
+bronze:
+- tableName: 
+  physicalName: 
+  description: 
+  columns:
+  - column: 
+    isPrimary: 
+    businessName: 
+    description: 
+    logicalTye: 
+    physicalType: 
+    isNullable: 
+    sampleValues:
+    - 
+    - 
