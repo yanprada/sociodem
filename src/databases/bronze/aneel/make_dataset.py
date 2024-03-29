@@ -49,8 +49,16 @@ def main() -> pd.DataFrame:
     """
     This function loads ANEEL IDs, splits tags, and returns a DataFrame filtered by selected year.
 
+    Example:
+        >>> main()
+               Company ID  Year
+        0      123456789  2021
+        1      987654321  2021
+        2      456789123  2021
+
     Returns:
         pandas.DataFrame: A DataFrame containing ANEEL Company IDs filtered by selected year.
+
     """
     df = load_aneel_ids().pipe(split_tags).query(f"year == '{YEAR}'")
     return df
