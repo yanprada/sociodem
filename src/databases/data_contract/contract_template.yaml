@@ -1,15 +1,36 @@
 bronze:
-- tableName: 
-  physicalName: 
-  description: 
-  columns:
-  - column: 
-    isPrimary: 
-    businessName: 
+  - tableName:
+    path:
     description: 
-    logicalTye: 
-    physicalType: 
-    isNullable: 
-    sampleValues:
-    - 
-    - 
+    queryYear: 
+    columns:
+    - column: 
+      isPrimary: 
+      businessName:
+      description: 
+      logicalTye:
+      physicalType:
+      isNullable: 
+      sampleValues:
+      - 
+      - 
+    - column: 
+      isPrimary: 
+      businessName: 
+      description: 
+      logicalTye: 
+      physicalType: 
+      isNullable: 
+      sampleValues:
+      - 
+      - 
+    - column: 
+      isPrimary: 
+      businessName: 
+      description: 
+      logicalTye: 
+      physicalType:
+      isNullable: 
+      sampleValues:
+      - 
+      -
