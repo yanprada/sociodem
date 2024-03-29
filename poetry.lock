@@ -729,6 +729,21 @@ files = [
 ]
 
 [[package]]
+name = "dtype-diet"
+version = "0.0.2"
+description = "Attempt to shrink Pandas `dtypes` without losing data so you have more RAM (and maybe more speed)"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "dtype_diet-0.0.2-py3-none-any.whl", hash = "sha256:73435e07ab12cc674a474bd396dfc05cc010e2f079c2809055d76330c0e611ef"},
+    {file = "dtype_diet-0.0.2.tar.gz", hash = "sha256:3c9161bf67d8e591ea60d3d1bd99f19935292488d36804bb1ba8bf1ff1627dd6"},
+]
+
+[package.dependencies]
+pandas = ">=1.0.0"
+tabulate = "*"
+
+[[package]]
 name = "duckdb"
 version = "0.10.1"
 description = "DuckDB in-process database"
@@ -3983,6 +3998,20 @@ pure-eval = "*"
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
+name = "tabulate"
+version = "0.9.0"
+description = "Pretty-print tabular data"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
+    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
+]
+
+[package.extras]
+widechars = ["wcwidth"]
+
+[[package]]
 name = "tenacity"
 version = "8.2.3"
 description = "Retry code until it succeeds"
@@ -4286,4 +4315,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "c4a06fa5ef56e6f4bfc49b805875e08f244bd25dadafbbde3734b441d1c0178a"
+content-hash = "561e50d39b0db2b11256ae6f1d1188360d6f89263c813eeb770f3bc087327f7c"

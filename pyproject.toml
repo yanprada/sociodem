@@ -30,6 +30,7 @@ ipdb = "^0.13.13"
 geopandas = "^0.14.3"
 python-decouple = "^3.8"
 psycopg2-binary = "^2.9.9"
+dtype-diet = "^0.0.2"
 
 
 [build-system]
