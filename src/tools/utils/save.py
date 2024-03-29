@@ -12,6 +12,7 @@ Functions:
 - save_as_dask: Partition a file with more than 100Mb into smaller partitions using Dask.
 """
 
+import os
 import pandas as pd
 import dask.dataframe as dd
 from dtype_diet import report_on_dataframe, optimize_dtypes
@@ -84,24 +85,26 @@ def save_parquet(df_data: pd.DataFrame, path: str) -> None:
     save_particionado(df_data, path)
 
 
-def save_particionado(df_data: pd.DataFrame, filename: str):
+def save_particionado(df_data: pd.DataFrame, path: str):
     """
-    Save the DataFrame `df_data` to a file specified by `filename`.
+    Save the DataFrame `df_data` to a file specified by `path`.
     If the total memory usage of `df_data` is less than or equal to
     `limit_partition`, the DataFrame is saved as a parquet file.
     Otherwise, it is saved using the `save_as_dask` function.
 
     Args:
         df_data: The DataFrame to be saved.
-        filename: The path and filename to save the DataFrame.
+        path: The path and filename to save the DataFrame.
     """
-
+    folder_path = "/".join(path.split("/")[:-1])
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
     total_size = df_data.memory_usage(deep=True).sum()
     limit_partition = 100 * (2**20)
     if total_size <= limit_partition:
-        df_data.to_parquet(filename)
+        df_data.to_parquet(path)
     else:
-        save_as_dask(df_data, filename, total_size, limit_partition)
+        save_as_dask(df_data, path, total_size, limit_partition)
 
 
 def converte_geometria(df_data: pd.DataFrame) -> pd.DataFrame:
