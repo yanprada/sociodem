@@ -8,6 +8,7 @@ and managing a database connection using SQLAlchemy.
 from decouple import config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import pandas as pd
 
 # Database credentials
 DB_USER = config("DB_USER")
@@ -46,6 +47,22 @@ class DBConnectionHandler:
             sqlalchemy.engine.Engine: The database engine.
         """
         return self.__engine
+
+    def add_table(self, table: pd.DataFrame, database_contract: dict):
+        """
+        Adds a table to the database.
+
+        Parameters:
+        - table (pd.DataFrame): The table to be added.
+        - database_contract (dict): A dictionary containing the database contract.
+
+        Returns:
+        None
+        """
+        session = self.__engine
+        table.to_sql(
+            database_contract["tableName"], session, if_exists="replace", index=False
+        )
 
     def __enter__(self):
         """
