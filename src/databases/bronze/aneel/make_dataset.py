@@ -6,7 +6,7 @@ and filter the DataFrame by the year 2023.
 
 import pandas as pd
 from src.tools.utils.config import get_contract
-from src.tools.utils.common import save_parquet_decorator
+from src.tools.utils.save import save_parquet_decorator
 
 CONTRACT = get_contract("contract_aneel.yaml")
 DATABASE = CONTRACT["bronze"][0]
@@ -47,10 +47,10 @@ def split_tags(df: pd.DataFrame) -> pd.DataFrame:
 @save_parquet_decorator(medallon="silver", filename=TABLE_NAME)
 def main() -> pd.DataFrame:
     """
-    This function loads ANEEL IDs, splits tags, and returns a DataFrame filtered by the year 2023.
+    This function loads ANEEL IDs, splits tags, and returns a DataFrame filtered by selected year.
 
     Returns:
-        pandas.DataFrame: A DataFrame containing ANEEL Company IDs filtered by the year 2023.
+        pandas.DataFrame: A DataFrame containing ANEEL Company IDs filtered by selected year.
     """
     df = load_aneel_ids().pipe(split_tags).query(f"year == '{YEAR}'")
     return df
