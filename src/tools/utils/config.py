@@ -19,6 +19,31 @@ def get_contract(contract: str = "contract_template.yaml") -> EasyDict:
                         Default is "contract_template.yaml".
     Returns:
         EasyDict: A dictionary-like object that allows attribute access to its keys.
+        ------------------------------------------------
+        Contract return example:
+            {  'bronze':
+                [
+                    {
+                        'tableName': None,
+                        'path': None,
+                        'description': None,
+                        'queryYear': None,
+                        'columns':
+                        [
+                            {
+                                'column': None,
+                                'isPrimary': None,
+                                'businessName': None,
+                                'description': None,
+                                'logicalTye': None,
+                                'physicalType': None,
+                                'isNullable': None,
+                                'sampleValues': [None, None]
+                            },
+                        ]
+                    }
+                ]
+            }
     """
     file_path = os.path.abspath(__file__)
     directory = os.path.dirname(file_path)
