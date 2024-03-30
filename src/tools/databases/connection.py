@@ -6,9 +6,10 @@ and managing a database connection using SQLAlchemy.
 """
 
 from decouple import config
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text, schema
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
+import sqlalchemy
 
 # Database credentials
 DB_USER = config("DB_USER")
@@ -28,41 +29,6 @@ class DBConnectionHandler:
         )
         self.__engine = self.__create_database_engine()
         self.session = None
-
-    def __create_database_engine(self):
-        """
-        Create a database engine.
-
-        Returns:
-            sqlalchemy.engine.Engine: The created database engine.
-        """
-        engine = create_engine(self.__connection_string)
-        return engine
-
-    def get_engine(self):
-        """
-        Get the database engine.
-
-        Returns:
-            sqlalchemy.engine.Engine: The database engine.
-        """
-        return self.__engine
-
-    def add_table(self, table: pd.DataFrame, database_contract: dict):
-        """
-        Adds a table to the database.
-
-        Parameters:
-        - table (pd.DataFrame): The table to be added.
-        - database_contract (dict): A dictionary containing the database contract.
-
-        Returns:
-        None
-        """
-        session = self.__engine
-        table.to_sql(
-            database_contract["tableName"], session, if_exists="replace", index=False
-        )
 
     def __enter__(self):
         """
@@ -85,3 +51,98 @@ class DBConnectionHandler:
             exc_tb (traceback): The traceback of the exception raised, if any.
         """
         self.session.close()
+
+    def __create_database_engine(self):
+        """
+        Create a database engine.
+
+        Returns:
+            sqlalchemy.engine.Engine: The created database engine.
+        """
+        engine = create_engine(self.__connection_string)
+        return engine
+
+    def get_engine(self):
+        """
+        Get the database engine.
+
+        Returns:
+            sqlalchemy.engine.Engine: The database engine.
+        """
+        return self.__engine
+
+    def __create_schema(
+        self, conn: sqlalchemy.engine.Connection, schema_name: str
+    ) -> None:
+        """
+        Create a schema in the database.
+
+        Args:
+            conn (sqlalchemy.engine.Connection): The connection to the database.
+            schema_name (str): The name of the schema to be created.
+        """
+        if not conn.dialect.has_schema(conn, schema_name):
+            conn.execute(schema.CreateSchema(schema_name))
+
+    def __add_pk_to_table(
+        self,
+        conn: sqlalchemy.engine.Connection,
+        schema_name: str,
+        table_name: str,
+        primary_key: str,
+    ) -> None:
+        """
+        Add a primary key to a table in the database.
+
+        Args:
+            conn (sqlalchemy.engine.Connection): The connection to the database.
+            schema_name (str): The name of the schema containing the table.
+            table_name (str): The name of the table to which the primary key will be added.
+        """
+        conn.execute(
+            text(
+                f"ALTER TABLE {schema_name}.{table_name} ADD PRIMARY KEY ({primary_key})"
+            )
+        )
+
+    def add_table(self, table: pd.DataFrame, database_contract: dict):
+        """
+        Adds a table to the database.
+
+        Parameters:
+        - table (pd.DataFrame): The table to be added.
+        - database_contract (dict): A dictionary containing the database contract.
+
+        Returns:
+        None
+        """
+        table_name = database_contract["tableName"]
+        primary_key = next(
+            col["column"] for col in database_contract["columns"] if col["isPrimary"]
+        )
+        schema_name = database_contract["schema"]
+
+        with self.__engine.begin() as conn:
+            self.__create_schema(conn, schema_name)
+            table.to_sql(
+                table_name,
+                conn,
+                schema=schema_name,
+                if_exists="replace",
+                index=False,
+            )
+            self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
+
+    def query_database(self, query: str) -> pd.DataFrame:
+        """
+        Executes a query on the database and returns the result as a DataFrame.
+
+        Parameters:
+            - query (str): The SQL query to be executed.
+
+            Returns:
+            pd.DataFrame: The result of the query as a DataFrame.
+        """
+        with self.__engine.connect() as conn:
+            df = pd.read_sql_query(query, conn)
+        return df
