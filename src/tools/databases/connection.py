@@ -144,5 +144,5 @@ class DBConnectionHandler:
             pd.DataFrame: The result of the query as a DataFrame.
         """
         with self.__engine.connect() as conn:
-            df = pd.read_sql_query(query, conn)
+            df = pd.read_sql_query(text(query), conn)
         return df
