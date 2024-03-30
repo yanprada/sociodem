@@ -31,16 +31,18 @@ def save_parquet_decorator(medallon: str, database_contract: dict) -> None:
     def wrap_outer(funcao):
         def wrapper(*args, **kwargs):
             result = funcao(*args, **kwargs)
-            path = database_contract.path.format(medallon=medallon).split(".")[0]
+            path = database_contract.physicalPath.format(medallon=medallon).split(".")[
+                0
+            ]
             if isinstance(result, (pd.DataFrame, pd.Series)):
                 save_parquet(result, path)
-                save_in_db(result, medallon, path, database_contract)
+                save_in_db(result, medallon, database_contract)
             elif isinstance(result, tuple):
                 for i, obj in enumerate(result):
                     if isinstance(obj, pd.DataFrame):
                         path = "_".join([path, str(i)])
                         save_parquet(obj, path)
-                        save_in_db(obj, medallon, path, database_contract)
+                        save_in_db(obj, medallon, database_contract)
             return result
 
         return wrapper
@@ -48,19 +50,15 @@ def save_parquet_decorator(medallon: str, database_contract: dict) -> None:
     return wrap_outer
 
 
-def save_in_db(
-    df_data: pd.DataFrame, medallon: str, path: str, database_contract: dict
-) -> None:
+def save_in_db(df_data: pd.DataFrame, medallon: str, database_contract: dict) -> None:
     """
     Saves the given DataFrame to a database table.
 
     Args:
         df_data (pd.DataFrame): The DataFrame to be saved.
         medallon (str): The medallon identifier.
-        path (str): The path to the database.
         database_contract (dict): The contract specifying the database table structure.
     """
-    path = path.split(medallon)[1]
     database_connection = DBConnectionHandler(medallon)
     database_connection.add_table(df_data, database_contract)
 
