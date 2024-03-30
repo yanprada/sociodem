@@ -7,3 +7,5 @@
 dist
 *.csv
 *.parquet
+*.zip
+*.pdf
