@@ -1,7 +1,7 @@
 bronze:
   tableName: aneel_companies_id
   schema: infrastructure
-  path: databases/{medallon}/aneel/companies_id.csv
+  physicalPath: databases/{medallon}/aneel/companies_id.csv
   description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
   queryYear: 2023
   columns:
@@ -40,7 +40,7 @@ bronze:
 silver:
   tableName: aneel_companies_id
   schema: infrastructure
-  path: databases/{medallon}/aneel/companies_id.csv
+  physicalPath: databases/{medallon}/aneel/companies_id.csv
   description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
   queryYear: 2023
   columns:
