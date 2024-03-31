@@ -7,7 +7,7 @@ and filter the DataFrame by the year 2023.
 import pandas as pd
 from src.tools.utils.config import get_contract
 from src.tools.utils.save import save_parquet_decorator
-
+from src.tools.utils.read import Reader
 
 CONTRACT = get_contract("contract_aneel_companies_id.yaml")
 DATABASE_CONTRACT = CONTRACT["bronze"]
@@ -23,7 +23,10 @@ def load_aneel_ids() -> pd.DataFrame:
         pd.DataFrame: A DataFrame containing ANEEL IDs.
     """
     columns = [col["column"] for col in DATABASE_CONTRACT.columns]
-    df = pd.read_csv(DATABASE_CONTRACT.path.format(medallon="bronze"), usecols=columns)
+    reader = Reader(DATABASE_CONTRACT)
+    df = reader.read_csv(
+        DATABASE_CONTRACT.path.format(medallon="bronze"), usecols=columns
+    )
     return df
 
 
