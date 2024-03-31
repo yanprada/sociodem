@@ -4,34 +4,41 @@ bronze:
   physicalPath: databases/{medallon}/aneel/companies_id.csv
   description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
   queryYear: 2023
+  ifExists :  replace
   columns:
   - column: id
-    isPrimary: True
+    isPrimaryKey: True
+    isForeignKey: False
     businessName: Company ID
     description: Unique identifier of the company
-    logicalTye: string
+    logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    translatedValues:
     sampleValues:
     - 818a29b8f4a840e2b08eafc7de1ab68b
     - 8059856c505a4d668363da1bb08e0e8f
   - column: title
-    isPrimary: False
+    isPrimaryKey: False
+    isForeignKey: False
     businessName: Company file name
     description: Name of the file that contains the company data
-    logicalTye: string
+    logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    translatedValues:
     sampleValues:
     - RGE_396_2017-12-31_M10_20180628-2106.gdb.zip
     - CELESC-DIS_5697_2017-12-31_M10_20180420-1635.gdb.zip
   - column: tags
-    isPrimary: False
+    isPrimaryKey: False
+    isForeignKey: False
     businessName: Tags list
     description: List of tags that describe the company
-    logicalTye: string
+    logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    translatedValues:
     sampleValues:
     - COORSEL,2018,DIST
     - CELESC-DIS,2017,DIST
@@ -43,45 +50,54 @@ silver:
   physicalPath: databases/{medallon}/aneel/companies_id.csv
   description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
   queryYear: 2023
+  ifExists :  replace
   columns:
   - column: id
-    isPrimary: True
+    isPrimaryKey: True
+    isForeignKey: False
     businessName: Company ID
     description: Unique identifier of the company
-    logicalTye: string
+    logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    translatedValues:
     sampleValues:
     - 818a29b8f4a840e2b08eafc7de1ab68b
     - 8059856c505a4d668363da1bb08e0e8f
   - column: title
-    isPrimary: False
+    isPrimaryKey: False
+    isForeignKey: False
     businessName: Company file name
     description: Name of the file that contains the company data
-    logicalTye: string
+    logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    translatedValues:
     sampleValues:
     - RGE_396_2017-12-31_M10_20180628-2106.gdb.zip
     - CELESC-DIS_5697_2017-12-31_M10_20180420-1635.gdb.zip
   - column: company
-    isPrimary: False
+    isPrimaryKey: False
+    isForeignKey: False
     businessName: Company name
     description: Company name
-    logicalTye: string
+    logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    translatedValues:
     sampleValues:
     - COORSEL
     - CELESC-DIS
     - EDP_ES
   - column: year
-    isPrimary: False
+    isPrimaryKey: False
+    isForeignKey: False
     businessName: year data
     description: The year the data refers to
-    logicalTye: integer
+    logicalTye: int
     physicalType: int
     isNullable: False
+    translatedValues:
     sampleValues:
     - 2023
     - 2023
