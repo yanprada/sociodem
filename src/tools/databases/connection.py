@@ -121,14 +121,14 @@ class DBConnectionHandler:
             col["column"] for col in database_contract["columns"] if col["isPrimary"]
         )
         schema_name = database_contract["schema"]
-
+        action_if_exists = database_contract["ifExists"]
         with self.__engine.begin() as conn:
             self.__create_schema(conn, schema_name)
             table.to_sql(
                 table_name,
                 conn,
                 schema=schema_name,
-                if_exists="replace",
+                if_exists=action_if_exists,
                 index=False,
             )
             self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
