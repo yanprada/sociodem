@@ -1,0 +1,81 @@
+bronze:
+  tableName: ponnot
+  schema: infrastructure
+  physicalPath: databases/{medallon}/aneel/
+  description: Energy infrastructure points of energy companies
+  queryYear: Null
+  ifExists: append
+  columns:
+  - column: cod_id
+    isPrimaryKey: True
+    isForeignKey: False
+    businessName: Infrastructure point ID
+    description: Unique identifier of the company power pole
+    logicalTye: int
+    physicalType: int
+    isNullable: False
+    translatedValues:
+    sampleValues:
+    - 48
+    - 51
+  - column: dist
+    isPrimaryKey: False
+    isForeignKey: True
+    businessName: Infrastructure point ID
+    description: Unique identifier of the company power pole
+    logicalTye: int
+    physicalType: int
+    isNullable: False
+    translatedValues:
+    sampleValues:
+    - 7883
+    - 7886
+  - column: tip_inst
+    isPrimaryKey: False
+    isForeignKey: False
+    businessName: Power pole type
+    description: Power pole type depending on the area
+    logicalTye: str
+    physicalType: varchar(36)
+    isNullable: False
+    translatedValues:
+      "0": Não informado ou Não Aplicável
+      SE_MT: Subestação em tensão menor ou igual a 48 kV
+      SE_AT: Subestação em tensão maior ou igual a 60 kV
+      LD_AER_MT: Linha de Distribuição Aéreas em tensão menor ou igual que 48 kV
+      LD_AER_AT: Linha de Distribuição Aéreas em tensão maior ou igual que 60 kV
+      LD_SUB_MT: Linha de Distribuição Subterrânea ou Submersa em tensão menor ou igual que 48 kV
+      LD_SUB_AT: Linha de Distribuição Subterrânea ou Submersa em tensão maior ou igual que 60 kV
+      RD_AER_URB: Rede de Distribuição Aérea Urbana
+      RD_AER_RUR: Rede de Distribuição Aérea Rural
+      RD_SUBT_URB: Rede de Distribuição Subterrânea Urbana
+      RD_SUBT_RUR: Rede de Distribuição Subterrânea Rural
+      RD_SUBM: Rede de Distribuição Submersa
+    sampleValues:
+    - RD_AER_URB
+    - RD_AER_RUR
+    - RD_SUBT_URB
+  - column: mun
+    isPrimaryKey: False
+    isForeignKey: False
+    businessName: Municipality code
+    description: Municipality code where is the power pole
+    logicalTye: str
+    physicalType: varchar(36)
+    isNullable: False
+    translatedValues:
+    sampleValues:
+    - 4205159
+    - 4202206
+  - column: geometry
+    isPrimaryKey: False
+    isForeignKey: False
+    businessName: Point geometry
+    description: Point geometry of the power pole
+    logicalTye: geometry
+    physicalType: geometry
+    isNullable: False
+    translatedValues:
+    sampleValues:
+    - POINT (-49.45793 -26.75817)
+    - POINT (-49.43655 -26.76776)
