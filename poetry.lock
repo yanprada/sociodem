@@ -1195,6 +1195,24 @@ vector = ["geopandas", "osmnx"]
 workshop = ["ffmpeg-python", "gdown", "geedim", "geopandas"]
 
 [[package]]
+name = "geoalchemy2"
+version = "0.14.7"
+description = "Using SQLAlchemy with Spatial Databases"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "GeoAlchemy2-0.14.7-py3-none-any.whl", hash = "sha256:af592892c58da0b98aa284d400f207f08a643aeee4523f025cef74991f76af14"},
+    {file = "GeoAlchemy2-0.14.7.tar.gz", hash = "sha256:9ff731c4e5b955525cb128ee7173222365e7f084d4b99f6f68e491bac6b44d21"},
+]
+
+[package.dependencies]
+packaging = "*"
+SQLAlchemy = ">=1.4"
+
+[package.extras]
+shapely = ["Shapely (>=1.7)"]
+
+[[package]]
 name = "geocoder"
 version = "1.38.1"
 description = "Geocoder is a simple and consistent geocoding library."
@@ -4458,4 +4476,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b7601f6bc3af2461a9e2d0bc302cb52b1d05c220e7a4d353bf5beaac19a9cd5f"
+content-hash = "d051f609e7c620d28543946e798bee2e0e77591bd250a3196bc7038f8d4210ea"
