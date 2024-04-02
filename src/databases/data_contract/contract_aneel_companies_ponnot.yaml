@@ -8,36 +8,39 @@ bronze:
   columns:
   - column: cod_id
     isPrimaryKey: True
-    isForeignKey: False
+    ForeignKey: 
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
     logicalTye: int
     physicalType: int
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 48
     - 51
   - column: dist
-    isPrimaryKey: False
-    isForeignKey: True
+    isPrimaryKey: True
+    ForeignKey: 
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
     logicalTye: int
     physicalType: int
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 7883
     - 7886
   - column: tip_inst
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Power pole type
     description: Power pole type depending on the area
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
       "0": Não informado ou Não Aplicável
       SE_MT: Subestação em tensão menor ou igual a 48 kV
@@ -57,24 +60,26 @@ bronze:
     - RD_SUBT_URB
   - column: mun
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Municipality code
     description: Municipality code where is the power pole
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 4205159
     - 4202206
   - column: geometry
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Point geometry
     description: Point geometry of the power pole
     logicalTye: geometry
-    physicalType: geometry
+    physicalType: geom
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - POINT (-49.45793 -26.75817)

@@ -8,36 +8,39 @@ bronze:
   columns:
   - column: cod_id
     isPrimaryKey: True
-    isForeignKey: False
+    ForeignKey: 
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
     logicalTye: int
     physicalType: int
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 48
     - 51
   - column: dist
     isPrimaryKey: False
-    isForeignKey: True
-    businessName: Infrastructure point ID
-    description: Unique identifier of the company power pole
+    ForeignKey: 
+    businessName: Company ID
+    description: Unique identifier of the company 
     logicalTye: int
     physicalType: int
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 7883
     - 7886
   - column: clas_sub
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Power pole consumption type
     description: Power pole consumption type depending on the area
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
       "0": Não informado
       RE1: Residencial
@@ -81,156 +84,169 @@ bronze:
     - CO2
   - column: mun
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Municipality code
     description: Municipality code where is the power pole
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 4205159
     - 4202206
   - column: ene_01
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in January
     description: Energy consumption in January
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_02
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in February
     description: Energy consumption in February
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_03
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in March
     description: Energy consumption in March
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_04
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in April
     description: Energy consumption in April
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_05
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in May
     description: Energy consumption in May
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_06
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in June
     description: Energy consumption in June
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_07
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in July
     description: Energy consumption in July
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_08
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in August
     description: Energy consumption in August
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_09
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in September
     description: Energy consumption in September
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_10
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in October
     description: Energy consumption in October
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_11
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in November
     description: Energy consumption in November
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0
     - 128.0
   - column: ene_12
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Energy consumption in December
     description: Energy consumption in December
     logicalTye: float
     physicalType: float64
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 110.0

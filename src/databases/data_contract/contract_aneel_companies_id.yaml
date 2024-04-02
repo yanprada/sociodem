@@ -8,36 +8,39 @@ bronze:
   columns:
   - column: id
     isPrimaryKey: True
-    isForeignKey: False
+    ForeignKey: 
     businessName: Company ID
     description: Unique identifier of the company
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 818a29b8f4a840e2b08eafc7de1ab68b
     - 8059856c505a4d668363da1bb08e0e8f
   - column: title
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Company file name
     description: Name of the file that contains the company data
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - RGE_396_2017-12-31_M10_20180628-2106.gdb.zip
     - CELESC-DIS_5697_2017-12-31_M10_20180420-1635.gdb.zip
   - column: tags
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Tags list
     description: List of tags that describe the company
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - COORSEL,2018,DIST
@@ -54,36 +57,39 @@ silver:
   columns:
   - column: id
     isPrimaryKey: True
-    isForeignKey: False
+    ForeignKey: 
     businessName: Company ID
     description: Unique identifier of the company
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 818a29b8f4a840e2b08eafc7de1ab68b
     - 8059856c505a4d668363da1bb08e0e8f
   - column: title
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Company file name
     description: Name of the file that contains the company data
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - RGE_396_2017-12-31_M10_20180628-2106.gdb.zip
     - CELESC-DIS_5697_2017-12-31_M10_20180420-1635.gdb.zip
   - column: company
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: Company name
     description: Company name
     logicalTye: str
     physicalType: varchar(36)
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - COORSEL
@@ -91,12 +97,13 @@ silver:
     - EDP_ES
   - column: year
     isPrimaryKey: False
-    isForeignKey: False
+    ForeignKey: 
     businessName: year data
     description: The year the data refers to
     logicalTye: int
     physicalType: int
     isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
     - 2023
