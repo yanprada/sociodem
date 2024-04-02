@@ -31,18 +31,21 @@ def save_parquet_decorator(medallon: str, database_contract: dict) -> None:
     def wrap_outer(funcao):
         def wrapper(*args, **kwargs):
             result = funcao(*args, **kwargs)
-            path = database_contract.physicalPath.format(medallon=medallon).split(".")[
-                0
-            ]
+            path = (
+                database_contract["physicalPath"]
+                .format(medallon=medallon)
+                .split(".")[0]
+            )
             if isinstance(result, (pd.DataFrame, pd.Series)):
-                save_parquet(result, path)
+                save_parquet(result, path, **kwargs)
                 save_in_db(result, medallon, database_contract)
             elif isinstance(result, tuple):
                 for i, obj in enumerate(result):
                     if isinstance(obj, pd.DataFrame):
                         path = "_".join([path, str(i)])
-                        save_parquet(obj, path)
-                        save_in_db(obj, medallon, database_contract)
+                        database_contract_single = database_contract[i]
+                        save_parquet(obj, path, **kwargs)
+                        save_in_db(obj, medallon, database_contract_single)
             return result
 
         return wrapper
@@ -63,15 +66,20 @@ def save_in_db(df_data: pd.DataFrame, medallon: str, database_contract: dict) ->
     database_connection.add_table(df_data, database_contract)
 
 
-def save_parquet(df_data: pd.DataFrame, path: str) -> None:
+def save_parquet(df_data: pd.DataFrame, path: str, **kwargs) -> None:
     """
-    Save a DataFrame or Series as a Parquet file.
+    Save a DataFrame as a Parquet file.
 
-    Args:
-        df_data (pd.DataFrame or pd.Series): The DataFrame or Series to be saved.
+    Parameters:
+        df_data (pd.DataFrame): The DataFrame to be saved.
         path (str): The path where the Parquet file will be saved.
+        **kwargs: Additional keyword arguments.
     """
-    path = "".join([path, ".parquet"])
+    filename = kwargs.get("filename", None)
+    if filename is not None:
+        path = "".join([path, filename, ".parquet"])
+    else:
+        path = "".join([path, ".parquet"])
     df_data = converte_geometria(df_data)
     if isinstance(df_data, pd.DataFrame):
         df_data.columns = [str(i).lower() for i in df_data.columns]
