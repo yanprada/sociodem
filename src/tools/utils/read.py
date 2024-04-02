@@ -32,6 +32,7 @@ class Reader:
             col["column"]: col["logicalTye"] for col in self.contract["columns"]
         }
         df = read_fucntion(file_path, **kwargs)
+        df.columns = df.columns.str.lower()
         df = df.astype(dtypes_dict)
         return df
 
