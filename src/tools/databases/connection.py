@@ -5,11 +5,13 @@ The DBConnectionHandler class encapsulates the logic for creating
 and managing a database connection using SQLAlchemy.
 """
 
+from typing import List
 from decouple import config
 from sqlalchemy import create_engine, text, schema
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
 import sqlalchemy
+import ipdb
 
 # Database credentials
 DB_USER = config("DB_USER")
@@ -105,6 +107,32 @@ class DBConnectionHandler:
             )
         )
 
+    def __add_fk_to_table(
+        self,
+        conn: sqlalchemy.engine.Connection,
+        schema_name: str,
+        table_name: str,
+        foreign_keys: List[tuple[str, str]],
+    ) -> None:
+        """
+        Add foreign keys to a table in the database.
+
+        Args:
+            conn (sqlalchemy.engine.Connection): The connection to the database.
+            schema_name (str): The name of the schema containing the table.
+            table_name (str): The name of the table to which the foreign keys will be added.
+            foreign_keys (List[tuple[str, str]]): Tuple containing the column name
+                                and the path of the foreging key in the database.
+        """
+        for fk_col, fk_path in foreign_keys:
+            conn.execute(
+                text(
+                    f"""ALTER TABLE {schema_name}.{table_name} 
+                        ADD FOREIGN KEY ({fk_col}) 
+                        REFERENCES {fk_path}"""
+                )
+            )
+
     def add_table(self, table: pd.DataFrame, database_contract: dict):
         """
         Adds a table to the database.
@@ -118,20 +146,38 @@ class DBConnectionHandler:
         """
         table_name = database_contract["tableName"]
         primary_key = next(
-            col["column"] for col in database_contract["columns"] if col["isPrimary"]
+            col["column"] for col in database_contract["columns"] if col["isPrimaryKey"]
         )
+        foreign_keys = [
+            (col["column"], col["ForeignKey"])
+            for col in database_contract["columns"]
+            if col["ForeignKey"] is not None
+        ]
         schema_name = database_contract["schema"]
         action_if_exists = database_contract["ifExists"]
         with self.__engine.begin() as conn:
             self.__create_schema(conn, schema_name)
-            table.to_sql(
-                table_name,
-                conn,
-                schema=schema_name,
-                if_exists=action_if_exists,
-                index=False,
-            )
-            self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
+            if table.filter(regex="geom").shape[1] > 0:
+                ipdb.set_trace()
+                table.to_postgis(
+                    table_name,
+                    conn,
+                    schema=schema_name,
+                    if_exists=action_if_exists,
+                    index=False,
+                )
+            else:
+                table.to_sql(
+                    table_name,
+                    conn,
+                    schema=schema_name,
+                    if_exists=action_if_exists,
+                    index=False,
+                )
+            if primary_key is not None:
+                self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
+            if len(foreign_keys) > 0:
+                self.__add_fk_to_table(conn, schema_name, table_name, foreign_keys)
 
     def query_database(self, query: str) -> pd.DataFrame:
         """
