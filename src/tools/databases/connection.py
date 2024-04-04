@@ -11,7 +11,6 @@ from sqlalchemy import create_engine, text, schema
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
 import sqlalchemy
-import ipdb
 
 # Database credentials
 DB_USER = config("DB_USER")
@@ -146,7 +145,12 @@ class DBConnectionHandler:
         """
         table_name = database_contract["tableName"]
         primary_key = next(
-            col["column"] for col in database_contract["columns"] if col["isPrimaryKey"]
+            (
+                col["column"]
+                for col in database_contract["columns"]
+                if col["isPrimaryKey"]
+            ),
+            None,
         )
         foreign_keys = [
             (col["column"], col["ForeignKey"])
@@ -158,7 +162,6 @@ class DBConnectionHandler:
         with self.__engine.begin() as conn:
             self.__create_schema(conn, schema_name)
             if table.filter(regex="geom").shape[1] > 0:
-                ipdb.set_trace()
                 table.to_postgis(
                     table_name,
                     conn,
