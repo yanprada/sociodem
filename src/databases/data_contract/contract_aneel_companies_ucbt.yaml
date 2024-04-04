@@ -6,9 +6,9 @@ bronze:
   queryYear: Null
   ifExists: append
   columns:
-  - column: cod_id
-    isPrimaryKey: True
-    ForeignKey: 
+  - column: pn_con
+    isPrimaryKey: False
+    ForeignKey: bronze.infrastructure.ponnot (cod_id)
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
     logicalTye: int
