@@ -4,14 +4,15 @@ split the tags column into multiple columns,
 and filter the DataFrame by the year 2023.
 """
 
+import os
 import pandas as pd
 from src.tools.utils.config import get_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.read import Reader
+from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 
-DATABASE_CONTRACT = get_contract("contract_aneel_companies_id.yaml", "bronze")
-TABLE_NAME = DATABASE_CONTRACT["tableName"]
-YEAR = DATABASE_CONTRACT["queryYear"]
+CONTRACT_ID = get_contract("contract_aneel_companies_id.yaml", "bronze")
+CONTRACT_PONNOT = get_contract("contract_aneel_companies_ponnot.yaml", "bronze")
 
 
 def load_aneel_ids() -> pd.DataFrame:
@@ -21,9 +22,9 @@ def load_aneel_ids() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A DataFrame containing ANEEL IDs.
     """
-    columns = [col["column"] for col in DATABASE_CONTRACT.columns]
-    reader = Reader(DATABASE_CONTRACT)
-    df = reader.read_csv(DATABASE_CONTRACT.physicalPath, usecols=columns)
+    columns = [col["column"] for col in CONTRACT_ID.columns]
+    reader = Reader(CONTRACT_ID)
+    df = reader.read_csv(CONTRACT_ID.physicalPath, usecols=columns)
     return df
 
 
@@ -45,7 +46,33 @@ def split_tags(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@save_parquet_decorator(medallon="silver", contract=DATABASE_CONTRACT)
+def download_files(df: pd.DataFrame) -> None:
+    """
+    Downloads files from the ANEEL website.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the ANEEL IDs.
+
+    """
+    aneel_request = HttpRequesterAneel()
+    aneel_request.request_from_page(
+        df["id"],
+        df["title"],
+        os.path.join(CONTRACT_PONNOT["physicalPath"], "zip_files"),
+    )
+
+
+def download_aneel_company_files(df_aneel_ids: pd.DataFrame) -> None:
+    """
+    Downloads ANEEL company files.
+
+    This function loads ANEEL IDs and downloads the corresponding files for each company.
+    """
+
+    download_files(df_aneel_ids)
+
+
+@save_parquet_decorator(medallon="silver", contract=CONTRACT_ID)
 def main() -> pd.DataFrame:
     """
     This function loads ANEEL IDs, splits tags, and returns a DataFrame filtered by selected year.
@@ -61,5 +88,11 @@ def main() -> pd.DataFrame:
         pandas.DataFrame: A DataFrame containing ANEEL Company IDs filtered by selected year.
 
     """
-    df = load_aneel_ids().pipe(split_tags).query(f"year == '{YEAR}'").drop_duplicates()
+    df = (
+        load_aneel_ids()
+        .pipe(split_tags)
+        .query(f"year == '{CONTRACT_ID.queryYear}'")
+        .drop_duplicates()
+    )
+    download_aneel_company_files(df)
     return df
