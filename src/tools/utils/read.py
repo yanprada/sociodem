@@ -28,12 +28,8 @@ class Reader:
         Returns:
         - DataFrame: The data read from the file.
         """
-        dtypes_dict = {
-            col["column"]: col["logicalTye"] for col in self.contract["columns"]
-        }
         df = read_fucntion(file_path, **kwargs)
         df.columns = df.columns.str.lower()
-        df = df.astype(dtypes_dict)
         return df
 
     def read_parquet(self, file_path: str, **kwargs):
