@@ -2,7 +2,228 @@ bronze:
   contractName: contract_aneel_companies_ucbt.yaml
   tableName: ucbt
   schema: infrastructure
-  physicalPath: databases/bronze/aneel/
+  physicalPath: databases/bronze/aneel/ucbt/
+  description: Energy infrastructure consumption for energy companies
+  queryYear: Null
+  ifExists: append
+  columns:
+  - column: pn_con
+    isPrimaryKey: False
+    ForeignKey:
+    businessName: Infrastructure point ID
+    description: Unique identifier of the company power pole
+    logicalType: str
+    physicalType: str
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - "48"
+    - "51"
+    - "ETU-SUI"
+  - column: dist
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Company ID
+    description: Unique identifier of the company 
+    logicalType: int
+    physicalType: int
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 7883
+    - 5274
+  - column: clas_sub
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Power pole consumption type
+    description: Power pole consumption type depending on the area
+    logicalType: str
+    physicalType: varchar(36)
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - RU6
+    - SP1
+    - CO2
+  - column: mun
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Municipality code
+    description: Municipality code where is the power pole
+    logicalType: str
+    physicalType: varchar(36)
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 4205159
+    - 4202206
+  - column: ene_01
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in January
+    description: Energy consumption in January
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_02
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in February
+    description: Energy consumption in February
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_03
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in March
+    description: Energy consumption in March
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_04
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in April
+    description: Energy consumption in April
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_05
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in May
+    description: Energy consumption in May
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_06
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in June
+    description: Energy consumption in June
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_07
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in July
+    description: Energy consumption in July
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_08
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in August
+    description: Energy consumption in August
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_09
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in September
+    description: Energy consumption in September
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_10
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in October
+    description: Energy consumption in October
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_11
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in November
+    description: Energy consumption in November
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+  - column: ene_12
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Energy consumption in December
+    description: Energy consumption in December
+    logicalType: float
+    physicalType: float64
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 110.0
+    - 128.0
+
+
+silver:
+  contractName: contract_aneel_companies_ucbt.yaml
+  tableName: ucbt
+  schema: infrastructure
+  physicalPath: databases/silver/aneel/ucbt/
   description: Energy infrastructure consumption for energy companies
   queryYear: Null
   ifExists: append
