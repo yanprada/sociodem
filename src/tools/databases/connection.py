@@ -107,6 +107,12 @@ class DBConnection(DBConnectionHandler):
         if not conn.dialect.has_schema(conn, schema_name):
             conn.execute(schema.CreateSchema(schema_name))
 
+    def __get_pk(self, contract):
+        return next(
+            (col["column"] for col in contract["columns"] if col["isPrimaryKey"]),
+            None,
+        )
+
     def __add_pk_to_table(
         self,
         conn: sqlalchemy.engine.Connection,
@@ -137,6 +143,13 @@ class DBConnection(DBConnectionHandler):
                 )
             )
 
+    def __get_fk(self, contract):
+        return [
+            (col["column"], col["ForeignKey"])
+            for col in contract["columns"]
+            if col["ForeignKey"] is not None
+        ]
+
     def __add_fk_to_table(
         self,
         conn: sqlalchemy.engine.Connection,
@@ -164,11 +177,41 @@ class DBConnection(DBConnectionHandler):
                 )
             )
             if not result.fetchone():
+
                 conn.execute(
                     text(
                         f"""ALTER TABLE {schema_name}.{table_name} 
-                            ADD FOREIGN KEY ({fk_col}) 
-                            REFERENCES {fk_path}"""
+                                ADD FOREIGN KEY ({fk_col}) 
+                                REFERENCES {fk_path}"""
+                    )
+                )
+
+    def __get_not_null(self, contract):
+        return [col["column"] for col in contract["columns"] if col["isNullable"]]
+
+    def __add_not_null_to_table(
+        self,
+        conn: sqlalchemy.engine.Connection,
+        schema_name: str,
+        table_name: str,
+        not_null_columns: List[tuple[str, str]],
+    ):
+
+        for col in not_null_columns:
+            result = conn.execute(
+                text(
+                    f"""SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = '{table_name}' 
+                    AND column_name = '{col}' 
+                    AND is_nullable = 'NO'"""
+                )
+            )
+            if not result.fetchone():
+                conn.execute(
+                    text(
+                        f"""ALTER TABLE {schema_name}.{table_name} 
+                        ALTER COLUMN {col} SET NOT NULL"""
                     )
                 )
 
@@ -228,34 +271,25 @@ class DBConnection(DBConnectionHandler):
         except UniqueViolation:
             pass
 
-    def add_table(self, table: pd.DataFrame, database_contract: dict):
+    def add_table(self, table: pd.DataFrame, contract: dict):
         """
         Adds a table to the database.
 
         Parameters:
         - table (pd.DataFrame): The table to be added.
-        - database_contract (dict): A dictionary containing the database contract.
+        - contract (dict): A dictionary containing the database contract.
 
         Returns:
         None
         """
-        table_name = database_contract["tableName"]
+        table_name = contract["tableName"]
 
-        primary_key = next(
-            (
-                col["column"]
-                for col in database_contract["columns"]
-                if col["isPrimaryKey"]
-            ),
-            None,
-        )
-        foreign_keys = [
-            (col["column"], col["ForeignKey"])
-            for col in database_contract["columns"]
-            if col["ForeignKey"] is not None
-        ]
-        schema_name = database_contract["schema"]
-        action_if_exists = database_contract["ifExists"]
+        primary_key = self.__get_pk(contract)
+        foreign_keys = self.__get_fk(contract)
+        not_null_columns = self.__get_not_null(contract)
+        schema_name = contract["schema"]
+        action_if_exists = contract["ifExists"]
+
         with self.__engine.begin() as conn:
             self.__create_schema(conn, schema_name)
             args = (table, (schema_name, table_name), conn, action_if_exists)
@@ -263,11 +297,16 @@ class DBConnection(DBConnectionHandler):
                 self.__save_as_postgis(*args)
             else:
                 self.__save_to_sql(*args)
+
         with self.__engine.begin() as conn:
             if primary_key is not None:
                 self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
             if len(foreign_keys) > 0:
                 self.__add_fk_to_table(conn, schema_name, table_name, foreign_keys)
+            if len(not_null_columns) > 0:
+                self.__add_not_null_to_table(
+                    conn, schema_name, table_name, not_null_columns
+                )
 
     def query_database(self, query: str) -> pd.DataFrame:
         """
