@@ -15,17 +15,28 @@ Functions:
 import os
 import pandas as pd
 import dask.dataframe as dd
-from dtype_diet import report_on_dataframe, optimize_dtypes
 from src.tools.databases.connection import DBConnection
 
 
-def save_parquet_decorator(medallon: str, contract: dict) -> None:
+def save_parquet_decorator(
+    medallon: str,
+    contract: dict,
+    save_pq: bool = True,
+    save_db: bool = True,
+) -> None:
     """
     Decorator function that saves the output of a decorated function as a Parquet file.
 
     Args:
         medallon (str): The medallon string.
         contract (dict): The database contract dictionary.
+        save_pq (bool, optional): Flag indicating whether to save the result
+                    as a Parquet file. Defaults to True.
+        save_db (bool, optional): Flag indicating whether to save the result
+                    in the database. Defaults to True.
+
+    Returns:
+        None
     """
 
     def wrap_outer(funcao):
@@ -33,15 +44,19 @@ def save_parquet_decorator(medallon: str, contract: dict) -> None:
             result = funcao(*args, **kwargs)
             path = contract["physicalPath"].split(".")[0]
             if isinstance(result, (pd.DataFrame, pd.Series)):
-                save_parquet(result, path, **kwargs)
-                save_in_db(result, medallon, contract)
+                if save_pq:
+                    save_parquet(result, path, **kwargs)
+                if save_db:
+                    save_in_db(result, medallon, contract)
             elif isinstance(result, tuple):
                 for i, obj in enumerate(result):
                     if isinstance(obj, pd.DataFrame):
                         path = "_".join([path, str(i)])
                         database_contract_single = contract[i]
-                        save_parquet(obj, path, **kwargs)
-                        save_in_db(obj, medallon, database_contract_single)
+                        if save_pq:
+                            save_parquet(obj, path, **kwargs)
+                        if save_db:
+                            save_in_db(obj, medallon, database_contract_single)
             return result
 
         return wrapper
@@ -82,8 +97,6 @@ def save_parquet(df_data: pd.DataFrame, path: str, **kwargs) -> None:
     elif isinstance(df_data, pd.Series):
         df_data.name = str(df_data.name).lower()
         df_data = df_data.to_frame()
-    proposed_df = report_on_dataframe(df_data, unit="MB")
-    df_data = optimize_dtypes(df_data, proposed_df)
     save_particionado(df_data, path)
 
 
@@ -147,4 +160,4 @@ def save_as_dask(
     filename = filename.replace(".parquet", "/")
     n_particoes = total_size // limit_partition + 1
     ddf_data = dd.from_pandas(df_data, npartitions=int(n_particoes))
-    ddf_data.to_parquet(filename)
+    ddf_data.compute().to_parquet(filename)
