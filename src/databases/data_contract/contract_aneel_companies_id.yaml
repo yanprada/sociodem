@@ -1,7 +1,8 @@
 bronze:
+  contractName: contract_aneel_companies_id.yaml
   tableName: aneel_companies_id
   schema: infrastructure
-  physicalPath: databases/{medallon}/aneel/companies_id.csv
+  physicalPath: databases/bronze/aneel/companies_id.csv
   description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
   queryYear: 2023
   ifExists :  replace
@@ -11,7 +12,7 @@ bronze:
     ForeignKey: 
     businessName: Company ID
     description: Unique identifier of the company
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -24,7 +25,7 @@ bronze:
     ForeignKey: 
     businessName: Company file name
     description: Name of the file that contains the company data
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -37,7 +38,7 @@ bronze:
     ForeignKey: 
     businessName: Tags list
     description: List of tags that describe the company
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -50,7 +51,7 @@ bronze:
 silver:
   tableName: aneel_companies_id
   schema: infrastructure
-  physicalPath: databases/{medallon}/aneel/companies_id.csv
+  physicalPath: databases/silver/aneel/companies_id.csv
   description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
   queryYear: 2023
   ifExists :  replace
@@ -60,7 +61,7 @@ silver:
     ForeignKey: 
     businessName: Company ID
     description: Unique identifier of the company
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -73,7 +74,7 @@ silver:
     ForeignKey: 
     businessName: Company file name
     description: Name of the file that contains the company data
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -86,7 +87,7 @@ silver:
     ForeignKey: 
     businessName: Company name
     description: Company name
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -100,7 +101,7 @@ silver:
     ForeignKey: 
     businessName: year data
     description: The year the data refers to
-    logicalTye: int
+    logicalType: int
     physicalType: int
     isNullable: False
     isBlank: False

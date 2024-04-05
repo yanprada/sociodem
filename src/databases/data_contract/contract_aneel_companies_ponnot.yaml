@@ -1,7 +1,8 @@
 bronze:
+  contractName: contract_aneel_companies_ponnot.yaml
   tableName: ponnot
   schema: infrastructure
-  physicalPath: databases/{medallon}/aneel/
+  physicalPath: databases/bronze/aneel/
   description: Energy infrastructure points of energy companies
   queryYear: Null
   ifExists: append
@@ -11,20 +12,21 @@ bronze:
     ForeignKey: 
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
-    logicalTye: int
-    physicalType: int
+    logicalType: str
+    physicalType: str
     isNullable: False
     isBlank: False
     translatedValues:
     sampleValues:
-    - 48
-    - 51
+    - "48"
+    - "51"
+    - "ETU-SUI"
   - column: dist
     isPrimaryKey: True
     ForeignKey: 
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
-    logicalTye: int
+    logicalType: int
     physicalType: int
     isNullable: False
     isBlank: False
@@ -37,7 +39,7 @@ bronze:
     ForeignKey: 
     businessName: Power pole type
     description: Power pole type depending on the area
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -63,7 +65,7 @@ bronze:
     ForeignKey: 
     businessName: Municipality code
     description: Municipality code where is the power pole
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -76,7 +78,7 @@ bronze:
     ForeignKey: 
     businessName: Point geometry
     description: Point geometry of the power pole
-    logicalTye: geometry
+    logicalType: geometry
     physicalType: geom
     isNullable: False
     isBlank: False

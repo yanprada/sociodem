@@ -1,7 +1,8 @@
 bronze:
+  contractName: contract_aneel_companies_ucbt.yaml
   tableName: ucbt
   schema: infrastructure
-  physicalPath: databases/{medallon}/aneel/
+  physicalPath: databases/bronze/aneel/
   description: Energy infrastructure consumption for energy companies
   queryYear: Null
   ifExists: append
@@ -11,33 +12,34 @@ bronze:
     ForeignKey: bronze.infrastructure.ponnot (cod_id)
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
-    logicalTye: int
-    physicalType: int
+    logicalType: str
+    physicalType: str
     isNullable: False
     isBlank: False
     translatedValues:
     sampleValues:
-    - 48
-    - 51
+    - "48"
+    - "51"
+    - "ETU-SUI"
   - column: dist
     isPrimaryKey: False
     ForeignKey: 
     businessName: Company ID
     description: Unique identifier of the company 
-    logicalTye: int
+    logicalType: int
     physicalType: int
     isNullable: False
     isBlank: False
     translatedValues:
     sampleValues:
     - 7883
-    - 7886
+    - 5274
   - column: clas_sub
     isPrimaryKey: False
     ForeignKey: 
     businessName: Power pole consumption type
     description: Power pole consumption type depending on the area
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -87,7 +89,7 @@ bronze:
     ForeignKey: 
     businessName: Municipality code
     description: Municipality code where is the power pole
-    logicalTye: str
+    logicalType: str
     physicalType: varchar(36)
     isNullable: False
     isBlank: False
@@ -100,7 +102,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in January
     description: Energy consumption in January
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -113,7 +115,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in February
     description: Energy consumption in February
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -126,7 +128,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in March
     description: Energy consumption in March
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -139,7 +141,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in April
     description: Energy consumption in April
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -152,7 +154,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in May
     description: Energy consumption in May
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -165,7 +167,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in June
     description: Energy consumption in June
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -178,7 +180,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in July
     description: Energy consumption in July
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -191,7 +193,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in August
     description: Energy consumption in August
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -204,7 +206,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in September
     description: Energy consumption in September
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -217,7 +219,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in October
     description: Energy consumption in October
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -230,7 +232,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in November
     description: Energy consumption in November
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False
@@ -243,7 +245,7 @@ bronze:
     ForeignKey: 
     businessName: Energy consumption in December
     description: Energy consumption in December
-    logicalTye: float
+    logicalType: float
     physicalType: float64
     isNullable: False
     isBlank: False

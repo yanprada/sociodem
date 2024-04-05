@@ -8,7 +8,7 @@ bronze:
       isPrimary: 
       businessName:
       description: 
-      logicalTye:
+      logicalType:
       physicalType:
       isNullable: 
       sampleValues:
@@ -18,7 +18,7 @@ bronze:
       isPrimary: 
       businessName: 
       description: 
-      logicalTye: 
+      logicalType: 
       physicalType: 
       isNullable: 
       sampleValues:
@@ -28,7 +28,7 @@ bronze:
       isPrimary: 
       businessName: 
       description: 
-      logicalTye: 
+      logicalType: 
       physicalType:
       isNullable: 
       sampleValues:
