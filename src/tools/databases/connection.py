@@ -53,6 +53,7 @@ class DBConnectionHandler:
             exc_tb (traceback): The traceback of the exception raised, if any.
         """
         self.session.close()
+        self.__engine = None
 
     def __create_database_engine(self):
         """
@@ -290,7 +291,7 @@ class DBConnection(DBConnectionHandler):
         schema_name = contract["schema"]
         action_if_exists = contract["ifExists"]
 
-        with self.__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:
             self.__create_schema(conn, schema_name)
             args = (table, (schema_name, table_name), conn, action_if_exists)
             if table.filter(regex="geom").shape[1] > 0:
@@ -298,7 +299,7 @@ class DBConnection(DBConnectionHandler):
             else:
                 self.__save_to_sql(*args)
 
-        with self.__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:
             if primary_key is not None:
                 self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
             if len(foreign_keys) > 0:
@@ -318,6 +319,6 @@ class DBConnection(DBConnectionHandler):
             Returns:
             pd.DataFrame: The result of the query as a DataFrame.
         """
-        with self.__engine.connect() as conn:
+        with self._DBConnectionHandler__engine.connect() as conn:
             df = pd.read_sql_query(text(query), conn)
         return df
