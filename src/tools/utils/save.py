@@ -16,34 +16,30 @@ import os
 import pandas as pd
 import dask.dataframe as dd
 from dtype_diet import report_on_dataframe, optimize_dtypes
-from src.tools.databases.connection import DBConnectionHandler
+from src.tools.databases.connection import DBConnection
 
 
-def save_parquet_decorator(medallon: str, database_contract: dict) -> None:
+def save_parquet_decorator(medallon: str, contract: dict) -> None:
     """
     Decorator function that saves the output of a decorated function as a Parquet file.
 
     Args:
         medallon (str): The medallon string.
-        database_contract (dict): The database contract dictionary.
+        contract (dict): The database contract dictionary.
     """
 
     def wrap_outer(funcao):
         def wrapper(*args, **kwargs):
             result = funcao(*args, **kwargs)
-            path = (
-                database_contract["physicalPath"]
-                .format(medallon=medallon)
-                .split(".")[0]
-            )
+            path = contract["physicalPath"].split(".")[0]
             if isinstance(result, (pd.DataFrame, pd.Series)):
                 save_parquet(result, path, **kwargs)
-                save_in_db(result, medallon, database_contract)
+                save_in_db(result, medallon, contract)
             elif isinstance(result, tuple):
                 for i, obj in enumerate(result):
                     if isinstance(obj, pd.DataFrame):
                         path = "_".join([path, str(i)])
-                        database_contract_single = database_contract[i]
+                        database_contract_single = contract[i]
                         save_parquet(obj, path, **kwargs)
                         save_in_db(obj, medallon, database_contract_single)
             return result
@@ -62,7 +58,7 @@ def save_in_db(df_data: pd.DataFrame, medallon: str, database_contract: dict) ->
         medallon (str): The medallon identifier.
         database_contract (dict): The contract specifying the database table structure.
     """
-    database_connection = DBConnectionHandler(medallon)
+    database_connection = DBConnection(medallon)
     database_connection.add_table(df_data, database_contract)
 
 
