@@ -14,38 +14,27 @@ Usage:
 """
 
 import gc
+import logging
 import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
+
 from src.tools.utils.config import get_contract
-from src.tools.databases.connection import DBConnectionHandler
+from src.tools.databases.connection import DBConnection
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.read import Reader
 
+logging.basicConfig(level=logging.INFO)
 
-MEDALLON_INPUT_CONTRACT = "silver"
-CONTRACT_INPUT = get_contract("contract_aneel_companies_id.yaml")
-DATABASE_INPUT_CONTRACT = CONTRACT_INPUT[MEDALLON_INPUT_CONTRACT]
-TABLE_INPUT_PATH = ".".join(
-    [DATABASE_INPUT_CONTRACT["schema"], DATABASE_INPUT_CONTRACT["tableName"]]
-)
+CONTRACT_INPUT = get_contract("contract_aneel_companies_id.yaml", "silver")
+TABLE_INPUT_PATH = ".".join([CONTRACT_INPUT["schema"], CONTRACT_INPUT["tableName"]])
 
-MEDALLON_OUTPUT_CONTRACT_PONNOT = "bronze"
-CONTRACT_OUTPUT_PONNOT = get_contract("contract_aneel_companies_ponnot.yaml")
-DATABASE_OUTPUT_CONTRACT_PONNOT = CONTRACT_OUTPUT_PONNOT[
-    MEDALLON_OUTPUT_CONTRACT_PONNOT
-]
-PATH_OUTPUT_PONNOT = DATABASE_OUTPUT_CONTRACT_PONNOT["physicalPath"].format(
-    medallon=MEDALLON_OUTPUT_CONTRACT_PONNOT
-)
 
-MEDALLON_OUTPUT_CONTRACT_UCBT = "bronze"
-CONTRACT_OUTPUT_UCBT = get_contract("contract_aneel_companies_ucbt.yaml")
-DATABASE_OUTPUT_CONTRACT_UCBT = CONTRACT_OUTPUT_UCBT[MEDALLON_OUTPUT_CONTRACT_UCBT]
-PATH_OUTPUT_UCBT = DATABASE_OUTPUT_CONTRACT_UCBT["physicalPath"].format(
-    medallon=MEDALLON_OUTPUT_CONTRACT_UCBT
-)
+CONTRACT_PONNOT = get_contract("contract_aneel_companies_ponnot.yaml", "bronze")
+
+
+CONTRACT_UCBT = get_contract("contract_aneel_companies_ucbt.yaml", "bronze")
 
 
 def load_aneel_ids() -> pd.DataFrame:
@@ -55,11 +44,11 @@ def load_aneel_ids() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A DataFrame containing ANEEL IDs.
     """
-    conn = DBConnectionHandler(MEDALLON_INPUT_CONTRACT)
+    conn = DBConnection("silver")
     df = conn.query_database(
         f"""
             SELECT * FROM {TABLE_INPUT_PATH} 
-            WHERE year = '{DATABASE_INPUT_CONTRACT["queryYear"]}' 
+            WHERE year = '{CONTRACT_INPUT["queryYear"]}' 
             AND company NOT LIKE '%tab%' 
             AND title LIKE '%_V%'
         """
@@ -79,11 +68,11 @@ def download_files(df: pd.DataFrame) -> None:
     aneel_request.request_from_page(
         df["id"],
         df["title"],
-        PATH_OUTPUT_PONNOT,
+        CONTRACT_PONNOT["physicalPath"],
     )
 
 
-def download_aneel_company_files(df_aneel_ids: pd.DataFrame):
+def download_aneel_company_files(df_aneel_ids: pd.DataFrame) -> None:
     """
     Downloads ANEEL company files.
 
@@ -93,34 +82,32 @@ def download_aneel_company_files(df_aneel_ids: pd.DataFrame):
     download_files(df_aneel_ids)
 
 
-@save_parquet_decorator(
-    MEDALLON_OUTPUT_CONTRACT_PONNOT, DATABASE_OUTPUT_CONTRACT_PONNOT
-)
+@save_parquet_decorator(medallon="bronze", contract=CONTRACT_PONNOT)
 def read_aneel_ponnot(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     """
     Reads ANEEL PONNOT files and save it.
 
     This function reads the downloaded ANEEL PONNOT files.
     """
-    reader = Reader(DATABASE_OUTPUT_CONTRACT_PONNOT)
+    reader = Reader(CONTRACT_PONNOT)
     df_ponnot = reader.read_geofile(
-        "/".join([PATH_OUTPUT_PONNOT, row_title]),
+        "/".join([CONTRACT_PONNOT["physicalPath"], row_title]),
         driver="FileGDB",
         layer="PONNOT",
     )
     return df_ponnot
 
 
-@save_parquet_decorator(MEDALLON_OUTPUT_CONTRACT_UCBT, DATABASE_OUTPUT_CONTRACT_UCBT)
+@save_parquet_decorator(medallon="bronze", contract=CONTRACT_UCBT)
 def read_aneel_ucbt(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     """
     Reads ANEEL UCBT files and save it.
 
     This function reads the downloaded ANEEL UCBT files.
     """
-    reader = Reader(DATABASE_OUTPUT_CONTRACT_UCBT)
+    reader = Reader(CONTRACT_UCBT)
     df_ucbt = reader.read_geofile(
-        "/".join([PATH_OUTPUT_UCBT, row_title]),
+        "/".join([CONTRACT_UCBT["physicalPath"], row_title]),
         driver="FileGDB",
         layer="UCBT_tab",
     )
@@ -155,4 +142,5 @@ def main(download: bool = False):
     if download:
         download_aneel_company_files(df_aneel_ids)
     for row_title in tqdm(df_aneel_ids["title"]):
+        logging.info("Reading %s", row_title)
         read_aneel_company_files(row_title)

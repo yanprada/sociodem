@@ -9,8 +9,7 @@ from src.tools.utils.config import get_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.read import Reader
 
-CONTRACT = get_contract("contract_aneel_companies_id.yaml")
-DATABASE_CONTRACT = CONTRACT["bronze"]
+DATABASE_CONTRACT = get_contract("contract_aneel_companies_id.yaml", "bronze")
 TABLE_NAME = DATABASE_CONTRACT["tableName"]
 YEAR = DATABASE_CONTRACT["queryYear"]
 
@@ -24,9 +23,7 @@ def load_aneel_ids() -> pd.DataFrame:
     """
     columns = [col["column"] for col in DATABASE_CONTRACT.columns]
     reader = Reader(DATABASE_CONTRACT)
-    df = reader.read_csv(
-        DATABASE_CONTRACT.path.format(medallon="bronze"), usecols=columns
-    )
+    df = reader.read_csv(DATABASE_CONTRACT.physicalPath, usecols=columns)
     return df
 
 
@@ -48,7 +45,7 @@ def split_tags(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@save_parquet_decorator(medallon="silver", database_contract=DATABASE_CONTRACT)
+@save_parquet_decorator(medallon="silver", contract=DATABASE_CONTRACT)
 def main() -> pd.DataFrame:
     """
     This function loads ANEEL IDs, splits tags, and returns a DataFrame filtered by selected year.
