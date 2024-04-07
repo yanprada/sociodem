@@ -6,6 +6,7 @@ It includes methods to read Parquet files, CSV files, Excel files, and shapefile
 
 import pandas as pd
 import geopandas as gpd
+import unidecode
 
 
 class Reader:
@@ -29,7 +30,7 @@ class Reader:
         - DataFrame: The data read from the file.
         """
         df = read_fucntion(file_path, **kwargs)
-        df.columns = df.columns.str.lower()
+        df.columns = df.columns.str.lower().map(unidecode.unidecode)
         return df
 
     def read_parquet(self, file_path: str, **kwargs):
