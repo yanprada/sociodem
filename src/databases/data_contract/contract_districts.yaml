@@ -1,0 +1,21 @@
+bronze:
+  contractName: contract_districts.yaml
+  tableName: districts_from_to
+  schema: from_to
+  physicalPath: data/bronze/from_to/districts_2022.xls
+  description: IBGE districts from 2022, with its relevant municipality, state
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
