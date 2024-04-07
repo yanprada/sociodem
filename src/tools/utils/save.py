@@ -159,5 +159,7 @@ def save_as_dask(
 
     filename = filename.replace(".parquet", "/")
     n_particoes = total_size // limit_partition + 1
+    for col in df_data.filter(like="geom").columns:
+        df_data[col] = df_data[col].astype(str)
     ddf_data = dd.from_pandas(df_data, npartitions=int(n_particoes))
-    ddf_data.compute().to_parquet(filename)
+    ddf_data.to_parquet(filename)
