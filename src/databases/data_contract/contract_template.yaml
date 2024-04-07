@@ -1,36 +1,21 @@
 bronze:
-  - tableName:
-    path:
+  contractName: 
+  tableName: 
+  schema: 
+  physicalPath: 
+  description: 
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
     description: 
-    queryYear: 
-    columns:
-    - column: 
-      isPrimary: 
-      businessName:
-      description: 
-      logicalType:
-      physicalType:
-      isNullable: 
-      sampleValues:
-      - 
-      - 
-    - column: 
-      isPrimary: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      sampleValues:
-      - 
-      - 
-    - column: 
-      isPrimary: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType:
-      isNullable: 
-      sampleValues:
-      - 
-      -
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
