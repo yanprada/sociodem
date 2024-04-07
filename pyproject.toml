@@ -33,6 +33,8 @@ psycopg2-binary = "^2.9.9"
 dtype-diet = "^0.0.2"
 dask-geopandas = "^0.3.1"
 geoalchemy2 = "^0.14.7"
+shapely = "^2.0.3"
+unidecode = "^1.3.8"
 
 
 [build-system]
