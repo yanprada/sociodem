@@ -9,3 +9,4 @@ dist
 *.parquet
 *.zip
 *.pdf
+*.xls
