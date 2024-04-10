@@ -30,7 +30,9 @@ class Reader:
         - DataFrame: The data read from the file.
         """
         df = read_fucntion(file_path, **kwargs)
-        df.columns = df.columns.str.lower().map(unidecode.unidecode)
+        df.columns = (
+            df.columns.str.lower().map(unidecode.unidecode).str.replace(" ", "_")
+        )
         return df
 
     def read_parquet(self, file_path: str, **kwargs):
@@ -45,6 +47,21 @@ class Reader:
         - DataFrame: The data read from the Parquet file.
         """
         read_function = pd.read_parquet
+        df = self.__read(read_function, file_path, **kwargs)
+        return df
+
+    def read_geoparquet(self, file_path: str, **kwargs):
+        """
+        Reads a Parquet file and returns a geopandas DataFrame.
+
+        Parameters:
+        - file_path (str): The path to the Parquet file.
+        - **kwargs: Additional keyword arguments to be passed to the `gpd.read_parquet` function.
+
+        Returns:
+        - DataFrame: The data read from the Parquet file.
+        """
+        read_function = gpd.read_parquet
         df = self.__read(read_function, file_path, **kwargs)
         return df
 
