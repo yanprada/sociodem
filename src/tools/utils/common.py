@@ -7,7 +7,12 @@ Functions:
 """
 
 import logging
-import datetime
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def write_log(message, level="info"):
@@ -21,21 +26,14 @@ def write_log(message, level="info"):
     Returns:
     None
     """
-    # Set up logging configuration
-    logging.basicConfig(
-        level=logging.INFO if level == "info" else logging.ERROR,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # Get current timestampy
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Get logger instance
+    logger = logging.getLogger()
 
     # Write log message
     if level == "info":
-        logging.info("%s - %s", timestamp, message)
+        logger.info("%s", message)
     else:
-        logging.error("%s - %s", timestamp, message)
+        logger.error("%s", message)
 
 
 def get_column_memory_usage(df):
