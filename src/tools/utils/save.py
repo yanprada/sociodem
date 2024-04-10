@@ -13,9 +13,10 @@ Functions:
 """
 
 import os
+import yaml
 import pandas as pd
 import dask.dataframe as dd
-from src.tools.databases.connection import DBConnection
+from src.tools.databases.data_connection.connection import DBConnection
 
 
 def save_parquet_decorator(
@@ -143,6 +144,29 @@ def converte_geometria(df_data: pd.DataFrame) -> pd.DataFrame:
     return df_data
 
 
+def add_partition_size_to_yaml(filename: str, n_particoes: int) -> None:
+    """
+    Add partition size information to a YAML file.
+
+    Args:
+        filename (str): The name of the file.
+        n_particoes (int): The number of partitions.
+    """
+    contracts_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "databases",
+        "data_contract",
+        "contract_db_partitions.yaml",
+    )
+    with open(contracts_path, "r", encoding="utf-8") as file:
+        existing_data = yaml.safe_load(file)
+        if existing_data is None:
+            existing_data = {}
+        existing_data[filename] = int(n_particoes)
+    with open(contracts_path, "w", encoding="utf-8") as file:
+        yaml.dump(existing_data, file)
+
+
 def save_as_dask(
     df_data: pd.DataFrame, filename: str, total_size: int, limit_partition: int
 ) -> None:
@@ -156,9 +180,10 @@ def save_as_dask(
         limit_partition (int): The maximum memory size for each partition.
 
     """
-
     filename = filename.replace(".parquet", "/")
     n_particoes = total_size // limit_partition + 1
+    # Open the YAML file in write mode
+    add_partition_size_to_yaml(filename, n_particoes)
     for col in df_data.filter(like="geom").columns:
         df_data[col] = df_data[col].astype(str)
     ddf_data = dd.from_pandas(df_data, npartitions=int(n_particoes))
