@@ -10,7 +10,7 @@ Usage:
 """
 
 import pytest
-from src.tools.databases.connection import DBConnectionHandler
+from src.tools.databases.data_connection.connection import DBConnectionHandler
 
 
 @pytest.mark.skip(reason="Sensitive test")

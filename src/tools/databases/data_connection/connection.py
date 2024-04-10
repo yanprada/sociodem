@@ -13,6 +13,7 @@ import pandas as pd
 import sqlalchemy
 from psycopg2.errors import UniqueViolation
 
+
 # Database credentials
 DB_USER = config("DB_USER")
 DB_PASSWORD = config("DB_PASSWORD")
@@ -300,6 +301,7 @@ class DBConnection(DBConnectionHandler):
                 self.__save_to_sql(*args)
 
         with self._DBConnectionHandler__engine.begin() as conn:
+
             if primary_key is not None:
                 self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
             if len(foreign_keys) > 0:
