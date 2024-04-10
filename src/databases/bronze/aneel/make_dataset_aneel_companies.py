@@ -15,7 +15,6 @@ Usage:
 
 import os
 import gc
-import logging
 import multiprocessing
 import concurrent.futures
 from typing import List, Tuple
@@ -25,13 +24,11 @@ from tqdm import tqdm
 import pandas as pd
 import geopandas as gpd
 
-from src.tools.databases.connection import DBConnection
+from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.read import Reader
 from src.tools.utils.config import get_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log
-
-logging.basicConfig(level=logging.INFO)
 
 CONTRACT_ID = get_contract("contract_aneel_companies_id.yaml", "silver")
 CONTRACT_PONNOT = get_contract("contract_aneel_companies_ponnot.yaml", "bronze")
@@ -250,7 +247,7 @@ def split_file_sizes(df_aneel_ids) -> Tuple[List[str], List[str]]:
     return large_files, medium_files, small_files
 
 
-def process_small_files(small_files: list):
+def process_small_files(small_files: list) -> None:
     """
     Process small files using multiprocessing.
 
@@ -267,7 +264,7 @@ def process_small_files(small_files: list):
         concurrent.futures.wait(futures)
 
 
-def proccess_medium_files(medium_files: list):
+def proccess_medium_files(medium_files: list) -> None:
     """
     Process medium files using concurrent.futures.ProcessPoolExecutor.
 
@@ -284,7 +281,7 @@ def proccess_medium_files(medium_files: list):
         concurrent.futures.wait(futures)
 
 
-def process_large_files(large_files):
+def process_large_files(large_files) -> None:
     """
     Process a list of large files.
 
@@ -293,7 +290,9 @@ def process_large_files(large_files):
     """
     write_log("Processing large files")
     for row_title in tqdm(large_files):
-        write_log("Reading large file: %s", row_title)
+        write_log(
+            f"Reading large file: {row_title}",
+        )
         read_aneel_company_files(row_title)
 
 
