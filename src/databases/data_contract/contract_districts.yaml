@@ -1,21 +1,35 @@
 bronze:
   contractName: contract_districts.yaml
-  tableName: districts_from_to
+  tableName: districts
   schema: from_to
-  physicalPath: data/bronze/from_to/districts_2022.xls
+  physicalPath: databases/bronze/from_to/districts_2022.xls
   description: IBGE districts from 2022, with its relevant municipality, state
   queryYear: 
-  ifExists: 
+  ifExists: "replace"
   columns:
-  - column: 
-    isPrimaryKey: 
+  - column: uf
+    isPrimaryKey: True
     ForeignKey: 
-    businessName: 
-    description: 
-    logicalType: 
-    physicalType: 
-    isNullable: 
-    isBlank: 
+    businessName: Code of the state
+    description: IBGE code of the state
+    logicalType: int
+    physicalType: int
+    isNullable: False
+    isBlank: False
     translatedValues:
     sampleValues:
-    - 
+    - 11
+    - 35
+  - column: nome_uf
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: state name
+    description: IBGE state name
+    logicalType: str
+    physicalType: varchar(36)
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 11
+    - 35

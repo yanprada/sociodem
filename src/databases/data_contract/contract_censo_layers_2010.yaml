@@ -1,0 +1,21 @@
+bronze:
+  contractName: 
+  tableName: 
+  schema: 
+  physicalPath: 
+  description: 
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
