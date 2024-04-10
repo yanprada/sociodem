@@ -8,7 +8,7 @@ bronze:
   ifExists: append
   columns:
   - column: cod_id
-    isPrimaryKey: True
+    isPrimaryKey: False
     ForeignKey: 
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
@@ -22,7 +22,7 @@ bronze:
     - "51"
     - "ETU-SUI"
   - column: dist
-    isPrimaryKey: True
+    isPrimaryKey: False
     ForeignKey: 
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
@@ -74,7 +74,6 @@ bronze:
     sampleValues:
     - POINT (-49.45793 -26.75817)
     - POINT (-49.43655 -26.76776)
-
 
 silver:
   contractName: contract_aneel_companies_ponnot.yaml

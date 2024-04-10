@@ -34,6 +34,19 @@ bronze:
     sampleValues:
     - 7883
     - 5274
+  - column: ramal
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName: Power pole connection ID
+    description: Unique identifier of the company power pole connection
+    logicalType: int
+    physicalType: int
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 7883
+    - 5274
   - column: clas_sub
     isPrimaryKey: False
     ForeignKey: 
@@ -230,7 +243,7 @@ silver:
   columns:
   - column: pn_con
     isPrimaryKey: False
-    ForeignKey: bronze.infrastructure.ponnot (cod_id)
+    ForeignKey: silver.infrastructure.ponnot (cod_id)
     businessName: Infrastructure point ID
     description: Unique identifier of the company power pole
     logicalType: str
@@ -247,6 +260,19 @@ silver:
     ForeignKey: 
     businessName: Company ID
     description: Unique identifier of the company 
+    logicalType: int
+    physicalType: int
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 7883
+    - 5274
+  - column: ramal
+    isPrimaryKey: False
+    ForeignKey: silver.infrastructure.ramlig (cod_id)
+    businessName: Power pole connection ID
+    description: Unique identifier of the company power pole connection
     logicalType: int
     physicalType: int
     isNullable: False

@@ -8,7 +8,7 @@ bronze:
   ifExists: append
   columns:
   - column: cod_id
-    isPrimaryKey: True
+    isPrimaryKey: False
     ForeignKey: 
     businessName: Infrastructure connection ID
     description: Unique identifier of the company power pole connection
@@ -50,7 +50,7 @@ bronze:
     - "ETU-SUI"
   - column: pn_con_2
     isPrimaryKey: False
-    ForeignKey: infrastructure.ponnot.cod_id
+    ForeignKey: 
     businessName: Power pole identifier
     description: Power pole identifier of the second point of the connection
     logicalType: str
@@ -75,12 +75,11 @@ bronze:
     sampleValues:
     - 
     - 
-
 silver:
   contractName: contract_aneel_companies_ramlig.yaml
   tableName: ramlig
   schema: infrastructure
-  physicalPath: databases/bronze/aneel/ramlig/
+  physicalPath: databases/silver/aneel/ramlig/
   description: Energy infrastructure connection between two points of energy
   queryYear: Null
   ifExists: append
@@ -114,7 +113,7 @@ silver:
     - 7886
   - column: pn_con_1
     isPrimaryKey: False
-    ForeignKey: infrastructure.ponnot.cod_id
+    ForeignKey: bronze.infrastructure.ponnot (cod_id)
     businessName: Power pole identifier
     description: Power pole identifier of the first point of the connection
     logicalType: str
@@ -128,7 +127,7 @@ silver:
     - "ETU-SUI"
   - column: pn_con_2
     isPrimaryKey: False
-    ForeignKey: infrastructure.ponnot.cod_id
+    ForeignKey: bronze.infrastructure.ponnot (cod_id)
     businessName: Power pole identifier
     description: Power pole identifier of the second point of the connection
     logicalType: str
