@@ -26,10 +26,10 @@ from src.tools.utils.constants import CRS
 from src.databases.bronze.aneel.make_dataset_aneel_companies import load_aneel_ids
 
 
-CONTRACT_ID = get_contract("contract_aneel_companies_id.yaml", "silver")
-CONTRACT_PONNOT = get_contract("contract_aneel_companies_ponnot.yaml", "bronze")
-CONTRACT_UCBT = get_contract("contract_aneel_companies_ucbt.yaml", "bronze")
-CONTRACT_RAMLIG = get_contract("contract_aneel_companies_ramlig.yaml", "bronze")
+CONTRACT_ID = get_contract("aneel/contract_aneel_companies_id.yaml", "silver")
+CONTRACT_PONNOT = get_contract("aneel/contract_aneel_companies_ponnot.yaml", "bronze")
+CONTRACT_UCBT = get_contract("aneel/contract_aneel_companies_ucbt.yaml", "bronze")
+CONTRACT_RAMLIG = get_contract("aneel/contract_aneel_companies_ramlig.yaml", "bronze")
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACT_PONNOT, save_pq=False)
@@ -101,6 +101,10 @@ def main():
     writes a log message, and uploads data to various services.
     """
     df_aneel_ids = load_aneel_ids()
+    # retirar arquivo que não tem camada ucbt
+    df_aneel_ids = df_aneel_ids.query(
+        "title != 'EAC_26_2022-12-31_V11_20230725-1759.gdb.zip'"
+    )
     for row_title in tqdm(df_aneel_ids["title"]):
         write_log(f"Processing row title: {row_title}")
         _ = upload_ponnot(row_title)
