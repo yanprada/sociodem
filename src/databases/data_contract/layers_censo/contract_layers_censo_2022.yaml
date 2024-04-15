@@ -1,0 +1,21 @@
+bronze:
+  contractName: 
+  tableName: 
+  schema: 
+  physicalPath: databases/bronze/layers_censo/2022/
+  description: 
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
