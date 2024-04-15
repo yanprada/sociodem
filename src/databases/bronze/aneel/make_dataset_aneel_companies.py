@@ -19,8 +19,7 @@ import multiprocessing
 import concurrent.futures
 from typing import List, Tuple
 from tqdm import tqdm
-
-
+import fiona
 import pandas as pd
 import geopandas as gpd
 
@@ -88,6 +87,8 @@ def read_aneel_ponnot(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     path = os.path.join(
         CONTRACT_PONNOT["physicalPath"].replace("ponnot", "zip_files"), row_title
     )
+    layers = fiona.listlayers(path)
+    assert "PONNOT" in layers, f"PONNOT not found in the file {path}"
     df_ponnot = reader.read_geofile(
         file_path=path,
         driver="FileGDB",
@@ -108,6 +109,8 @@ def read_aneel_ucbt(row_title: str, **kwargs) -> gpd.GeoDataFrame:
         CONTRACT_UCBT["physicalPath"].replace("ucbt", "zip_files"),
         row_title,
     )
+    layers = fiona.listlayers(path)
+    assert "UCBT_tab" in layers, f"UCBT_tab not found in the file {path}"
     df_ucbt = reader.read_geofile(
         file_path=path,
         driver="FileGDB",
@@ -128,6 +131,8 @@ def read_aneel_ramlig(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     path = os.path.join(
         CONTRACT_RAMLIG["physicalPath"].replace("ramlig", "zip_files"), row_title
     )
+    layers = fiona.listlayers(path)
+    assert "RAMLIG" in layers, f"RAMLIG not found in the file {path}"
     df_ramlig = reader.read_geofile(
         file_path=path,
         driver="FileGDB",
@@ -155,7 +160,7 @@ def read_ponnot(row_title: str) -> None:
     )
     exist_file = exist_small_file or exist_large_file
     if not exist_file:
-        kwargs = {"filename": "_".join([row_title.split(".")[0], "ponnot"])}
+        kwargs = {"filename": file_name}
         df_ponnot = read_aneel_ponnot(row_title, **kwargs)
         del df_ponnot
         gc.collect()
@@ -177,7 +182,7 @@ def read_ucbt(row_title: str) -> None:
     )
     exist_file = exist_small_file or exist_large_file
     if not exist_file:
-        kwargs = {"filename": "_".join([row_title.split(".")[0], "ucbt"])}
+        kwargs = {"filename": file_name}
         df_ucbt = read_aneel_ucbt(row_title, **kwargs)
         del df_ucbt
         gc.collect()
@@ -200,7 +205,7 @@ def read_ramlig(row_title: str) -> None:
     )
     exist_file = exist_small_file or exist_large_file
     if not exist_file:
-        kwargs = {"filename": "_".join([row_title.split(".")[0], "ramlig"])}
+        kwargs = {"filename": file_name}
         df_ramlig = read_aneel_ramlig(row_title, **kwargs)
         del df_ramlig
         gc.collect()
