@@ -2,7 +2,7 @@ bronze:
   contractName: 
   tableName: 
   schema: 
-  physicalPath: databases/bronze/layers_censo/2010/
+  physicalPath: databases/bronze/censo/layers/2022/
   description: 
   queryYear: 
   ifExists: 
