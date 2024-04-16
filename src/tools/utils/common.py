@@ -21,17 +21,13 @@ def write_log(message, level="info"):
 
     Parameters:
     message (str): The log message to be written.
-    level (str): The log level, either 'info' or 'error'. Default is 'info'.
-
-    Returns:
-    None
+    level (str): The log level, either 'info', 'warning', or 'error'. Default is 'info'.
     """
-    # Get logger instance
     logger = logging.getLogger()
-
-    # Write log message
     if level == "info":
         logger.info("%s", message)
+    elif level == "warning":
+        logger.warning("%s", message)
     else:
         logger.error("%s", message)
 
