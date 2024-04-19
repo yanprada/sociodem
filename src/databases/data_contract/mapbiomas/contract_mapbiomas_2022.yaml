@@ -1,0 +1,21 @@
+bronze:
+  contractName: 
+  tableName: mapbiomas_2022.gpkg
+  schema: 
+  physicalPath: databases/bronze/mapbiomas/
+  description: 
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
