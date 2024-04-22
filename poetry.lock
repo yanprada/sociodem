@@ -2500,6 +2500,24 @@ files = [
 ]
 
 [[package]]
+name = "networkx"
+version = "3.3"
+description = "Python package for creating and manipulating graphs and networks"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "networkx-3.3-py3-none-any.whl", hash = "sha256:28575580c6ebdaf4505b22c6256a2b9de86b316dc63ba9e93abde3d78dfdbcf2"},
+    {file = "networkx-3.3.tar.gz", hash = "sha256:0c127d8b2f4865f59ae9cb8aafcd60b5c70f3241ebd66f7defad7c4ab90126c9"},
+]
+
+[package.extras]
+default = ["matplotlib (>=3.6)", "numpy (>=1.23)", "pandas (>=1.4)", "scipy (>=1.9,!=1.11.0,!=1.11.1)"]
+developer = ["changelist (==0.5)", "mypy (>=1.1)", "pre-commit (>=3.2)", "rtoml"]
+doc = ["myst-nb (>=1.0)", "numpydoc (>=1.7)", "pillow (>=9.4)", "pydata-sphinx-theme (>=0.14)", "sphinx (>=7)", "sphinx-gallery (>=0.14)", "texext (>=0.6.7)"]
+extra = ["lxml (>=4.6)", "pydot (>=2.0)", "pygraphviz (>=1.12)", "sympy (>=1.10)"]
+test = ["pytest (>=7.2)", "pytest-cov (>=4.0)"]
+
+[[package]]
 name = "nodeenv"
 version = "1.8.0"
 description = "Node.js virtual environment builder"
@@ -2557,6 +2575,69 @@ files = [
     {file = "numpy-1.26.4-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:7e50d0a0cc3189f9cb0aeb3a6a6af18c16f59f004b866cd2be1c14b36134a4a0"},
     {file = "numpy-1.26.4.tar.gz", hash = "sha256:2a02aba9ed12e4ac4eb3ea9421c420301a0c6460d9830d74a9df87efa4912010"},
 ]
+
+[[package]]
+name = "osmium"
+version = "3.7.0"
+description = "Python bindings for libosmium, the data processing library for OSM data"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "osmium-3.7.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a4898cbf594e4b0aa2cf95cb1e51dc4735bc18df9dcee0503fd1845b0560e637"},
+    {file = "osmium-3.7.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:bbf6eb8683fb544db96d9bef2729f5b460f91e86f71e37108072a1712c199ec5"},
+    {file = "osmium-3.7.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4463f106e5e8c26bd69e183348c7ff8b6f0798d4b7b91d637e634a39ba97d4de"},
+    {file = "osmium-3.7.0-cp310-cp310-win_amd64.whl", hash = "sha256:390514d151165b549c5303ca7ea0b1ee67d25349a6d33df1b66e22256575c1c3"},
+    {file = "osmium-3.7.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:e6e35e0a82fff6f8f67923deec07d40a46e228e87e2892073a3191a3375cc31d"},
+    {file = "osmium-3.7.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:f71a99b573e319ad12f1c77e0e8a08b683ca6d9dae094bcac038700a481c2c9e"},
+    {file = "osmium-3.7.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:950f2d73e8b5c01851b0f55c2e9335c49883af1baceac969717edc61d3e0f576"},
+    {file = "osmium-3.7.0-cp311-cp311-win_amd64.whl", hash = "sha256:4c1d210c2fec70cbeb94ed573e878566eec1f76d37b1766e7c42e56d515186f8"},
+    {file = "osmium-3.7.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:027e7dc81740270a81d186379b6ce13caf766c26bd59cbdb0362bddaaace25df"},
+    {file = "osmium-3.7.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ee493e4d1b74d73481d10960461df1dc2c945283c61e17ebcb28900e2b8427a3"},
+    {file = "osmium-3.7.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f9797f6b0ff1c432230bd398b173b5682b4fc8d932172dfc406e612c508104b8"},
+    {file = "osmium-3.7.0-cp312-cp312-win_amd64.whl", hash = "sha256:f5872e9ee30399328f962e6d06eff5d907bda569092df3a735c0a73a9b958928"},
+    {file = "osmium-3.7.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:d0dbad94681d4ca6695394c4fa3af226906744827c19fe2a73114ba166622d21"},
+    {file = "osmium-3.7.0-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7d4bdc2b900c8cbefb328c856729306bbc8261e0a87cf5a896dbbaa325a6079"},
+    {file = "osmium-3.7.0-cp36-cp36m-win_amd64.whl", hash = "sha256:c85efab123f24ce3328cbb1a500812b5969b113df5daf3d09fc38aea03939c1d"},
+    {file = "osmium-3.7.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:495f5b972b176878b3fe4c8c12335b61b597ed14b00ec819e7602017680bd9df"},
+    {file = "osmium-3.7.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d3272e0c7532c31e2d4db30f079232742b3893a395638761d22bf68c2bd16366"},
+    {file = "osmium-3.7.0-cp37-cp37m-win_amd64.whl", hash = "sha256:c6b87f66913d540ae6c4acc07bd73586f93a1ce1663da64b7e5fe2d4e7b4f9b8"},
+    {file = "osmium-3.7.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:dd3578a896e603b533ad775e29f7cc5047e97355a9d6d57d890fa4fa5479c72f"},
+    {file = "osmium-3.7.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c7a7e35c517b06b59879fc2b585c0cb317d02e76889b19d080c29ebf4c0e1f1a"},
+    {file = "osmium-3.7.0-cp38-cp38-win_amd64.whl", hash = "sha256:c682e3ee06234cf94d5d3fcb0ebb76044554c9f81f795b9c3951a2b432c33497"},
+    {file = "osmium-3.7.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:38fe8daeb4e12a6e7de1a44ef7fb5898d065c86944c63b89d5a78e1e74012abc"},
+    {file = "osmium-3.7.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:e282ae55e70248d72851db0975a22203b06ddbe92a48e5e639ad1fafeff546d3"},
+    {file = "osmium-3.7.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3d50c42650ab6c84831d281dcbb5a68270a2c51c5f08d4a0fca3aabdc1446786"},
+    {file = "osmium-3.7.0-cp39-cp39-win_amd64.whl", hash = "sha256:17f25a4a5aa57770750fc9913508928e90d398e8c383f1d753721696ecf775c4"},
+    {file = "osmium-3.7.0.tar.gz", hash = "sha256:6ee7f47eb76dca498b9e032f2ab0ee06f5af03b65f8c60cd87f6de97b08caea7"},
+]
+
+[package.dependencies]
+requests = "*"
+
+[[package]]
+name = "osmnx"
+version = "1.9.2"
+description = "Download, model, analyze, and visualize street networks and other geospatial features from OpenStreetMap"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "osmnx-1.9.2-py3-none-any.whl", hash = "sha256:9ea17500b45aa8e4740490d649c7f7747fa4f2e3f9747294837fa2c80aabd05f"},
+    {file = "osmnx-1.9.2.tar.gz", hash = "sha256:59d21756ebdb4a4d211fb1373a3dca170832eec5f25ef94f5500bd79d32c169a"},
+]
+
+[package.dependencies]
+geopandas = ">=0.12"
+networkx = ">=2.5"
+numpy = ">=1.20"
+pandas = ">=1.1"
+requests = ">=2.27"
+shapely = ">=2.0"
+
+[package.extras]
+entropy = ["scipy (>=1.5)"]
+neighbors = ["scikit-learn (>=0.23)", "scipy (>=1.5)"]
+raster = ["gdal", "rasterio (>=1.3)"]
+visualization = ["matplotlib (>=3.5)"]
 
 [[package]]
 name = "packaging"
@@ -4576,4 +4657,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "1ad9ebce0099c0597e999efa965ae8f024f27b94f8f0ea977858d52f169f67cd"
+content-hash = "dac64d62d6620f3f0650a8bf1d037897df730552e89f7757d16c9b0b137f1eff"
