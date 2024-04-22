@@ -23,14 +23,14 @@ def get_path_contracts() -> str:
     """
     file_path = os.path.abspath(__file__)
     directory = os.path.dirname(file_path)
-    path_src = Path(directory).parent.parent.absolute()
-    contract_path = os.path.join(path_src, "databases/data_contract/")
+    path_src = Path(directory).parent.parent.parent.absolute()
+    contract_path = os.path.join(path_src, "data_contract/")
     return contract_path
 
 
 @lru_cache(maxsize=1)
 def get_contract(
-    contract: str = "contract_template.yaml", medallon: str = "bronze"
+    contract: str = "contract_template.yaml", medallon: str = None
 ) -> EasyDict:
     """
     Get the configuration file for contract databases.
@@ -38,7 +38,7 @@ def get_contract(
     Args:
         contract (str): The name of the contract file to be loaded.
                         Default is "contract_template.yaml".
-        medallon (str): The type of medallon. Default is "bronze".
+        medallon (str): The type of medallon. Default is None.
 
     Returns:
         EasyDict: A dictionary-like object that allows attribute access to its keys.
@@ -68,6 +68,8 @@ def get_contract(
     contract_path = os.path.join(contract_path, contract)
     with open(contract_path, "r", encoding="utf-8") as file:
         config = yaml.safe_load(file)
+    if medallon is None:
+        return EasyDict(config)
     return EasyDict(config)[medallon]
 
 
