@@ -45,10 +45,8 @@ def download_layers_censo_2010(censo_request: HttpRequesterCenso):
     combinations = product(
         STATES.keys(), ["setores_censitarios", "subdistritos", "distritos"]
     )
-    censo_request.request_layers_from_page(
-        combinations,
-        CONTRACT_LAYERS_CENSO_2010["physicalPath"],
-    )
+    path_to_save = CONTRACT_LAYERS_CENSO_2010["physicalPath"]
+    censo_request.request_layers_from_page(combinations, path_to_save)
 
 
 def download_info_censo_2022():
@@ -73,10 +71,8 @@ def download_layers_censo_2022(censo_request: HttpRequesterCenso):
 
     """
     combinations = product(STATES.keys(), ["setores", "subdistritos", "distritos"])
-    censo_request.request_layers_from_page(
-        combinations,
-        CONTRACT_LAYERS_CENSO_2022["physicalPath"],
-    )
+    path_to_save = CONTRACT_LAYERS_CENSO_2022["physicalPath"]
+    censo_request.request_layers_from_page(combinations, path_to_save)
 
 
 def download_dompp_censo_2022(censo_request: HttpRequesterCenso):
@@ -95,10 +91,12 @@ def download_dompp_censo_2022(censo_request: HttpRequesterCenso):
     :param censo_request: An instance of the HttpRequesterCenso class.
     :type censo_request: HttpRequesterCenso
     """
-    censo_request.request_dompp_from_page(
-        STATES,
-        CONTRACT_DOMPP_CENSO_2022["physicalPath"],
+    path_to_save = (
+        CONTRACT_DOMPP_CENSO_2022["physicalPath"]
+        .replace("databases", "datalake")
+        .replace("bronze/", "")
     )
+    censo_request.request_dompp_from_page(STATES, path_to_save)
 
 
 def main():
