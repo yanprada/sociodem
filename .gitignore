@@ -11,3 +11,5 @@ dist
 *.pdf
 *.xls
 *.tif
+*.pbf
+*.geojson
