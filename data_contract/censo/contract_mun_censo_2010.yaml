@@ -1,11 +1,11 @@
 bronze:
   contractName: contract_mun_censo_2010.yaml
-  tableName: mun_layer_censo_2010
+  tableName: mun_censo_2010
   schema: layers
   physicalPath: databases/bronze/censo/layers/2010/municipios/
   description: Municipality geometry layer from the 2010 Census
   queryYear: 2010
-  ifExists: append
+  ifExists: replace
   columns:
   - column: cd_geocodm
     isPrimaryKey: False

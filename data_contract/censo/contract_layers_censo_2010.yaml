@@ -1,10 +1,10 @@
 bronze:
-  contractName: 
+  contractName: contract_layers_censo_2010.yaml
   tableName: 
   schema: 
-  physicalPath: databases/bronze/censo/dompp/2022/
+  physicalPath: datalake/censo/layers/2010/
   description: 
-  queryYear: 
+  queryYear: 2010
   ifExists: 
   columns:
   - column: 

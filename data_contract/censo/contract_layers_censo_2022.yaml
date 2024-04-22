@@ -1,10 +1,10 @@
 bronze:
-  contractName: 
+  contractName: contract_layers_censo_2022.yaml
   tableName: 
   schema: 
-  physicalPath: databases/bronze/censo/layers/2022/
+  physicalPath: datalake/censo/layers/2022/
   description: 
-  queryYear: 
+  queryYear: 2022
   ifExists: 
   columns:
   - column: 
