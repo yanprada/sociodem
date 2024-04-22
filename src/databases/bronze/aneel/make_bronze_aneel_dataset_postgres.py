@@ -23,7 +23,7 @@ from src.tools.utils.common import write_log
 from src.tools.utils.config import get_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import CRS
-from src.databases.bronze.aneel.make_dataset_aneel_companies import load_aneel_ids
+from src.databases.bronze.aneel.make_bronze_aneel_dataset_parquet import load_aneel_ids
 
 
 CONTRACT_ID = get_contract("aneel/contract_aneel_companies_id.yaml", "silver")
