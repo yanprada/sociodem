@@ -180,7 +180,9 @@ class HttpRequesterCenso:
         """
         destination_dir = os.path.abspath(destination_path)
         for state, level in tqdm(combinations):
-            filename = os.path.join(destination_dir, level, state)
+            if level == "setores":
+                level_name = "setores_censitarios"
+            filename = os.path.join(destination_dir, level_name, state)
             if not os.path.exists(filename):
                 write_log(f"Requesting {level} - {state}.")
                 if self.year == 2010:
