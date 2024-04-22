@@ -45,10 +45,10 @@ def save_parquet_decorator(
             result = funcao(*args, **kwargs)
             path = contract["physicalPath"].split(".")[0]
             if isinstance(result, (pd.DataFrame, pd.Series)):
-                if save_pq:
-                    save_parquet(result, path, **kwargs)
                 if save_db:
                     save_in_db(result, medallon, contract)
+                if save_pq:
+                    save_parquet(result, path, **kwargs)
             elif isinstance(result, tuple):
                 for i, obj in enumerate(result):
                     if isinstance(obj, pd.DataFrame):
@@ -156,7 +156,7 @@ def add_partition_size_to_yaml(filename: str, n_particoes: int) -> None:
         os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
         "databases",
         "data_contract",
-        "contract_db_partitions.yaml",
+        "contract_partitions.yaml",
     )
     with open(contracts_path, "r", encoding="utf-8") as file:
         existing_data = yaml.safe_load(file)
@@ -182,9 +182,9 @@ def save_as_dask(
     """
     filename = filename.replace(".parquet", "/")
     n_particoes = total_size // limit_partition + 1
-    # Open the YAML file in write mode
     add_partition_size_to_yaml(filename, n_particoes)
     for col in df_data.filter(like="geom").columns:
-        df_data[col] = df_data[col].astype(str)
+        if df_data[col].dtype != "O":
+            df_data[col] = df_data[col].apply(str)
     ddf_data = dd.from_pandas(df_data, npartitions=int(n_particoes))
     ddf_data.to_parquet(filename)
