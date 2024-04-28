@@ -11,8 +11,8 @@ from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.read import Reader
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 
-CONTRACT_ID = get_contract("contract_aneel_companies_id.yaml", "bronze")
-CONTRACT_PONNOT = get_contract("contract_aneel_companies_ponnot.yaml", "bronze")
+CONTRACT_ID = get_contract("aneel/contract_aneel_companies_id.yaml", "bronze")
+CONTRACT_PONNOT = get_contract("aneel/contract_aneel_companies_ponnot.yaml", "bronze")
 
 
 def load_aneel_ids() -> pd.DataFrame:
@@ -24,7 +24,7 @@ def load_aneel_ids() -> pd.DataFrame:
     """
     columns = [col["column"] for col in CONTRACT_ID.columns]
     reader = Reader(CONTRACT_ID)
-    df = reader.read_csv(CONTRACT_ID.physicalPath, usecols=columns)
+    df = reader.read_csv(CONTRACT_ID["physicalPath"], usecols=columns)
     return df
 
 
@@ -98,6 +98,9 @@ def main() -> pd.DataFrame:
         .pipe(split_tags)
         .query(f"year == '{CONTRACT_ID.queryYear}'")
         .drop_duplicates()
+    )
+    df["company_id"] = df.apply(
+        lambda row: row["title"].replace(row["company"], "cp").split("_")[1], axis=1
     )
     download_aneel_company_files(df)
     return df
