@@ -5,14 +5,20 @@ The DBConnectionHandler class encapsulates the logic for creating
 and managing a database connection using SQLAlchemy.
 """
 
-from typing import List
+import warnings
+
+# import concurrent.futures
+from typing import List, Tuple, Union
 from decouple import config
-from sqlalchemy import create_engine, text, schema
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
+import geopandas as gpd
+import numpy as np
 import sqlalchemy
-from psycopg2.errors import UniqueViolation
+from tqdm import tqdm
 
+warnings.filterwarnings("ignore")
 
 # Database credentials
 DB_USER = config("DB_USER")
@@ -107,7 +113,7 @@ class DBConnection(DBConnectionHandler):
             schema_name (str): The name of the schema to be created.
         """
         if not conn.dialect.has_schema(conn, schema_name):
-            conn.execute(schema.CreateSchema(schema_name))
+            conn.execute(sqlalchemy.schema.CreateSchema(schema_name))
 
     def __get_pk(self, contract):
         return next(
@@ -188,7 +194,7 @@ class DBConnection(DBConnectionHandler):
                     )
                 )
 
-    def __get_not_null(self, contract):
+    def __get_not_null(self, contract: dict):
         return [col["column"] for col in contract["columns"] if col["isNullable"]]
 
     def __add_not_null_to_table(
@@ -217,89 +223,145 @@ class DBConnection(DBConnectionHandler):
                     )
                 )
 
-    def __save_as_postgis(
+    # def __save_in_parallel(self, partitions, names):
+    #     with concurrent.futures.ThreadPoolExecutor() as executor:
+    #         futures = [
+    #             executor.submit(self._save_small_table, partition, names, "append")
+    #             for partition in tqdm(partitions)
+    #         ]
+    #         concurrent.futures.wait(futures)
+
+    def __save_in_sequence(self, partitions, names):
+        for partition in tqdm(partitions):
+            self._save_small_table(partition, names, "append")
+
+    def __save_large_table(
         self,
-        table: pd.DataFrame,
+        table: Union[pd.DataFrame, gpd.GeoDataFrame],
         names: tuple[str, str],
-        conn: sqlalchemy.engine.Connection,
-        action_if_exists: str,
+        action_if_table_exists: str,
+        memory_usage: int,
     ):
+        num_partitions = int(memory_usage / 500) + 1
+        partitions = np.array_split(table, num_partitions)
+        if action_if_table_exists == "replace":
+            self.__drop_table(*names)
+        self.__save_in_sequence(partitions, names)
+
+    def _save_small_table(
+        self,
+        table,
+        names: tuple[str, str],
+        action_if_table_exists: str,
+    ):
+        """
+        Save a small table to the database.
+
+        Args:
+            table: The table to be saved. It can be either a GeoDataFrame or a regular DataFrame.
+            names: A tuple containing the schema name and table name where the table will be saved.
+            action_if_table_exists: The action to take if the table already exists in the database.
+        """
+        schema_name, table_name = names
+        try:
+            with self._DBConnectionHandler__engine.begin() as conn:
+                self.__create_schema(conn, schema_name)
+                if isinstance(table, gpd.GeoDataFrame):
+                    table.to_postgis(
+                        table_name,
+                        conn,
+                        schema=schema_name,
+                        if_exists=action_if_table_exists,
+                        index=False,
+                    )
+                else:
+                    table.to_sql(
+                        table_name,
+                        conn,
+                        schema=schema_name,
+                        if_exists=action_if_table_exists,
+                        index=False,
+                    )
+        except Exception as e:
+            if conn is not None and not conn.closed:
+                conn.close()
+            raise e
+
+    def __save_table(
+        self,
+        table: Union[pd.DataFrame, gpd.GeoDataFrame],
+        names: tuple[str, str],
+        action_if_table_exists: str,
+    ) -> None:
         """
         Save a table as a PostGIS table in the database.
 
         Args:
-            table (pd.DataFrame): The table to be saved.
+            table (Union[pd.DataFrame, gpd.GeoDataFrame]): The table to be saved.
             names (tuple[str, str]): A tuple containing the schema name and table name.
-            conn (sqlalchemy.engine.Connection): The connection to the database.
-            action_if_exists (str): The action to take if the table already exists in the database.
+            action_if_table_exists (str): The action to take if the table already
+            exists in the database.
         """
-        schema_name, table_name = names
-        try:
-            table.to_postgis(
-                table_name,
-                conn,
-                schema=schema_name,
-                if_exists=action_if_exists,
-                index=False,
-            )
-        except UniqueViolation:
-            pass
+        memory_usage = table.memory_usage(deep=True).sum() / (1024 * 1024)
+        if memory_usage > 500:
+            self.__save_large_table(table, names, action_if_table_exists, memory_usage)
+        else:
+            self._save_small_table(table, names, action_if_table_exists)
 
-    def __save_to_sql(
-        self,
-        table: pd.DataFrame,
-        names: tuple[str, str],
-        conn: sqlalchemy.engine.Connection,
-        action_if_exists: str,
+    def __create_temp_table(
+        self, table: Union[pd.DataFrame, gpd.GeoDataFrame], schema: str, table_name: str
     ):
-        """
-        Save a table as a SQL table in the database.
+        temp_table_name = f"temp_{table_name}"
+        self.__save_table(table, (schema, temp_table_name), "replace")
 
-        Args:
-            table (pd.DataFrame): The table to be saved.
-            names (tuple[str, str]): A tuple containing the schema name and table name.
-            conn (sqlalchemy.engine.Connection): The connection to the database.
-            action_if_exists (str): The action to take if the table already exists in the database.
-        """
+    def __update_table(self, schema: str, table_name: str, columns: List[list]):
+        with self._DBConnectionHandler__engine.connect() as conn:
+            all_columns = columns[0]
+            match_columns = columns[1]
+            trans = conn.begin()
+            try:
+                original_row_count = conn.execute(
+                    text(f"SELECT COUNT(*) FROM {schema}.{table_name}")
+                ).scalar()
+                # Update the existing rows in the table
+                update_query = f"""
+                            UPDATE {schema}.{table_name} AS t
+                            SET
+                        """
+                update_query += ",\n".join(
+                    [f"    {col} = temp.{col}" for col in match_columns]
+                )
+                update_query += f"""
+                            FROM {schema}.temp_{table_name} AS temp
+                            WHERE
+                        """
+                update_query += " AND \n".join(
+                    [f"t.{col} = temp.{col}" for col in all_columns]
+                )
+
+                conn.execute(text(update_query))
+                final_row_count = conn.execute(
+                    text(f"SELECT COUNT(*) FROM {schema}.{table_name}")
+                ).scalar()
+                assert (
+                    original_row_count == final_row_count
+                ), "Row count mismatch, update failed"
+                trans.commit()
+            except Exception as e:
+                trans.rollback()
+                raise e
+
+    def __drop_table(self, schema: str, table_name: str):
+        with self._DBConnectionHandler__engine.connect() as conn:
+            try:
+                # Drop the temporary table
+                drop_query = f"DROP TABLE IF EXISTS {schema}.{table_name}"
+                conn.execute(text(drop_query))
+            except Exception as e:
+                raise e
+
+    def __update_table_keys(self, names, primary_key, foreign_keys, not_null_columns):
         schema_name, table_name = names
-        try:
-            table.to_sql(
-                table_name,
-                conn,
-                schema=schema_name,
-                if_exists=action_if_exists,
-                index=False,
-            )
-        except UniqueViolation:
-            pass
-
-    def add_table(self, table: pd.DataFrame, contract: dict):
-        """
-        Adds a table to the database.
-
-        Parameters:
-        - table (pd.DataFrame): The table to be added.
-        - contract (dict): A dictionary containing the database contract.
-
-        Returns:
-        None
-        """
-        table_name = contract["tableName"]
-
-        primary_key = self.__get_pk(contract)
-        foreign_keys = self.__get_fk(contract)
-        not_null_columns = self.__get_not_null(contract)
-        schema_name = contract["schema"]
-        action_if_exists = contract["ifExists"]
-
-        with self._DBConnectionHandler__engine.begin() as conn:
-            self.__create_schema(conn, schema_name)
-            args = (table, (schema_name, table_name), conn, action_if_exists)
-            if table.filter(regex="geom").shape[1] > 0:
-                self.__save_as_postgis(*args)
-            else:
-                self.__save_to_sql(*args)
-
         with self._DBConnectionHandler__engine.begin() as conn:
 
             if primary_key is not None:
@@ -311,6 +373,56 @@ class DBConnection(DBConnectionHandler):
                     conn, schema_name, table_name, not_null_columns
                 )
 
+    def add_table(self, table: Union[pd.DataFrame, gpd.GeoDataFrame], contract: dict):
+        """
+        Adds a table to the database.
+
+        Parameters:
+        - table (pd.DataFrame): The table to be added.
+        - contract (dict): A dictionary containing the database contract.
+        """
+        primary_key = self.__get_pk(contract)
+        foreign_keys = self.__get_fk(contract)
+        not_null_columns = self.__get_not_null(contract)
+        action_if_table_exists = contract["ifExists"]
+        names = (contract["schema"], contract["tableName"])
+
+        if table.filter(regex="geom").shape[1] > 0:
+            col_geom = table.filter(regex="geom").columns[0]
+            if all(table[col_geom].isnull()) or all(table[col_geom] == "None"):
+                table.drop(columns=col_geom, inplace=True)
+                if isinstance(table, gpd.GeoDataFrame):
+                    table = table.to_pandas()
+
+        self.__save_table(table, names, action_if_table_exists)
+        self.__update_table_keys(names, primary_key, foreign_keys, not_null_columns)
+
+    def update_table(
+        self,
+        table: Union[pd.DataFrame, gpd.GeoDataFrame],
+        columns: List[list],
+        names: Tuple[str, str],
+    ) -> None:
+        """
+        Update the table in the database with the rows present in the DataFrame.
+
+        Args:
+            table (pd.DataFrame): The DataFrame containing the updated rows.
+            columns (List[list]): The columns to be updated.
+            names (Tuple[str, str]): The path to the table in the format (schema, table).
+
+        Raises:
+            Exception: If there's an error during database operation.
+        """
+        try:
+            schema, table_name = names
+
+            self.__create_temp_table(table, schema, table_name)
+            self.__update_table(schema, table, columns)
+            self.__drop_table(schema, f"temp_{table}")
+        except Exception as e:
+            raise e
+
     def query_database(self, query: str) -> pd.DataFrame:
         """
         Executes a query on the database and returns the result as a DataFrame.
@@ -318,7 +430,7 @@ class DBConnection(DBConnectionHandler):
         Parameters:
             - query (str): The SQL query to be executed.
 
-            Returns:
+        Returns:
             pd.DataFrame: The result of the query as a DataFrame.
         """
         with self._DBConnectionHandler__engine.connect() as conn:
