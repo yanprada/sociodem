@@ -29,10 +29,10 @@ from src.tools.utils.config import get_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log
 
-CONTRACT_ID = get_contract("contract_aneel_companies_id.yaml", "silver")
-CONTRACT_PONNOT = get_contract("contract_aneel_companies_ponnot.yaml", "bronze")
-CONTRACT_UCBT = get_contract("contract_aneel_companies_ucbt.yaml", "bronze")
-CONTRACT_RAMLIG = get_contract("contract_aneel_companies_ramlig.yaml", "bronze")
+CONTRACT_ID = get_contract("aneel/contract_aneel_companies_id.yaml", "silver")
+CONTRACT_PONNOT = get_contract("aneel/contract_aneel_companies_ponnot.yaml", "bronze")
+CONTRACT_UCBT = get_contract("aneel/contract_aneel_companies_ucbt.yaml", "bronze")
+CONTRACT_RAMLIG = get_contract("aneel/contract_aneel_companies_ramlig.yaml", "bronze")
 
 
 def load_aneel_ids() -> pd.DataFrame:
