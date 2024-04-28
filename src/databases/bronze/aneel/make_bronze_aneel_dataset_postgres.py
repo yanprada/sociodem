@@ -5,19 +5,22 @@ It contains functions to upload different types of files (PONNOT, UCBT, RAMLIG)
 and process each row title from the 'df_aneel_ids' DataFrame.
 
 Functions:
-- upload_ponnot(row_title): Uploads ANEEL PONNOT files to the database.
-- save_df_problematic(df_ucbt): Filters the given DataFrame to remove rows 
-        where the 'pn_con' column is empty.
-- upload_ucbt(row_title): Uploads ANEEL UCBT files to the database.
-- upload_ramlig(row_title): Uploads ANEEL RAMLIG files to the database.
-- main(): Processes each row title from the 'df_aneel_ids' DataFrame, 
-        writes a log message, and uploads data to various services.
+- upload_ponnot(row_title: str) -> gpd.GeoDataFrame: Uploads ANEEL PONNOT files to the database.
+- save_df_problematic(df_ucbt: pd.DataFrame) -> pd.DataFrame: Filters the given DataFrame 
+    to remove rows where the 'pn_con' column is empty.
+- upload_ucbt(row_title: str, saved_columns_ucbt: List[str]) -> pd.DataFrame: Uploads ANEEL
+     UCBT files to the database.
+- upload_ramlig(row_title: str) -> pd.DataFrame: Uploads ANEEL RAMLIG files to the database.
+- main(check_in_db: bool = True) -> None: Processes each row title from the 'df_aneel_ids' 
+    DataFrame, writes a log message, and uploads data to various services.
 """
 
 import os
+from typing import List
 from shapely import wkt
 import geopandas as gpd
 from tqdm import tqdm
+import pandas as pd
 from src.tools.utils.read import Reader
 from src.tools.utils.common import write_log
 from src.tools.utils.config import get_contract
@@ -34,7 +37,7 @@ CONTRACT_RAMLIG = get_contract("aneel/contract_aneel_companies_ramlig.yaml", "br
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACT_PONNOT, save_pq=False)
-def upload_ponnot(row_title):
+def upload_ponnot(row_title: str) -> gpd.GeoDataFrame:
     """
     Uploads ANEEL PONNOT files to the database.
     """
@@ -59,16 +62,16 @@ def upload_ponnot(row_title):
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACT_UCBT, save_pq=False)
-def upload_ucbt(row_title, saved_columns_ucbt):
+def upload_ucbt(row_title: str, saved_columns_ucbt: List[str]) -> pd.DataFrame:
     """
     Uploads the UCBT dataset.
 
     Args:
-        row_title (str): The title of the row.
-        saved_columns_ucbt (list): The list of columns to be saved.
+    row_title (str): The title of the row.
+    saved_columns_ucbt (list): The list of columns to be saved.
 
     Returns:
-        pandas.DataFrame: The UCBT dataset.
+    pandas.DataFrame: The UCBT dataset.
 
     """
     file_name = "_".join([row_title.split(".")[0], "ucbt"])
@@ -84,7 +87,7 @@ def upload_ucbt(row_title, saved_columns_ucbt):
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACT_RAMLIG, save_pq=False)
-def upload_ramlig(row_title):
+def upload_ramlig(row_title: str) -> pd.DataFrame:
     """
     Uploads ANEEL RAMLIG files to the database.
     """
@@ -101,7 +104,7 @@ def upload_ramlig(row_title):
     return df_ramlig
 
 
-def check_in_postgres(table_name: str):
+def check_in_postgres(table_name: str) -> pd.DataFrame:
     """
     Check if a table exists in the PostgreSQL database and return the distinct
     values of the 'dist' column.
@@ -118,14 +121,14 @@ def check_in_postgres(table_name: str):
     return df
 
 
-def run_ponnot(row_title, company_id, ponnot_in_db):
+def run_ponnot(row_title: str, company_id: int, ponnot_in_db: pd.DataFrame) -> None:
     """
     Runs the 'ponnot' process for a given row title, company ID, and 'ponnot_in_db' data.
 
     Args:
-        row_title (str): The title of the row.
-        company_id (int): The ID of the company.
-        ponnot_in_db (pd.DataFrame): The 'ponnot' data already present in the database.
+    row_title (str): The title of the row.
+    company_id (int): The ID of the company.
+    ponnot_in_db (pd.DataFrame): The 'ponnot' data already present in the database.
     """
     if company_id in ponnot_in_db.values:
         write_log(f"Row title {row_title} already exists in the 'ponnot' table.")
@@ -133,15 +136,17 @@ def run_ponnot(row_title, company_id, ponnot_in_db):
         _ = upload_ponnot(row_title)
 
 
-def run_ucbt(row_title, company_id, ucbt_in_db, saved_columns_ucbt):
+def run_ucbt(
+    row_title: str, company_id: int, ucbt_in_db: dict, saved_columns_ucbt: List[str]
+) -> None:
     """
     Runs the UCBT process for a given row title and company ID.
 
     Args:
-        row_title (str): The title of the row.
-        company_id (int): The ID of the company.
-        ucbt_in_db (dict): A dictionary containing the existing UCBT values in the database.
-        saved_columns_ucbt (list): A list of saved columns for the UCBT.
+    row_title (str): The title of the row.
+    company_id (int): The ID of the company.
+    ucbt_in_db (dict): A dictionary containing the existing UCBT values in the database.
+    saved_columns_ucbt (list): A list of saved columns for the UCBT.
     """
     if company_id in ucbt_in_db.values:
         write_log(f"Row title {row_title} already exists in the 'ucbt' table.")
@@ -149,14 +154,14 @@ def run_ucbt(row_title, company_id, ucbt_in_db, saved_columns_ucbt):
         _ = upload_ucbt(row_title, saved_columns_ucbt)
 
 
-def run_ramlig(row_title, company_id, ramlig_in_db):
+def run_ramlig(row_title: str, company_id: int, ramlig_in_db: pd.DataFrame) -> None:
     """
     Runs the 'ramlig' process for a given row title and company ID.
 
     Args:
-        row_title (str): The title of the row.
-        company_id (int): The ID of the company.
-        ramlig_in_db (pd.DataFrame): The DataFrame containing the existing 'ramlig' data.
+    row_title (str): The title of the row.
+    company_id (int): The ID of the company.
+    ramlig_in_db (pd.DataFrame): The DataFrame containing the existing 'ramlig' data.
     """
     if company_id in ramlig_in_db.values:
         write_log(f"Row title {row_title} already exists in the 'ramlig' table.")
@@ -164,18 +169,18 @@ def run_ramlig(row_title, company_id, ramlig_in_db):
         _ = upload_ramlig(row_title)
 
 
-def get_cols_ucbt():
+def get_cols_ucbt() -> List[str]:
     """
     Retrieves the columns of the 'infrastructure.ucbt' table from the 'bronze' database.
 
     Returns:
-        list: A list of column names.
+    list: A list of column names.
     """
     conn = DBConnection("bronze")
     return conn.query_database("SELECT * FROM infrastructure.ucbt LIMIT 1").columns
 
 
-def main(do_check=False):
+def main(check_in_db: bool = True) -> None:
     """
     This function processes each row title from the 'df_aneel_ids' DataFrame,
     writes a log message, and uploads data to various services.
@@ -186,7 +191,7 @@ def main(do_check=False):
         "title != 'EAC_26_2022-12-31_V11_20230725-1759.gdb.zip'"
     ).astype({"company_id": int})
     saved_columns_ucbt = get_cols_ucbt()
-    if do_check:
+    if check_in_db:
         ponnot_in_db = check_in_postgres("ponnot")
         ucbt_in_db = check_in_postgres("ucbt")
         ramlig_in_db = check_in_postgres("ramlig")
