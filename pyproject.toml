@@ -40,6 +40,10 @@ h3 = "^3.7.7"
 rtree = "^1.2.0"
 osmium = "^3.7.0"
 osmnx = "^1.9.2"
+apache-sedona = "^1.5.1"
+pyspark = "^3.5.1"
+keplergl = "^0.3.2"
+ploomber = "^0.23.2"
 
 
 [build-system]
