@@ -16,7 +16,7 @@ import zipfile
 import pandas as pd
 from tqdm import tqdm
 from src.tools.utils.read import Reader
-from src.tools.utils.config import get_contract
+from src.tools.utils.data_contracts import get_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import STATES
 from src.tools.utils.common import write_log, check_data_consistency
