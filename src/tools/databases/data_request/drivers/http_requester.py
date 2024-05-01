@@ -220,3 +220,59 @@ class HttpRequesterCenso:
                     )
         else:
             write_log("Dompp is not available for this year.", level="warning")
+
+
+class HttpRequesterBuildings:
+    """
+    Http request class to download Building data from OMF or Google
+    """
+
+    def __init__(self, source: str) -> None:
+        self.source = source
+        if self.source == "omf":
+            self.__url = (
+                "https://beta.source.coop/cholmes/overture/"
+                "geoparquet-country-quad-hive/country_iso=BR/{filename}"
+            )
+        elif self.source == "google":
+            self.__url = (
+                "https://beta.source.coop/vida/google-microsoft-open-buildings/"
+                "geoparquet/by_country/country_iso=BRA/{filename}"
+            )
+        else:
+            raise ValueError("Source must be omf or google")
+
+    def __save_file(self, response: requests.Response, filename: str) -> None:
+        if response.status_code == 200:
+            with open(filename, "wb") as f:
+                f.write(response.content)
+        else:
+            raise requests.exceptions.HTTPError(
+                f"Error {response.status_code} in request"
+            )
+
+    def update(self):
+        """
+        This method is responsible for updating the data.
+        """
+
+    def request_from_page(self, filenames: list, destination_path: str):
+        """
+        Requests files from a page and saves them to the specified destination path.
+
+        Args:
+            filenames (list): A list of filenames to request from the page.
+            destination_path (str): The path where the files will be saved.
+        """
+        destination_dir = os.path.abspath(destination_path)
+        for filename in filenames:
+            file_path = os.path.join(destination_dir, filename)
+            if not os.path.exists(file_path):
+                response = requests.get(
+                    self.__url.format(file_path=filename), timeout=10
+                )
+                self.__save_file(response, file_path)
+            else:
+                write_log(
+                    f"File {file_path} already exists in destination.", level="warning"
+                )

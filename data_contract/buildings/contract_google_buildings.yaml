@@ -1,8 +1,8 @@
 bronze:
-  contractName: contract_omf_buildings.yaml
-  tableName: buldings_omf
+  contractName: contract_google_buildings.yaml
+  tableName: buldings_google
   schema: infrastructure
-  physicalPath: databases/bronze/overture_map_foundation/
+  physicalPath: databases/bronze/buildings/google/
   description: 
   queryYear: 
   ifExists: 
