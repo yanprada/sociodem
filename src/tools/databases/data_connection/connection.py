@@ -263,9 +263,10 @@ class DBConnection(DBConnectionHandler):
             action_if_table_exists: The action to take if the table already exists in the database.
         """
         schema_name, table_name = names
-        try:
-            with self._DBConnectionHandler__engine.begin() as conn:
-                self.__create_schema(conn, schema_name)
+
+        with self._DBConnectionHandler__engine.begin() as conn:
+            self.__create_schema(conn, schema_name)
+            try:
                 if isinstance(table, gpd.GeoDataFrame):
                     table.to_postgis(
                         table_name,
@@ -282,10 +283,11 @@ class DBConnection(DBConnectionHandler):
                         if_exists=action_if_table_exists,
                         index=False,
                     )
-        except Exception as e:
-            if conn is not None and not conn.closed:
-                conn.close()
-            raise e
+            except Exception as e:
+                conn.rollback()
+                if conn is not None and not conn.closed:
+                    conn.close()
+                raise e
 
     def __save_table(
         self,
@@ -314,15 +316,16 @@ class DBConnection(DBConnectionHandler):
         temp_table_name = f"temp_{table_name}"
         self.__save_table(table, (schema, temp_table_name), "replace")
 
-    def __update_table(self, schema: str, table_name: str, columns: List[list]):
+    def __update_table(self, schema: str, table_name: str, match_columns: list):
         with self._DBConnectionHandler__engine.connect() as conn:
-            all_columns = columns[0]
-            match_columns = columns[1]
             trans = conn.begin()
             try:
                 original_row_count = conn.execute(
                     text(f"SELECT COUNT(*) FROM {schema}.{table_name}")
                 ).scalar()
+                all_columns = conn.execute(
+                    text(f"SELECT * FROM {schema}.{table_name} LIMIT 1")
+                ).keys()
                 # Update the existing rows in the table
                 update_query = f"""
                             UPDATE {schema}.{table_name} AS t
@@ -352,12 +355,13 @@ class DBConnection(DBConnectionHandler):
                 raise e
 
     def __drop_table(self, schema: str, table_name: str):
-        with self._DBConnectionHandler__engine.connect() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:
             try:
                 # Drop the temporary table
                 drop_query = f"DROP TABLE IF EXISTS {schema}.{table_name}"
                 conn.execute(text(drop_query))
             except Exception as e:
+                conn.rollback()
                 raise e
 
     def __update_table_keys(self, names, primary_key, foreign_keys, not_null_columns):
@@ -397,10 +401,31 @@ class DBConnection(DBConnectionHandler):
         self.__save_table(table, names, action_if_table_exists)
         self.__update_table_keys(names, primary_key, foreign_keys, not_null_columns)
 
+    def delete_rows_table(self, names: Tuple[str, str], condition: str) -> None:
+        """
+        Delete rows from a table in the database.
+
+        Args:
+            names (Tuple[str, str]): The path to the table in the format (schema, table).
+            condition (str): The condition to be used in the DELETE statement.
+
+        Raises:
+            Exception: If there's an error during database operation.
+        """
+        schema, table_name = names
+        with self._DBConnectionHandler__engine.begin() as conn:
+            try:
+                conn.execute(
+                    text(f"DELETE FROM {schema}.{table_name} WHERE {condition}")
+                )
+            except Exception as e:
+                conn.rollback()
+                raise e
+
     def update_table(
         self,
         table: Union[pd.DataFrame, gpd.GeoDataFrame],
-        columns: List[list],
+        columns: list,
         names: Tuple[str, str],
     ) -> None:
         """
@@ -408,7 +433,7 @@ class DBConnection(DBConnectionHandler):
 
         Args:
             table (pd.DataFrame): The DataFrame containing the updated rows.
-            columns (List[list]): The columns to be updated.
+            columns (list): A list of columns to match.
             names (Tuple[str, str]): The path to the table in the format (schema, table).
 
         Raises:
@@ -418,8 +443,8 @@ class DBConnection(DBConnectionHandler):
             schema, table_name = names
 
             self.__create_temp_table(table, schema, table_name)
-            self.__update_table(schema, table, columns)
-            self.__drop_table(schema, f"temp_{table}")
+            self.__update_table(schema, table_name, columns)
+            self.__drop_table(schema, f"temp_{table_name}")
         except Exception as e:
             raise e
 
