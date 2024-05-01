@@ -23,31 +23,27 @@ from tqdm import tqdm
 import pandas as pd
 from src.tools.utils.read import Reader
 from src.tools.utils.common import write_log
-from src.tools.utils.config import get_contract
+from src.tools.utils.data_contracts import get_aneel_contracts
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import CRS
 from src.tools.databases.data_connection.connection import DBConnection
 from src.databases.bronze.aneel.make_bronze_aneel_dataset_parquet import load_aneel_ids
 
 
-CONTRACT_ID = get_contract("aneel/contract_aneel_companies_id.yaml", "silver")
-CONTRACT_PONNOT = get_contract("aneel/contract_aneel_companies_ponnot.yaml", "bronze")
-CONTRACT_UCBT = get_contract("aneel/contract_aneel_companies_ucbt.yaml", "bronze")
-CONTRACT_RAMLIG = get_contract("aneel/contract_aneel_companies_ramlig.yaml", "bronze")
+CONTRACTS = get_aneel_contracts()
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACT_PONNOT, save_pq=False)
-def upload_ponnot(row_title: str) -> gpd.GeoDataFrame:
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ponnot"], save_pq=False)
+def upload_ponnot(file_name: str) -> gpd.GeoDataFrame:
     """
     Uploads ANEEL PONNOT files to the database.
     """
-    file_name = "_".join([row_title.split(".")[0], "ponnot"])
-    file_path_large_files = os.path.join(CONTRACT_PONNOT["physicalPath"], file_name)
+    file_path_large_files = os.path.join(CONTRACTS["ponnot"]["physicalPath"], file_name)
     file_path_small_files = os.path.join(
-        CONTRACT_PONNOT["physicalPath"], "".join([file_name, ".parquet"])
+        CONTRACTS["ponnot"]["physicalPath"], "".join([file_name, ".parquet"])
     )
     exist_large_file = os.path.exists(file_path_large_files)
-    reader = Reader(CONTRACT_PONNOT)
+    reader = Reader(CONTRACTS["ponnot"])
     if exist_large_file:
         df_ponnot = reader.read_parquet(file_path=file_path_large_files)
         df_ponnot = gpd.GeoDataFrame(
@@ -57,50 +53,48 @@ def upload_ponnot(row_title: str) -> gpd.GeoDataFrame:
         )
     else:
         df_ponnot = reader.read_geoparquet(file_path=file_path_small_files)
+    df_ponnot["conj"] = df_ponnot["conj"].fillna(-1)
     df_ponnot = df_ponnot.astype({"conj": int})
     return df_ponnot
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACT_UCBT, save_pq=False)
-def upload_ucbt(row_title: str, saved_columns_ucbt: List[str]) -> pd.DataFrame:
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ucbt"], save_pq=False)
+def upload_ucbt(file_name: str, saved_columns_ucbt: List[str]) -> pd.DataFrame:
     """
     Uploads the UCBT dataset.
 
     Args:
-    row_title (str): The title of the row.
+    file_name (str): The title of the row.
     saved_columns_ucbt (list): The list of columns to be saved.
 
     Returns:
     pandas.DataFrame: The UCBT dataset.
 
     """
-    file_name = "_".join([row_title.split(".")[0], "ucbt"])
-    file_path_large_files = os.path.join(CONTRACT_UCBT["physicalPath"], file_name)
+    file_path_large_files = os.path.join(CONTRACTS["ucbt"]["physicalPath"], file_name)
     file_path_small_files = os.path.join(
-        CONTRACT_UCBT["physicalPath"], "".join([file_name, ".parquet"])
+        CONTRACTS["ucbt"]["physicalPath"], "".join([file_name, ".parquet"])
     )
     exist_large_file = os.path.exists(file_path_large_files)
     file = file_path_large_files if exist_large_file else file_path_small_files
-    reader = Reader(CONTRACT_UCBT)
+    reader = Reader(CONTRACTS["ucbt"])
     df_ucbt = reader.read_parquet(file_path=file, columns=saved_columns_ucbt)
     return df_ucbt
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACT_RAMLIG, save_pq=False)
-def upload_ramlig(row_title: str) -> pd.DataFrame:
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ramlig"], save_pq=False)
+def upload_ramlig(file_name: str) -> pd.DataFrame:
     """
     Uploads ANEEL RAMLIG files to the database.
     """
-    cols = [col["column"] for col in CONTRACT_RAMLIG["columns"]]
-    file_name = "_".join([row_title.split(".")[0], "ramlig"])
-    file_path_large_files = os.path.join(CONTRACT_RAMLIG["physicalPath"], file_name)
+    file_path_large_files = os.path.join(CONTRACTS["ramlig"]["physicalPath"], file_name)
     file_path_small_files = os.path.join(
-        CONTRACT_RAMLIG["physicalPath"], "".join([file_name, ".parquet"])
+        CONTRACTS["ramlig"]["physicalPath"], "".join([file_name, ".parquet"])
     )
     exist_large_file = os.path.exists(file_path_large_files)
     file = file_path_large_files if exist_large_file else file_path_small_files
-    reader = Reader(CONTRACT_RAMLIG)
-    df_ramlig = reader.read_parquet(file_path=file, columns=cols)
+    reader = Reader(CONTRACTS["ramlig"])
+    df_ramlig = reader.read_parquet(file_path=file)
     return df_ramlig
 
 
@@ -133,6 +127,7 @@ def run_ponnot(row_title: str, company_id: int, ponnot_in_db: pd.DataFrame) -> N
     if company_id in ponnot_in_db.values:
         write_log(f"Row title {row_title} already exists in the 'ponnot' table.")
     else:
+        row_title = "_".join([row_title.split(".")[0], "ponnot"])
         _ = upload_ponnot(row_title)
 
 
@@ -151,6 +146,7 @@ def run_ucbt(
     if company_id in ucbt_in_db.values:
         write_log(f"Row title {row_title} already exists in the 'ucbt' table.")
     else:
+        row_title = "_".join([row_title.split(".")[0], "ucbt"])
         _ = upload_ucbt(row_title, saved_columns_ucbt)
 
 
@@ -166,6 +162,7 @@ def run_ramlig(row_title: str, company_id: int, ramlig_in_db: pd.DataFrame) -> N
     if company_id in ramlig_in_db.values:
         write_log(f"Row title {row_title} already exists in the 'ramlig' table.")
     else:
+        row_title = "_".join([row_title.split(".")[0], "ramlig"])
         _ = upload_ramlig(row_title)
 
 
@@ -205,7 +202,8 @@ def main(check_in_db: bool = True) -> None:
             run_ramlig(row_title, company_id, ramlig_in_db)
     else:
         for row_title in tqdm(df_aneel_ids["title"]):
+            row_title = "_".join([row_title.split(".")[0], "ramlig"])
             write_log(f"Processing row title: {row_title}")
-            _ = upload_ponnot(row_title)
-            _ = upload_ucbt(row_title, saved_columns_ucbt)
+            # _ = upload_ponnot(row_title)
+            # _ = upload_ucbt(row_title, saved_columns_ucbt)
             _ = upload_ramlig(row_title)

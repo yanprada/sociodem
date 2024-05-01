@@ -25,14 +25,11 @@ import geopandas as gpd
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.read import Reader
-from src.tools.utils.config import get_contract
+from src.tools.utils.data_contracts import get_aneel_contracts
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log
 
-CONTRACT_ID = get_contract("aneel/contract_aneel_companies_id.yaml", "silver")
-CONTRACT_PONNOT = get_contract("aneel/contract_aneel_companies_ponnot.yaml", "bronze")
-CONTRACT_UCBT = get_contract("aneel/contract_aneel_companies_ucbt.yaml", "bronze")
-CONTRACT_RAMLIG = get_contract("aneel/contract_aneel_companies_ramlig.yaml", "bronze")
+CONTRACTS = get_aneel_contracts()
 
 
 def load_aneel_ids() -> pd.DataFrame:
@@ -49,11 +46,13 @@ def load_aneel_ids() -> pd.DataFrame:
         2   3  2021  CompanyC  TitleC
     """
     conn = DBConnection("silver")
-    path = ".".join([CONTRACT_ID["schema"], CONTRACT_ID["tableName"]])
+    path = ".".join(
+        [CONTRACTS["company_id"]["schema"], CONTRACTS["company_id"]["tableName"]]
+    )
     df = conn.query_database(
         f"""
             SELECT * FROM {path} 
-            WHERE year = '{CONTRACT_ID["queryYear"]}' 
+            WHERE year = '{CONTRACTS["company_id"]["queryYear"]}' 
             AND company NOT LIKE '%tab%' 
             AND title LIKE '%_V%'
         """
@@ -61,7 +60,7 @@ def load_aneel_ids() -> pd.DataFrame:
     return df
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACT_PONNOT, save_db=False)
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ponnot"], save_db=False)
 def read_aneel_ponnot(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     """
     Reads ANEEL PONNOT files and returns a GeoDataFrame.
@@ -83,9 +82,9 @@ def read_aneel_ponnot(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     1        4        5        6
     2        7        8        9
     """
-    reader = Reader(CONTRACT_PONNOT)
+    reader = Reader(CONTRACTS["ponnot"])
     path = os.path.join(
-        CONTRACT_PONNOT["physicalPath"].replace("ponnot", "zip_files"), row_title
+        CONTRACTS["ponnot"]["physicalPath"].replace("ponnot", "zip_files"), row_title
     )
     layers = fiona.listlayers(path)
     assert "PONNOT" in layers, f"PONNOT not found in the file {path}"
@@ -97,16 +96,16 @@ def read_aneel_ponnot(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     return df_ponnot
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACT_UCBT, save_db=False)
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ucbt"], save_db=False)
 def read_aneel_ucbt(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     """
     Reads ANEEL UCBT files and save it.
 
     This function reads the downloaded ANEEL UCBT files.
     """
-    reader = Reader(CONTRACT_UCBT)
+    reader = Reader(CONTRACTS["ucbt"])
     path = os.path.join(
-        CONTRACT_UCBT["physicalPath"].replace("ucbt", "zip_files"),
+        CONTRACTS["ucbt"]["physicalPath"].replace("ucbt", "zip_files"),
         row_title,
     )
     layers = fiona.listlayers(path)
@@ -120,16 +119,16 @@ def read_aneel_ucbt(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     return df_ucbt
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACT_RAMLIG, save_db=False)
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ramlig"], save_db=False)
 def read_aneel_ramlig(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     """
     Reads ANEEL RAMLIG files and save it.
 
     This function reads the downloaded ANEEL RAMLIG files.
     """
-    reader = Reader(CONTRACT_RAMLIG)
+    reader = Reader(CONTRACTS["ramlig"])
     path = os.path.join(
-        CONTRACT_RAMLIG["physicalPath"].replace("ramlig", "zip_files"), row_title
+        CONTRACTS["ramlig"]["physicalPath"].replace("ramlig", "zip_files"), row_title
     )
     layers = fiona.listlayers(path)
     assert "RAMLIG" in layers, f"RAMLIG not found in the file {path}"
@@ -153,10 +152,12 @@ def read_ponnot(row_title: str) -> None:
     """
     file_name = "_".join([row_title.split(".")[0], "ponnot"])
     exist_small_file = os.path.exists(
-        os.path.join(CONTRACT_PONNOT["physicalPath"], "".join([file_name, ".parquet"]))
+        os.path.join(
+            CONTRACTS["ponnot"]["physicalPath"], "".join([file_name, ".parquet"])
+        )
     )
     exist_large_file = os.path.exists(
-        os.path.join(CONTRACT_PONNOT["physicalPath"], file_name)
+        os.path.join(CONTRACTS["ponnot"]["physicalPath"], file_name)
     )
     exist_file = exist_small_file or exist_large_file
     if not exist_file:
@@ -175,10 +176,12 @@ def read_ucbt(row_title: str) -> None:
     """
     file_name = "_".join([row_title.split(".")[0], "ucbt"])
     exist_small_file = os.path.exists(
-        os.path.join(CONTRACT_UCBT["physicalPath"], "".join([file_name, ".parquet"]))
+        os.path.join(
+            CONTRACTS["ucbt"]["physicalPath"], "".join([file_name, ".parquet"])
+        )
     )
     exist_large_file = os.path.exists(
-        os.path.join(CONTRACT_UCBT["physicalPath"], file_name)
+        os.path.join(CONTRACTS["ucbt"]["physicalPath"], file_name)
     )
     exist_file = exist_small_file or exist_large_file
     if not exist_file:
@@ -198,10 +201,12 @@ def read_ramlig(row_title: str) -> None:
     """
     file_name = "_".join([row_title.split(".")[0], "ramlig"])
     exist_small_file = os.path.exists(
-        os.path.join(CONTRACT_RAMLIG["physicalPath"], "".join([file_name, ".parquet"]))
+        os.path.join(
+            CONTRACTS["ramlig"]["physicalPath"], "".join([file_name, ".parquet"])
+        )
     )
     exist_large_file = os.path.exists(
-        os.path.join(CONTRACT_RAMLIG["physicalPath"], file_name)
+        os.path.join(CONTRACTS["ramlig"]["physicalPath"], file_name)
     )
     exist_file = exist_small_file or exist_large_file
     if not exist_file:
@@ -240,7 +245,8 @@ def split_file_sizes(df_aneel_ids) -> Tuple[List[str], List[str]]:
     split_size = 800 * 1024 * 1024
     for row_title in df_aneel_ids["title"]:
         file_path = os.path.join(
-            CONTRACT_PONNOT["physicalPath"].replace("ponnot", "zip_files"), row_title
+            CONTRACTS["ponnot"]["physicalPath"].replace("ponnot", "zip_files"),
+            row_title,
         )
         file_size = os.path.getsize(file_path)
         if file_size >= split_size:
