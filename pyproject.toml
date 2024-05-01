@@ -44,6 +44,7 @@ apache-sedona = "^1.5.1"
 pyspark = "^3.5.1"
 keplergl = "^0.3.2"
 ploomber = "^0.23.2"
+awscli = "^1.32.94"
 
 
 [build-system]
