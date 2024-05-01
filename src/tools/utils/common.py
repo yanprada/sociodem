@@ -8,7 +8,9 @@ Functions:
 
 import os
 import logging
-from src.tools.utils.config import get_contract
+import yaml
+import pandas as pd
+from src.tools.utils.data_contracts import get_contract
 
 
 logging.basicConfig(
@@ -37,7 +39,7 @@ def write_log(message, level="info"):
         logger.error("%s", message)
 
 
-def get_column_memory_usage(df):
+def get_column_memory_usage(df: pd.DataFrame) -> dict:
     """
     Calculate the memory usage of each column in a DataFrame.
 
@@ -61,7 +63,7 @@ def get_column_memory_usage(df):
     return column_memory_usage
 
 
-def check_data_consistency(path) -> dict:
+def check_data_consistency(path: str) -> dict:
     """
     Check the consistency of data in the given path.
 
@@ -83,3 +85,39 @@ def check_data_consistency(path) -> dict:
         file_count = len(os.listdir(subfolder))
         data_wrong[subfolder] = expected_num_files > file_count
     return data_wrong
+
+
+def add_test_to_yaml(yaml_path: str, key: str, value: str) -> None:
+    """
+    Add key-value pair to a YAML file.
+
+    This function reads the existing YAML file, adds the specified key-value pair,
+    and writes the updated data back to the file.
+
+    Args:
+        yaml_path (str): The path to the YAML file.
+        key (str): The key to be added.
+        value (str): The value associated with the key.
+    """
+    with open(yaml_path, "r", encoding="utf-8") as file:
+        existing_data = yaml.safe_load(file)
+        if existing_data is None:
+            existing_data = {}
+        existing_data[key] = value
+    with open(yaml_path, "w", encoding="utf-8") as file:
+        yaml.dump(existing_data, file)
+
+
+def get_test_yaml(yaml_path: str) -> dict:
+    """
+    Get the content of a YAML file.
+
+    Args:
+        yaml_path (str): The path to the YAML file.
+
+    Returns:
+        dict: The content of the YAML file.
+    """
+    with open(yaml_path, "r", encoding="utf-8") as file:
+        existing_data = yaml.safe_load(file)
+    return existing_data
