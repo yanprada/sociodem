@@ -1,0 +1,21 @@
+bronze:
+  contractName: contract_omf_buildings.yaml
+  tableName: buldings_omf
+  schema: infrastructure
+  physicalPath: databases/bronze/overture_map_foundation/
+  description: 
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
