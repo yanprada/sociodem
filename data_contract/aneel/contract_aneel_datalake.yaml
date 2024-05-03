@@ -1,0 +1,21 @@
+datalake:
+  contractName: contract_aneel_datalake.yaml
+  tableName: aneel
+  schema: datalake
+  physicalPath: datalake/aneel/
+  description: Raw data from aneel
+  queryYear: 2023
+  ifExists: replace
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
