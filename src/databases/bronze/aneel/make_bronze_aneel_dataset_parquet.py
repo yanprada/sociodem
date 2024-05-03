@@ -83,9 +83,7 @@ def read_aneel_ponnot(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     2        7        8        9
     """
     reader = Reader(CONTRACTS["ponnot"])
-    path = os.path.join(
-        CONTRACTS["ponnot"]["physicalPath"].replace("ponnot", "zip_files"), row_title
-    )
+    path = os.path.join(CONTRACTS["datalake"]["physicalPath"], row_title)
     layers = fiona.listlayers(path)
     assert "PONNOT" in layers, f"PONNOT not found in the file {path}"
     df_ponnot = reader.read_geofile(
@@ -96,7 +94,7 @@ def read_aneel_ponnot(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     return df_ponnot
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ucbt"], save_db=False)
+# @save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ucbt"], save_db=False)
 def read_aneel_ucbt(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     """
     Reads ANEEL UCBT files and save it.
@@ -105,7 +103,7 @@ def read_aneel_ucbt(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     """
     reader = Reader(CONTRACTS["ucbt"])
     path = os.path.join(
-        CONTRACTS["ucbt"]["physicalPath"].replace("ucbt", "zip_files"),
+        CONTRACTS["datalake"]["physicalPath"],
         row_title,
     )
     layers = fiona.listlayers(path)
@@ -127,9 +125,7 @@ def read_aneel_ramlig(row_title: str, **kwargs) -> gpd.GeoDataFrame:
     This function reads the downloaded ANEEL RAMLIG files.
     """
     reader = Reader(CONTRACTS["ramlig"])
-    path = os.path.join(
-        CONTRACTS["ramlig"]["physicalPath"].replace("ramlig", "zip_files"), row_title
-    )
+    path = os.path.join(CONTRACTS["datalake"]["physicalPath"], row_title)
     layers = fiona.listlayers(path)
     assert "RAMLIG" in layers, f"RAMLIG not found in the file {path}"
     df_ramlig = reader.read_geofile(

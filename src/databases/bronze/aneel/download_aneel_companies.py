@@ -54,11 +54,7 @@ def download_files(df: pd.DataFrame) -> None:
 
     """
     aneel_request = HttpRequesterAneel()
-    path = os.path.join(
-        CONTRACTS["ponnot"]["physicalPath"]
-        .replace("databases", "datalake")
-        .replace("bronze/", "")
-    )
+    path = os.path.join(CONTRACTS["datalake"]["physicalPath"])
     aneel_request.request_from_page(
         df["id"],
         df["title"],
