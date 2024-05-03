@@ -1,23 +1,23 @@
-sociodemographic
+Atlas Sociodemográfico
 ==============================
 
-Projeto que visa estimar dados socioeconomicos com fontes de dados publicas.
+Projeto que visa integrar dados sociodemográficos de diversas fontes sobre a população e ambiente do território brasileiro. Utilizamos dados socioeconomicos públicos, de fontes como o IBGE, além de contar com dados geográficos de estrutura como rodovias, estradas, construções e energia elétrica.
 
-Project Organization
+Estrutura Projeto
 ------------
 
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
+    ├── databases
+    │   ├── bronze       <- Data from third party sources.
+    │   ├── silver        <- Intermediate data that has been transformed.
+    │   ├── gold      <- The final, canonical data sets for modeling.
+    │   └── feature_store            <- The original, immutable data dump.
     │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
+    ├── datalake         <- A default Sphinx project; see sphinx-doc.org for details
     │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
+    ├── docs             <- A default Sphinx project; see sphinx-doc.org for details
     │
     ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
     │                         the creator's initials, and a short `-` delimited description, e.g.
@@ -35,7 +35,7 @@ Project Organization
     ├── src                <- Source code for use in this project.
     │   ├── __init__.py    <- Makes src a Python module
     │   │
-    │   ├── data           <- Scripts to download or generate data
+    │   ├── databases           <- Scripts to download or generate data
     │   │   └── make_dataset.py
     │   │
     │   ├── features       <- Scripts to turn raw data into features for modeling
@@ -45,7 +45,12 @@ Project Organization
     │   │   │                 predictions
     │   │   ├── predict_model.py
     │   │   └── train_model.py
-    │   │
+    │   │
+    │   ├── tools         <- Scripts used in multiple scripts, serving as tools
+    │   │   │                 to request, load and process data
+    │   │   ├── databases 
+    │   │   └── utils
+    │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │       └── visualize.py
     │
