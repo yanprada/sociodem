@@ -206,7 +206,7 @@ class HttpRequesterCenso:
             destination_path (str): The path where the files will be saved.
         """
         if self.__url_dompp is not None:
-            for state, state_code in states.items():
+            for state, state_code in tqdm(states.items()):
                 destination_dir = os.path.abspath(destination_path)
                 filename = os.path.join(destination_dir, state)
                 if not os.path.exists(filename):
@@ -231,12 +231,12 @@ class HttpRequesterBuildings:
         self.source = source
         if self.source == "omf":
             self.__url = (
-                "https://beta.source.coop/cholmes/overture/"
+                "https://data.source.coop/cholmes/overture/"
                 "geoparquet-country-quad-hive/country_iso=BR/{filename}"
             )
         elif self.source == "google":
             self.__url = (
-                "https://beta.source.coop/vida/google-microsoft-open-buildings/"
+                "https://data.source.coop/vida/google-microsoft-open-buildings/"
                 "geoparquet/by_country/country_iso=BRA/{filename}"
             )
         else:
@@ -265,11 +265,11 @@ class HttpRequesterBuildings:
             destination_path (str): The path where the files will be saved.
         """
         destination_dir = os.path.abspath(destination_path)
-        for filename in filenames:
+        for filename in tqdm(filenames):
             file_path = os.path.join(destination_dir, filename)
             if not os.path.exists(file_path):
                 response = requests.get(
-                    self.__url.format(file_path=filename), timeout=10
+                    self.__url.format(filename=filename), timeout=10
                 )
                 self.__save_file(response, file_path)
             else:

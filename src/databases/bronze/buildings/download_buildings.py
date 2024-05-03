@@ -43,7 +43,7 @@ def download_data(source) -> None:
     Args:
         source (str): The data source to download from.
     """
-    omf_request = HttpRequesterBuildings("omf")
+    omf_request = HttpRequesterBuildings(source)
     path = os.path.join(
         CONTRACTS[source]["physicalPath"]
         .replace("databases", "datalake")
