@@ -104,7 +104,11 @@ def get_aneel_contracts():
     contract_ramlig = get_contract(
         "aneel/contract_aneel_companies_ramlig.yaml", "bronze"
     )
+    contract_aneel_datalake = get_contract(
+        "aneel/contract_aneel_datalake.yaml", "datalake"
+    )
     contracts = {
+        "datalake": contract_aneel_datalake,
         "company_id": contract_company_id,
         "ponnot": contract_ponnot,
         "ucbt": contract_ucbt,
