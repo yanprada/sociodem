@@ -115,6 +115,21 @@ class DBConnection(DBConnectionHandler):
         if not conn.dialect.has_schema(conn, schema_name):
             conn.execute(sqlalchemy.schema.CreateSchema(schema_name))
 
+    def create_pk(self, schema: str, table: str, column: str):
+        """
+        Create a primary key in a table.
+
+        Args:
+            schema (str): The name of the schema containing the table.
+            table (str): The name of the table.
+            column (str): The name of the column to be used as the primary key.
+        """
+        query = f"""ALTER TABLE {schema}.{table}
+        ADD COLUMN {column} SERIAL PRIMARY KEY
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            conn.execute(text(query))
+
     def __get_pk(self, contract):
         return next(
             (col["column"] for col in contract["columns"] if col["isPrimaryKey"]),
