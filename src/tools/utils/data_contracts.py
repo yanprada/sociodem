@@ -86,7 +86,7 @@ def post_contract(contract: dict):
         yaml.dump(contract, file)
 
 
-def get_aneel_contracts():
+def get_aneel_bronze_contracts():
     """
     Retrieves the ANEEL contracts for different companies.
 
@@ -115,3 +115,16 @@ def get_aneel_contracts():
         "ramlig": contract_ramlig,
     }
     return EasyDict(contracts)
+
+
+def get_aneel_contracts(medallon: str):
+    """
+    Retrieves the ANEEL contracts for different companies.
+
+    Returns:
+        contracts (dict): A dictionary containing the ANEEL contracts for different companies.
+            The keys are the names of the companies and the values are the corresponding contracts.
+    """
+    if medallon == "bronze":
+        return get_aneel_bronze_contracts()
+    return get_contract("contract_template.yaml", medallon)

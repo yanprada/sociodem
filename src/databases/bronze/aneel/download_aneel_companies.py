@@ -11,7 +11,7 @@ from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.read import Reader
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 
-CONTRACTS = get_aneel_contracts()
+CONTRACTS = get_aneel_contracts("bronze")
 
 
 def load_aneel_ids() -> pd.DataFrame:

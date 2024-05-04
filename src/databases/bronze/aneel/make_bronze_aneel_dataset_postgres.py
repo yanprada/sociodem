@@ -30,7 +30,7 @@ from src.tools.databases.data_connection.connection import DBConnection
 from src.databases.bronze.aneel.make_bronze_aneel_dataset_parquet import load_aneel_ids
 
 
-CONTRACTS = get_aneel_contracts()
+CONTRACTS = get_aneel_contracts("bronze")
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ponnot"], save_pq=False)

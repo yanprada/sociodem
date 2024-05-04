@@ -29,7 +29,7 @@ from src.tools.utils.data_contracts import get_aneel_contracts
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log
 
-CONTRACTS = get_aneel_contracts()
+CONTRACTS = get_aneel_contracts("bronze")
 
 
 def load_aneel_ids() -> pd.DataFrame:
