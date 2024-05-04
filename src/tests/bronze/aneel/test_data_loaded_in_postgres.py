@@ -17,7 +17,7 @@ from src.tools.utils.data_contracts import get_aneel_contracts
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import write_log, add_test_to_yaml, get_test_yaml
 
-CONTRACTS = get_aneel_contracts()
+CONTRACTS = get_aneel_contracts("bronze")
 
 FUNCTIONS = {
     "ponnot": upload_ponnot,
