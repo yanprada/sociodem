@@ -1,0 +1,21 @@
+bronze:
+  - contractName: contract_validation.yaml
+    tableName: aneel_changed_ucbt
+    schema: validation
+    physicalPath: databases/bronze/validation/aneel_changed_ucbt/
+    description: this table contains the column id of the ucbt that were missing in ponnot as keys, and the column id of the ponnots that are neighboors from the missing ones
+    queryYear: 
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
