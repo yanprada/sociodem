@@ -7,7 +7,7 @@ The module includes the following functions:
 """
 
 import os
-from src.tools.utils.data_contracts import get_contract
+from src.tools.data_contract.aneel_data_contract import get_contract
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterBuildings,
 )

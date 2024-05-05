@@ -13,7 +13,7 @@ from src.databases.bronze.aneel.make_bronze_aneel_dataset_postgres import (
     upload_ramlig,
     get_cols_ucbt,
 )
-from src.tools.utils.data_contracts import get_aneel_contracts
+from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import write_log, add_test_to_yaml, get_test_yaml
 

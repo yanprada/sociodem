@@ -6,7 +6,7 @@ The functions use the `HttpRequesterCenso` class to make HTTP requests and retri
 """
 
 from itertools import product
-from src.tools.utils.data_contracts import get_contract
+from src.tools.data_contract.aneel_data_contract import get_contract
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterCenso,
 )

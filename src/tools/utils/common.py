@@ -10,7 +10,7 @@ import os
 import logging
 import yaml
 import pandas as pd
-from src.tools.utils.data_contracts import get_contract
+from src.tools.utils.data_contract import get_contract
 
 
 logging.basicConfig(

@@ -25,7 +25,7 @@ import geopandas as gpd
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.read import Reader
-from src.tools.utils.data_contracts import get_aneel_contracts
+from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log
 
