@@ -115,21 +115,6 @@ class DBConnection(DBConnectionHandler):
         if not conn.dialect.has_schema(conn, schema_name):
             conn.execute(sqlalchemy.schema.CreateSchema(schema_name))
 
-    def create_pk(self, schema: str, table: str, column: str):
-        """
-        Create a primary key in a table.
-
-        Args:
-            schema (str): The name of the schema containing the table.
-            table (str): The name of the table.
-            column (str): The name of the column to be used as the primary key.
-        """
-        query = f"""ALTER TABLE {schema}.{table}
-        ADD COLUMN {column} SERIAL PRIMARY KEY
-        """
-        with self._DBConnectionHandler__engine.begin() as conn:
-            conn.execute(text(query))
-
     def __get_pk(self, contract):
         return next(
             (col["column"] for col in contract["columns"] if col["isPrimaryKey"]),
@@ -343,18 +328,18 @@ class DBConnection(DBConnectionHandler):
                 ).keys()
                 # Update the existing rows in the table
                 update_query = f"""
-                            UPDATE {schema}.{table_name} AS t
+                            UPDATE {schema}.{table_name} as t
                             SET
                         """
                 update_query += ",\n".join(
-                    [f"    {col} = temp.{col}" for col in match_columns]
+                    [f"    {col} = temp.{col}" for col in all_columns]
                 )
                 update_query += f"""
                             FROM {schema}.temp_{table_name} AS temp
                             WHERE
                         """
                 update_query += " AND \n".join(
-                    [f"t.{col} = temp.{col}" for col in all_columns]
+                    [f"t.{col} = temp.{col}" for col in match_columns]
                 )
 
                 conn.execute(text(update_query))
@@ -391,6 +376,21 @@ class DBConnection(DBConnectionHandler):
                 self.__add_not_null_to_table(
                     conn, schema_name, table_name, not_null_columns
                 )
+
+    def create_pk(self, schema: str, table: str, column: str):
+        """
+        Create a primary key in a table.
+
+        Args:
+            schema (str): The name of the schema containing the table.
+            table (str): The name of the table.
+            column (str): The name of the column to be used as the primary key.
+        """
+        query = f"""ALTER TABLE {schema}.{table}
+        ADD COLUMN {column} SERIAL PRIMARY KEY
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            conn.execute(text(query))
 
     def add_table(self, table: Union[pd.DataFrame, gpd.GeoDataFrame], contract: dict):
         """
