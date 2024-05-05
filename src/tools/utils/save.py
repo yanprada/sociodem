@@ -156,6 +156,7 @@ def add_partition_size_to_yaml(filename: str, n_particoes: int) -> None:
         os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
         "databases",
         "data_contract",
+        "validation",
         "contract_partitions.yaml",
     )
     with open(contracts_path, "r", encoding="utf-8") as file:
