@@ -2,16 +2,16 @@
 This script is used to upload ANEEL (Agência Nacional de Energia Elétrica) 
 dataset files to the database.
 It contains functions to upload different types of files (PONNOT, UCBT, RAMLIG) 
-and process each row title from the 'df_aneel_ids' DataFrame.
+and process each company id from the 'df_aneel_ids' DataFrame.
 
 Functions:
-- upload_ponnot(row_title: str) -> gpd.GeoDataFrame: Uploads ANEEL PONNOT files to the database.
+- upload_ponnot(company_id: str) -> gpd.GeoDataFrame: Uploads ANEEL PONNOT files to the database.
 - save_df_problematic(df_ucbt: pd.DataFrame) -> pd.DataFrame: Filters the given DataFrame 
     to remove rows where the 'pn_con' column is empty.
-- upload_ucbt(row_title: str, saved_columns_ucbt: List[str]) -> pd.DataFrame: Uploads ANEEL
+- upload_ucbt(company_id: str, saved_columns_ucbt: List[str]) -> pd.DataFrame: Uploads ANEEL
      UCBT files to the database.
-- upload_ramlig(row_title: str) -> pd.DataFrame: Uploads ANEEL RAMLIG files to the database.
-- main(check_in_db: bool = True) -> None: Processes each row title from the 'df_aneel_ids' 
+- upload_ramlig(company_id: str) -> pd.DataFrame: Uploads ANEEL RAMLIG files to the database.
+- main(check_in_db: bool = True) -> None: Processes each company id from the 'df_aneel_ids' 
     DataFrame, writes a log message, and uploads data to various services.
 """
 
@@ -34,7 +34,7 @@ CONTRACTS = get_aneel_contracts("bronze")
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ponnot"], save_pq=False)
-def upload_ponnot(file_name: str) -> gpd.GeoDataFrame:
+def upload_ponnot(file_name: int) -> gpd.GeoDataFrame:
     """
     Uploads ANEEL PONNOT files to the database.
     """
@@ -59,7 +59,7 @@ def upload_ponnot(file_name: str) -> gpd.GeoDataFrame:
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACTS["ucbt"], save_pq=False)
-def upload_ucbt(file_name: str, saved_columns_ucbt: List[str]) -> pd.DataFrame:
+def upload_ucbt(file_name: str, saved_columns_ucbt: List[str] = None) -> pd.DataFrame:
     """
     Uploads the UCBT dataset.
 
@@ -78,7 +78,10 @@ def upload_ucbt(file_name: str, saved_columns_ucbt: List[str]) -> pd.DataFrame:
     exist_large_file = os.path.exists(file_path_large_files)
     file = file_path_large_files if exist_large_file else file_path_small_files
     reader = Reader(CONTRACTS["ucbt"])
-    df_ucbt = reader.read_parquet(file_path=file, columns=saved_columns_ucbt)
+    if saved_columns_ucbt is None:
+        df_ucbt = reader.read_parquet(file_path=file)
+    else:
+        df_ucbt = reader.read_parquet(file_path=file, columns=saved_columns_ucbt)
     return df_ucbt
 
 
@@ -98,6 +101,19 @@ def upload_ramlig(file_name: str) -> pd.DataFrame:
     return df_ramlig
 
 
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["conj"], save_pq=False)
+def upload_conj(file_name: int) -> gpd.GeoDataFrame:
+    """
+    Uploads ANEEL CONJ files to the database.
+    """
+    file_path = os.path.join(
+        CONTRACTS["conj"]["physicalPath"], "".join([file_name, ".parquet"])
+    )
+    reader = Reader(CONTRACTS["conj"])
+    df_conj = reader.read_geoparquet(file_path=file_path)
+    return df_conj
+
+
 def check_in_postgres(table_name: str) -> pd.DataFrame:
     """
     Check if a table exists in the PostgreSQL database and return the distinct
@@ -115,55 +131,65 @@ def check_in_postgres(table_name: str) -> pd.DataFrame:
     return df
 
 
-def run_ponnot(row_title: str, company_id: int, ponnot_in_db: pd.DataFrame) -> None:
+def run_ponnot(company_id: int, ponnot_in_db: pd.DataFrame) -> None:
     """
-    Runs the 'ponnot' process for a given row title, company ID, and 'ponnot_in_db' data.
+    Runs the 'ponnot' process for a given company id, company ID, and 'ponnot_in_db' data.
 
     Args:
-    row_title (str): The title of the row.
     company_id (int): The ID of the company.
     ponnot_in_db (pd.DataFrame): The 'ponnot' data already present in the database.
     """
     if company_id in ponnot_in_db.values:
-        write_log(f"Row title {row_title} already exists in the 'ponnot' table.")
+        write_log(f"Company ID {company_id} already exists in the 'ponnot' table.")
     else:
-        row_title = "_".join([row_title.split(".")[0], "ponnot"])
-        _ = upload_ponnot(row_title)
+        _ = upload_ponnot(company_id)
 
 
 def run_ucbt(
-    row_title: str, company_id: int, ucbt_in_db: dict, saved_columns_ucbt: List[str]
+    company_id: int, ucbt_in_db: dict, saved_columns_ucbt: List[str] = None
 ) -> None:
     """
-    Runs the UCBT process for a given row title and company ID.
+    Runs the UCBT process for a given company id and company ID.
 
     Args:
-    row_title (str): The title of the row.
     company_id (int): The ID of the company.
     ucbt_in_db (dict): A dictionary containing the existing UCBT values in the database.
     saved_columns_ucbt (list): A list of saved columns for the UCBT.
     """
     if company_id in ucbt_in_db.values:
-        write_log(f"Row title {row_title} already exists in the 'ucbt' table.")
+        write_log(f"company id {company_id} already exists in the 'ucbt' table.")
     else:
-        row_title = "_".join([row_title.split(".")[0], "ucbt"])
-        _ = upload_ucbt(row_title, saved_columns_ucbt)
+        _ = upload_ucbt(company_id, saved_columns_ucbt)
 
 
-def run_ramlig(row_title: str, company_id: int, ramlig_in_db: pd.DataFrame) -> None:
+def run_ramlig(company_id: int, ramlig_in_db: pd.DataFrame) -> None:
     """
-    Runs the 'ramlig' process for a given row title and company ID.
+    Runs the 'ramlig' process for a given company ID.
 
     Args:
-    row_title (str): The title of the row.
+    company_id (str): The title of the row.
     company_id (int): The ID of the company.
     ramlig_in_db (pd.DataFrame): The DataFrame containing the existing 'ramlig' data.
     """
     if company_id in ramlig_in_db.values:
-        write_log(f"Row title {row_title} already exists in the 'ramlig' table.")
+        write_log(f"company id {company_id} already exists in the 'ramlig' table.")
     else:
-        row_title = "_".join([row_title.split(".")[0], "ramlig"])
-        _ = upload_ramlig(row_title)
+        _ = upload_ramlig(company_id)
+
+
+def run_conj(company_id: int, conj_in_db: pd.DataFrame) -> None:
+    """
+    Runs the 'conj' process for a given company ID.
+
+    Args:
+    company_id (str): The title of the row.
+    company_id (int): The ID of the company.
+    conj_in_db (pd.DataFrame): The DataFrame containing the existing 'conj' data.
+    """
+    if company_id in conj_in_db.values:
+        write_log(f"company id {company_id} already exists in the 'conj' table.")
+    else:
+        _ = upload_conj(company_id)
 
 
 def get_cols_ucbt() -> List[str]:
@@ -179,31 +205,27 @@ def get_cols_ucbt() -> List[str]:
 
 def main(check_in_db: bool = True) -> None:
     """
-    This function processes each row title from the 'df_aneel_ids' DataFrame,
+    This function processes each company id from the 'df_aneel_ids' DataFrame,
     writes a log message, and uploads data to various services.
     """
-    df_aneel_ids = load_aneel_ids()
-    # retirar arquivo que não tem camada ucbt
-    df_aneel_ids = df_aneel_ids.query(
-        "title != 'EAC_26_2022-12-31_V11_20230725-1759.gdb.zip'"
-    ).astype({"company_id": int})
+    df_aneel_ids = load_aneel_ids().astype({"company_id": int})
     saved_columns_ucbt = get_cols_ucbt()
     if check_in_db:
         ponnot_in_db = check_in_postgres("ponnot")
         ucbt_in_db = check_in_postgres("ucbt")
         ramlig_in_db = check_in_postgres("ramlig")
+        conj_in_db = check_in_postgres("conj")
 
-        for row_title, company_id in tqdm(
-            zip(df_aneel_ids["title"], df_aneel_ids["company_id"])
-        ):
-            write_log(f"Processing row title: {row_title}")
-            run_ponnot(row_title, company_id, ponnot_in_db)
-            run_ucbt(row_title, company_id, ucbt_in_db, saved_columns_ucbt)
-            run_ramlig(row_title, company_id, ramlig_in_db)
+        for company_id in tqdm(df_aneel_ids["company_ids"]):
+            write_log(f"Processing row id: {company_id}")
+            run_ponnot(company_id, ponnot_in_db)
+            run_ucbt(company_id, ucbt_in_db, saved_columns_ucbt)
+            run_ramlig(company_id, ramlig_in_db)
+            run_conj(company_id, conj_in_db)
     else:
-        for row_title in tqdm(df_aneel_ids["title"]):
-            row_title = "_".join([row_title.split(".")[0], "ramlig"])
-            write_log(f"Processing row title: {row_title}")
-            # _ = upload_ponnot(row_title)
-            # _ = upload_ucbt(row_title, saved_columns_ucbt)
-            _ = upload_ramlig(row_title)
+        for company_id in tqdm(df_aneel_ids["company_ids"]):
+            write_log(f"Processing row id: {company_id}")
+            _ = upload_ponnot(company_id)
+            _ = upload_ucbt(company_id, saved_columns_ucbt)
+            _ = upload_ramlig(company_id)
+            _ = upload_conj(company_id)
