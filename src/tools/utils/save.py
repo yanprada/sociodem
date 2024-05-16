@@ -140,7 +140,9 @@ def converte_geometria(df_data: pd.DataFrame) -> pd.DataFrame:
     df_data = df_data.copy()
     for col in cols_object:
         if "geom" in col.lower() and not isinstance(df_data[col].iloc[0], str):
-            df_data[col] = df_data[col].apply(lambda geom: geom.wkt)
+            df_data[col] = df_data[col].apply(
+                lambda geom: geom.wkt if geom is not None else "-1"
+            )
     return df_data
 
 
@@ -153,8 +155,7 @@ def add_partition_size_to_yaml(filename: str, n_particoes: int) -> None:
         n_particoes (int): The number of partitions.
     """
     contracts_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "databases",
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
         "data_contract",
         "validation",
         "contract_partitions.yaml",
