@@ -45,6 +45,9 @@ pyspark = "^3.5.1"
 keplergl = "^0.3.2"
 ploomber = "^0.23.2"
 awscli = "^1.32.94"
+beautifulsoup4 = "^4.12.3"
+selenium = "^4.20.0"
+webdriver-manager = "^4.0.1"
 
 
 [build-system]
