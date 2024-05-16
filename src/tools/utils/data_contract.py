@@ -9,7 +9,7 @@ import yaml
 from easydict import EasyDict
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=10)
 def get_path_contracts() -> str:
     """
     Returns the absolute path to the 'data_contract' directory.
