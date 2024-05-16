@@ -10,7 +10,7 @@ import os
 import logging
 import yaml
 import pandas as pd
-from src.tools.utils.data_contract import get_contract
+from src.tools.data_contract.validation_data_contract import get_validation_partitions
 
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-CONTRACT_PARTITIONS = get_contract("contract_partitions.yaml")
+CONTRACT_PARTITIONS = get_validation_partitions()
 
 
 def write_log(message, level="info"):
@@ -121,3 +121,30 @@ def get_test_yaml(yaml_path: str) -> dict:
     with open(yaml_path, "r", encoding="utf-8") as file:
         existing_data = yaml.safe_load(file)
     return existing_data
+
+
+def check_file_exists(filename: str, filepath: str) -> bool:
+    """
+    Check if a file exists in the given filepath.
+
+    Args:
+        filename (str): The name of the file.
+        filepath (str): The path to the directory where the file should be located.
+
+    Returns:
+        bool: True if the file exists, False otherwise.
+    """
+    path_large_file = os.path.join(filepath, filename)
+    path_small_file = os.path.join(filepath, "".join([filename, ".parquet"]))
+    exist_small_file = os.path.exists(path_small_file)
+    exist_large_file = os.path.exists(path_large_file)
+    exist_file = exist_small_file or exist_large_file
+    if exist_large_file:
+        num_partitions = CONTRACT_PARTITIONS["/".join([path_large_file, ""])]
+        num_files = len(os.listdir(path_large_file))
+        exist_file = num_partitions == num_files
+        if num_partitions < num_files:
+            raise ValueError(
+                f"Number of partitions is greater than number of files in {path_large_file}"
+            )
+    return exist_file
