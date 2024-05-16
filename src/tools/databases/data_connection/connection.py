@@ -7,7 +7,7 @@ and managing a database connection using SQLAlchemy.
 
 import warnings
 
-# import concurrent.futures
+from functools import lru_cache
 from typing import List, Tuple, Union
 from decouple import config
 from sqlalchemy import create_engine, text
@@ -17,12 +17,88 @@ import geopandas as gpd
 import numpy as np
 import sqlalchemy
 from tqdm import tqdm
+from pyspark.sql import SparkSession
 
 warnings.filterwarnings("ignore")
 
 # Database credentials
 DB_USER = config("DB_USER")
 DB_PASSWORD = config("DB_PASSWORD")
+
+
+class PySparkConnection:
+    """
+    A class representing a PySpark connection to a PostgreSQL database.
+
+    Attributes:
+        jdbc_url (str): The JDBC URL for connecting to the database.
+        properties (dict): The properties for the JDBC connection.
+        spark (pyspark.sql.SparkSession): The SparkSession object for interacting with the database.
+
+    Methods:
+        connect(): Connects to the database using SparkSession.
+        close(): Stops the SparkSession.
+        query(table: str, table_name: str): Executes a SQL query on the specified
+                                            table and creates a temporary view.
+
+    """
+
+    def __init__(self, database: str) -> None:
+        self.jdbc_url = f"jdbc:postgresql://localhost:5432/{database}"
+        self.properties = {
+            "user": DB_USER,
+            "password": DB_PASSWORD,
+            "driver": "org.postgresql.Driver",
+        }
+        self.spark = None  # Armazenar a sessão do Spark como atributo da classe
+
+    def connect(self):
+        """
+        Connects to the database using SparkSession.
+
+        If the SparkSession is already initialized, it will be stopped and
+        a new one will be created.
+        """
+        if self.spark is not None:
+            self.spark.stop()
+        self.spark = (
+            SparkSession.builder.appName("DBConnection")
+            .config(
+                "spark.driver.extraClassPath", "/home/yan/.spark/postgresql-42.7.3.jar"
+            )
+            .getOrCreate()
+        )
+
+    def close(self):
+        """
+        Stop the SparkSession.
+        """
+        if self.spark:
+            self.spark.stop()
+            self.spark = None
+
+    def query(self, table: str, table_name: str):
+        """
+        Executes a SQL query on the specified table and creates a temporary
+        view with the given table name.
+
+        Args:
+            table (str): The name of the table to query.
+            table_name (str): The name to assign to the temporary view created.
+
+        Raises:
+            RuntimeError: If the Spark session is not initialized.
+        """
+        if self.spark is None:
+            raise RuntimeError(
+                "Spark session not initialized. Call connect() method first."
+            )
+        df = self.spark.read.jdbc(
+            url=self.jdbc_url,
+            table=table,
+            properties=self.properties,
+        )
+        df.createOrReplaceTempView(table_name)
 
 
 class DBConnectionHandler:
@@ -463,6 +539,7 @@ class DBConnection(DBConnectionHandler):
         except Exception as e:
             raise e
 
+    @lru_cache(maxsize=2)
     def query_database(self, query: str) -> pd.DataFrame:
         """
         Executes a query on the database and returns the result as a DataFrame.
