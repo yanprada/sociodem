@@ -24,8 +24,15 @@ def get_validation_contracts(medallon: str, contract_id: int):
         contracts (dict): A dictionary containing the ANEEL contracts for different companies.
             The keys are the names of the companies and the values are the corresponding contracts.
     """
-    if medallon == "bronze":
-        return get_contract("validation/contract_validation.yaml", "bronze")[
-            contract_id
-        ]
-    return get_contract("contract_template.yaml", medallon)
+
+    return get_contract("validation/contract_validation.yaml", medallon)[contract_id]
+
+
+def get_validation_partitions():
+    """
+    Retrieves the validation partitions from the contract.
+
+    Returns:
+        The validation partitions defined in the contract.
+    """
+    return get_contract("validation/contract_partitions.yaml")

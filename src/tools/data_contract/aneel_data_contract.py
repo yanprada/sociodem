@@ -22,25 +22,39 @@ def get_aneel_bronze_contracts():
             The keys are the names of the companies and the values are the corresponding contracts.
     """
     contract_company_id = get_contract(
-        "aneel/contract_aneel_companies_id.yaml", "silver"
+        "aneel/contract_aneel_companies_id.yaml", "bronze"
     )
-    contract_ponnot = get_contract(
-        "aneel/contract_aneel_companies_ponnot.yaml", "bronze"
-    )
-    contract_ucbt = get_contract("aneel/contract_aneel_companies_ucbt.yaml", "bronze")
-    contract_ramlig = get_contract(
-        "aneel/contract_aneel_companies_ramlig.yaml", "bronze"
+    contract_aneel_bronze = get_contract(
+        "aneel/contract_aneel_companies.yaml", "bronze"
     )
     contract_aneel_datalake = get_contract(
-        "aneel/contract_aneel_datalake.yaml", "datalake"
+        "aneel/contract_aneel_companies.yaml", "datalake"
     )
     contracts = {
         "datalake": contract_aneel_datalake,
         "company_id": contract_company_id,
-        "ponnot": contract_ponnot,
-        "ucbt": contract_ucbt,
-        "ramlig": contract_ramlig,
+        "ponnot": contract_aneel_bronze[0],
+        "ucbt": contract_aneel_bronze[1],
+        "ramlig": contract_aneel_bronze[2],
+        "conj": contract_aneel_bronze[3],
     }
+    return EasyDict(contracts)
+
+
+def get_aneel_silver_contracts():
+    """
+    Retrieves the ANEEL silver contracts.
+
+    Returns:
+        EasyDict: A dictionary-like object containing the ANEEL silver contracts.
+    """
+    contract_company_id = get_contract(
+        "aneel/contract_aneel_companies_id.yaml", "bronze"
+    )
+    contract_aneel_silver = get_contract(
+        "aneel/contract_aneel_companies.yaml", "silver"
+    )
+    contracts = {"company_id": contract_company_id, "aneel": contract_aneel_silver}
     return EasyDict(contracts)
 
 
@@ -54,4 +68,6 @@ def get_aneel_contracts(medallon: str):
     """
     if medallon == "bronze":
         return get_aneel_bronze_contracts()
+    if medallon == "silver":
+        return get_aneel_silver_contracts()
     return get_contract("contract_template.yaml", medallon)
