@@ -1,0 +1,115 @@
+datalake:
+  contractName: contract_aneel_companies.yaml
+  tableName: aneel
+  schema: datalake
+  physicalPath: datalake/aneel/
+  description: Raw data from aneel
+  queryYear: 2023
+  ifExists: replace
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+
+bronze:
+  - contractName: contract_aneel_companies.yaml
+    tableName: ponnot
+    schema: infrastructure
+    physicalPath: databases/bronze/aneel/ponnot/
+    description: Energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: ucbt
+    schema: infrastructure
+    physicalPath: databases/bronze/aneel/ucbt/
+    description: Energy infrastructure consumption for energy companies
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: ramlig
+    schema: infrastructure
+    physicalPath: databases/bronze/aneel/ramlig/
+    description: Energy infrastructure connection between two points of energy
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: conj
+    schema: infrastructure
+    physicalPath: databases/bronze/aneel/conj/
+    description: Energy geometry of energy companies
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+silver:
+  contractName: contract_aneel_companies.yaml
+  tableName: aneel
+  schema: infrastructure
+  physicalPath: databases/silver/aneel/mun/
+  description: Energy infrastructure points of energy companies
+  queryYear: Null
+  ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
