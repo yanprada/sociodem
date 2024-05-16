@@ -28,20 +28,19 @@ class HttpRequesterAneel:
                 f"Error {response.status_code} in request"
             )
 
-    def update(self):
+    @retry(tries=5, delay=1, backoff=2)
+    def get_response(self, id_param):
         """
         This method is responsible for updating the data.
         """
+        return requests.get(self.__url.format(id=id_param), timeout=10)
 
-    def request_from_page(
-        self, id_params: pd.Series, file_names: pd.Series, destination_path: str
-    ):
+    def request_from_page(self, id_params: pd.Series, destination_path: str):
         """Method to request Aneel data from website.
 
         Args:
             id_params (pd.Series): A pandas Series containing the id
                                     parameters for the Aneel database.
-            file_names (pd.Series): A pandas Series containing the names of the files to be saved.
             destination_path (str): The path where the downloaded files will be saved.
 
         Raises:
@@ -58,10 +57,11 @@ class HttpRequesterAneel:
 
         """
         destination_dir = os.path.abspath(destination_path)
-        for id_param, file in tqdm(zip(id_params, file_names)):
-            filename = os.path.join(destination_dir, file)
+        for id_param in tqdm(id_params):
+            write_log(f"Requesting {id_param}")
+            filename = os.path.join(destination_dir, "".join([id_param, ".gdb.zip"]))
             if not os.path.exists(filename):
-                response = requests.get(self.__url.format(id=id_param), timeout=10)
+                response = self.get_response(id_param)
                 self.__save_file(response, filename)
             else:
                 write_log(
