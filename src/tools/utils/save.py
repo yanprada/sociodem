@@ -13,9 +13,11 @@ Functions:
 """
 
 import os
+import gc
 import yaml
 import pandas as pd
 import dask.dataframe as dd
+
 from src.tools.databases.data_connection.connection import DBConnection
 
 
@@ -137,7 +139,6 @@ def converte_geometria(df_data: pd.DataFrame) -> pd.DataFrame:
     cols_object = list(df_data.select_dtypes("O").columns)
     if not any("geom" in i.lower() for i in cols_object):
         return df_data
-    df_data = df_data.copy()
     for col in cols_object:
         if "geom" in col.lower() and not isinstance(df_data[col].iloc[0], str):
             df_data[col] = df_data[col].apply(
@@ -189,4 +190,6 @@ def save_as_dask(
         if df_data[col].dtype != "O":
             df_data[col] = df_data[col].apply(str)
     ddf_data = dd.from_pandas(df_data, npartitions=int(n_particoes))
+    del df_data
+    gc.collect()
     ddf_data.to_parquet(filename)
