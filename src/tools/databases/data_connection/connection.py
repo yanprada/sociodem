@@ -453,6 +453,37 @@ class DBConnection(DBConnectionHandler):
                     conn, schema_name, table_name, not_null_columns
                 )
 
+    def drop_index(self, schema: str, table_name: str):
+        """
+        Drops an index from the database.
+
+        Args:
+            schema (str): The name of the schema containing the table.
+            table_name (str): The name of the table.
+        """
+        query = f"""
+                    DROP INDEX IF EXISTS {schema}.{table_name}_idx
+                    """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            conn.execute(text(query))
+
+    def create_index(self, schema: str, table_name: str, columns: list):
+        """
+        Creates an index on the specified table and columns in the database.
+
+        Args:
+            schema (str): The name of the schema where the table resides.
+            table_name (str): The name of the table on which to create the index.
+            columns (list): A list of column names on which the index should be created.
+        """
+        query = f"""
+                    CREATE INDEX IF NOT EXISTS {table_name}_idx
+                    ON {schema}.{table_name} 
+                    ({", ".join(columns)})
+                    """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            conn.execute(text(query))
+
     def create_pk(self, schema: str, table: str, column: str):
         """
         Create a primary key in a table.
