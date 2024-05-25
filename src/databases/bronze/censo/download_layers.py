@@ -43,7 +43,8 @@ def download_layers_censo_2010(censo_request: HttpRequesterCenso):
         censo_request (HttpRequesterCenso): An instance of the HttpRequesterCenso class.
     """
     combinations = product(
-        STATES.keys(), ["setores_censitarios", "subdistritos", "distritos"]
+        STATES.keys(),
+        ["setores_censitarios", "subdistritos", "distritos", "municipios"],
     )
     path_to_save = CONTRACT_LAYERS_CENSO_2010["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
@@ -70,7 +71,10 @@ def download_layers_censo_2022(censo_request: HttpRequesterCenso):
         censo_request (HttpRequesterCenso): An instance of the HttpRequesterCenso class.
 
     """
-    combinations = product(STATES.keys(), ["setores", "subdistritos", "distritos"])
+    combinations = product(
+        STATES.keys(),
+        ["setores", "subdistritos", "distritos", "municipios"],
+    )
     path_to_save = CONTRACT_LAYERS_CENSO_2022["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
 
