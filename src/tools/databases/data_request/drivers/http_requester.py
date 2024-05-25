@@ -84,7 +84,11 @@ class HttpRequesterCenso:
                 "setores_censitarios_shp/"
             )
             self.__url_layers = "{base_url}{state}/{state}_{level}.zip"
-            self.dompp = None
+            self.__url_dompp = None
+            self.__url_mun = (
+                "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/"
+                "malhas_municipais/municipio_2010/{state_lower}/{state_lower}_municipios.zip"
+            )
         elif self.year == 2022:
             self.__base_url_layers = (
                 "https://geoftp.ibge.gov.br/organizacao_do_territorio/"
@@ -98,6 +102,10 @@ class HttpRequesterCenso:
             self.__url_dompp = (
                 "https://ftp.ibge.gov.br/Cadastro_Nacional_de_Enderecos_para_Fins_Estatisticos/"
                 "Censo_Demografico_2022/Coordenadas_enderecos/UF/{state_code}_{state}.zip"
+            )
+            self.__url_mun = (
+                "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/"
+                "malhas_municipais/municipio_2022/UFs/{state}/{state}_Municipios_2022.zip"
             )
         else:
             raise ValueError("Year must be 2010 or 2022")
@@ -128,6 +136,11 @@ class HttpRequesterCenso:
         """
         This method is responsible for making a request to the website.
         """
+        if level == "municipios":
+            return requests.get(
+                self.__url_mun.format(state_lower=state.lower()),
+                timeout=10,
+            )
         if state == "GO" and level == "setores_censitarios":
             level = "setores _censitarios"
         return requests.get(
@@ -142,6 +155,11 @@ class HttpRequesterCenso:
         """
         This method is responsible for making a request to the website.
         """
+        if level == "municipios":
+            return requests.get(
+                self.__url_mun.format(state=state),
+                timeout=10,
+            )
         if level == "setores":
             level_upper = ""
         else:
@@ -180,10 +198,10 @@ class HttpRequesterCenso:
         """
         destination_dir = os.path.abspath(destination_path)
         for state, level in tqdm(combinations):
+            filename = os.path.join(destination_dir, level, state)
             if level == "setores":
-                level_name = "setores_censitarios"
-            filename = os.path.join(destination_dir, level_name, state)
-            if not os.path.exists(filename):
+                filename = os.path.join(destination_dir, "setores_censitarios", state)
+            if not os.path.exists(f"{filename}.zip"):
                 write_log(f"Requesting {level} - {state}.")
                 if self.year == 2010:
                     response = self.__request_layers_2010(state, level)
@@ -209,7 +227,7 @@ class HttpRequesterCenso:
             for state, state_code in tqdm(states.items()):
                 destination_dir = os.path.abspath(destination_path)
                 filename = os.path.join(destination_dir, state)
-                if not os.path.exists(filename):
+                if not os.path.exists(f"{filename}.zip"):
                     write_log(f"Requesting dompp for {state}.")
                     response = self.__request_dompp_2022(state_code, state)
                     self.__save_file(response, filename)
@@ -271,6 +289,52 @@ class HttpRequesterBuildings:
                 response = requests.get(
                     self.__url.format(filename=filename), timeout=10
                 )
+                self.__save_file(response, file_path)
+            else:
+                write_log(
+                    f"File {file_path} already exists in destination.", level="warning"
+                )
+
+
+class HttpRequesterMapbiomas:
+    """
+    Http request class to download Mapbiomas tiff
+    """
+
+    def __init__(self) -> None:
+        self.__url = (
+            "https://storage.googleapis.com/mapbiomas-public/initiatives/brasil/"
+            "collection_8/lclu/coverage/brasil_coverage_{year}.tif"
+        )
+
+    def __save_file(self, response: requests.Response, filename: str) -> None:
+        if response.status_code == 200:
+            with open(filename, "wb") as f:
+                f.write(response.content)
+        else:
+            raise requests.exceptions.HTTPError(
+                f"Error {response.status_code} in request"
+            )
+
+    def update(self):
+        """
+        This method is responsible for updating the data.
+        """
+
+    def request_from_page(self, years: list, destination_path: str):
+        """
+        Requests files from a page and saves them to the specified destination path.
+
+        Args:
+            years (list): A list of years for which files will be requested from the page.
+            destination_path (str): The path where the files will be saved.
+        """
+        destination_dir = os.path.abspath(destination_path)
+        for year in tqdm(years):
+            filename = f"brasil_coverage_{year}.tif"
+            file_path = os.path.join(destination_dir, filename)
+            if not os.path.exists(file_path):
+                response = requests.get(self.__url.format(year=year), timeout=10)
                 self.__save_file(response, file_path)
             else:
                 write_log(
