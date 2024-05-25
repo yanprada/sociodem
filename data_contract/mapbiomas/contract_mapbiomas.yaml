@@ -1,0 +1,21 @@
+bronze:
+  contractName: contract_layers_mapbiomas.yaml
+  tableName: 
+  schema: 
+  physicalPath: datalake/mapbiomas/
+  description: 
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
