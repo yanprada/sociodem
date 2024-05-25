@@ -109,3 +109,18 @@ class Reader:
         read_function = gpd.read_file
         df = self.__read(read_function, file_path, **kwargs)
         return df
+
+    def read_geopandas(self, file_path: str, **kwargs):
+        """
+        Reads a file and returns a GeoDataFrame.
+
+        Parameters:
+        - file_path (str): The path to the file.
+        - **kwargs: Additional keyword arguments to be passed to the `gpd.read_file` function.
+
+        Returns:
+        - GeoDataFrame: The data read from the file.
+        """
+        read_function = gpd.GeoDataFrame
+        df = self.__read(read_function, file_path, **kwargs)
+        return df
