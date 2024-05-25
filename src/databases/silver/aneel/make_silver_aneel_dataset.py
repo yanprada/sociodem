@@ -3,6 +3,7 @@ This module contains functions to create and update the 'aneel_silver' database.
 """
 
 from typing import List, Tuple
+from functools import lru_cache
 from tqdm import tqdm
 import pandas as pd
 from src.tools.databases.data_connection.connection import DBConnection
@@ -12,13 +13,27 @@ from src.tools.data_contract.validation_data_contract import (
     get_validation_partitions,
 )
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.common import check_file_exists
+from src.tools.utils.common import check_file_exists, write_log
 
 ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
 VALIDATION_PARTITIONS = get_validation_partitions()
 VALIDATION_CONTRACT_EMPTY_STR_UCBT_PONNOT = get_validation_contracts("bronze", 0)
 VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT = get_validation_contracts("silver", 0)
+
+
+@lru_cache(maxsize=10)
+def get_cols_in_db(table_name) -> List[str]:
+    """
+    Retrieves the columns of the 'infrastructure.ucbt' table from the 'bronze' database.
+
+    Returns:
+    list: A list of column names.
+    """
+    schema = ANEEL_BRONZE_CONTRACTS[table_name]["schema"]
+    table = ANEEL_BRONZE_CONTRACTS[table_name]["tableName"]
+    conn = DBConnection("bronze")
+    return conn.query_database(f"SELECT * FROM {schema}.{table} LIMIT 1").columns
 
 
 def update_ponnot_id_in_ucbt_table():
@@ -39,9 +54,11 @@ def update_ponnot_id_in_ucbt_table():
         AND u.conj = r.conj
         """
     )
+    saved_columns_ramlig = get_cols_in_db("ramlig")
     df["pn_con"] = df["pn_con_1"]  # update pn_con column with ramlig pn_con value
-    df = df.iloc[:, :-22]  # remove columns from ramlig
-    conn.update_table(df, (df.columns[1:], df.columns), ("infrastructure", "ucbt"))
+    df = df.iloc[:, : -len(saved_columns_ramlig)]
+    match_cols = [col for col in df.columns if col != "pn_con"]
+    conn.update_table(df, match_cols, ("infrastructure", "ucbt"))
 
 
 def create_primary_key(
@@ -214,7 +231,7 @@ def replace_energy_from_empty_ucbt_to_nearest_pncons(
 ) -> Tuple[pd.DataFrame, List[str]]:
     """
     Replaces energy from empty UCBT (Unidade Consumidora com Baixa Tensão) to
-    the nearest PONNOTs (Pontos Notaveis).
+    the nearests PONNOTs (Pontos Notaveis).
 
     Args:
         conn (DBConnection): The database connection object.
@@ -265,8 +282,9 @@ def fix_empty_ucbt_pncon(
     table_name = ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"]
     pk_key = "id_coluna"
     create_primary_key(conn, schema, table_name, pk_key)
+    kwargs = {"filename": "empty_ucbt_ponnot"}
     df_empty_ucbt = query_empty_ucbt_pncon(
-        conn, pk_key, joined_cols, schema, table_name
+        conn, pk_key, joined_cols, schema, table_name, **kwargs
     )
     df_overwrite, exclude_keys = replace_energy_from_empty_ucbt_to_nearest_pncons(
         conn, df_empty_ucbt, pk_key, joined_cols
@@ -336,7 +354,7 @@ def save_no_join_ucbt_ponnot(mun_batch: str, id_col_no_match: str, **kwargs):
     return df
 
 
-@save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS)
+@save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS["aneel"])
 def save_partitioned_mun(df: pd.DataFrame, **kwargs):
     """
     Save the concatenated DataFrame with dropped columns.
@@ -351,7 +369,7 @@ def save_partitioned_mun(df: pd.DataFrame, **kwargs):
     return df
 
 
-@save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS)
+@save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS["aneel"])
 def save_mun(df: pd.DataFrame, mun: str, **kwargs):
     """
     Save the concatenated DataFrame with dropped columns.
@@ -365,9 +383,9 @@ def save_mun(df: pd.DataFrame, mun: str, **kwargs):
         pd.DataFrame: The filtered DataFrame containing only the specified municipality.
     """
     df_mun = df[df["mun"] == mun]
-    if len(df_mun) > 1e6:
+    if len(df_mun) < 1e6:
         return df_mun
-    batch_size = 1e6
+    batch_size = int(1e6)
     df_batches = [df_mun[i : i + batch_size] for i in range(0, len(df_mun), batch_size)]
     for batch in df_batches:
         _ = save_partitioned_mun(batch, **kwargs)
@@ -447,6 +465,7 @@ def join_ucbt_and_ponnot():
     )
     conn = DBConnection("bronze")
     muns = conn.query_database(f"select distinct(mun) from {path_ucbt}")
+    # list of capital cities
     large_mun_cods = [
         "3550308",
         "3304557",
@@ -468,14 +487,118 @@ def join_ucbt_and_ponnot():
     mun_batches = [muns[i : i + batch_size] for i in range(0, len(muns), batch_size)]
     for mun_batch in tqdm(mun_batches, desc="Processing mun batches"):
         if all(
-            check_file_exists(mun, ANEEL_SILVER_CONTRACTS["physicalPath"])
+            check_file_exists(mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"])
             for mun in mun_batch["mun"].to_list()
         ):
             continue
         mun_batch = ",".join([f"'{mun}'" for mun in mun_batch["mun"].to_list()])
         join_batches(path_ucbt, path_ponnot, mun_batch)
     for mun in tqdm(large_mun_cods, desc="Processing large muns"):
+        if check_file_exists(mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"]):
+            write_log(f"Skipping {mun}")
+            continue
         join_batches(path_ucbt, path_ponnot, f"'{mun}'")
+
+
+def get_neighboors(conn: DBConnection, df_col_id: pd.DataFrame):
+    """
+    Retrieves the neighboring information from the database based on the given column IDs.
+
+    Args:
+        conn (DBConnection): The database connection object.
+        df_col_id (pd.DataFrame): The DataFrame containing the column IDs.
+
+    Returns:
+        pd.DataFrame: The DataFrame containing the neighboring information.
+    """
+    schema = ANEEL_SILVER_CONTRACTS["aneel"]["schema"]
+    table_name = ANEEL_SILVER_CONTRACTS["aneel"]["tableName"]
+    neighboors_info = dict(zip(df_col_id.columns, df_col_id.values[0]))
+    cols_text = " AND ".join(
+        [
+            f"u.{col} = '{value}'" if isinstance(value, str) else f"{col} = {value}"
+            for col, value in neighboors_info.items()
+        ]
+    )
+    cols_text = cols_text.replace("None", "NULL")
+    return set(
+        conn.query_database(
+            f"""
+        SELECT id_coluna
+        FROM {schema}.{table_name} u
+        WHERE {cols_text}
+        """
+        ).id_coluna.to_list()
+    )
+
+
+def index_table(conn: DBConnection, joined_cols: list):
+    """
+    Create an index on a table in the ANEEL bronze database.
+
+    Args:
+        conn (DBConnection): The database connection object.
+        joined_cols (list): The list of columns to be joined.
+    """
+    schema = ANEEL_SILVER_CONTRACTS["aneel"]["schema"]
+    table_name = ANEEL_SILVER_CONTRACTS["aneel"]["tableName"]
+    conn.create_index(schema, table_name, joined_cols)
+
+
+def select_ids_without_match(conn: DBConnection):
+    """
+    Retrieves a set of IDs without a match from the specified database connection.
+
+    Args:
+        conn (DBConnection): The database connection object.
+
+    Returns:
+        set: A set of IDs without a match.
+    """
+    schema_val = VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT["schema"]
+    table_name_val = VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT["tableName"]
+    df_val = conn.query_database(
+        f"""
+        SELECT * 
+        FROM {schema_val}.{table_name_val}
+        """
+    )
+    col_ids = set(
+        int(col_id.replace(" ", "")) if col_id != "" else ""
+        for list_cols_id in df_val.pn_con.values
+        for col_id in list_cols_id.split(",")
+    )
+    col_ids.remove("")
+    col_ids = set(int(col_id) for col_id in col_ids)
+    return col_ids
+
+
+def fix_ponnot_without_match(joined_cols: list):
+    """
+    Fixes the 'ponnot' without a match in the joined columns.
+
+    Args:
+        joined_cols (list): A list of joined columns.
+    """
+    conn_silver = DBConnection("silver")
+    index_table(conn_silver, joined_cols)
+    col_ids = select_ids_without_match(conn_silver)
+    schema = ANEEL_BRONZE_CONTRACTS["ucbt"]["schema"]
+    table_name = ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"]
+    conn_bronze = DBConnection("bronze")
+    counter = 0
+    for col_id in tqdm(col_ids):
+        df_col_id = conn_bronze.query_database(
+            f"""
+            select {', '.join(joined_cols)} 
+            from {schema}.{table_name} 
+            where id_coluna = {int(col_id)}"""
+        )
+        neighboors_set = get_neighboors(conn_silver, df_col_id)
+        if len(neighboors_set) == 1:
+            counter += 1
+            write_log(f"Counter: {counter}")
+        # diff_set = neighboors_set.difference(col_ids)
 
 
 def main():
@@ -484,116 +607,18 @@ def main():
     """
     joined_cols = [
         "dist",
+        "mun",
+        "conj",
+        "brr",
         "uni_tr_at",
         "ctmt",
-        "conj",
-        "mun",
         "clas_sub",
         "fas_con",
         "gru_ten",
         "gru_tar",
         "are_loc",
-        "brr",
     ]
-    update_ponnot_id_in_ucbt_table()
-    fix_empty_ucbt_pncon(joined_cols, False, False)
-    # fix_no_join_between_ucbt_and_ponnot(joined_cols)
-    join_ucbt_and_ponnot()
-
-
-# def query_empty_join_ucbt_ponnot(
-#     conn: DBConnection, pk_key: str, joined_cols: list, path_ucbt: str, path_ponnot: str
-# ):
-#     """
-#     Query the database to retrieve empty ucbt_ponnot records.
-
-#     This function executes an SQL query to retrieve empty ucbt_ponnot records from the database.
-#     It performs a full join between two tables, `path_ucbt` and `path_ponnot`, using multiple
-#     columns specified in `joined_cols`.
-#     The join condition includes matching values for `pn_con`, `dist`, and `mun` columns.
-#     The query filters out records where `geometry` is null in the `path_ponnot` table.
-#     The result set contains the group keys and corresponding values.
-
-#     Args:
-#         conn (DBConnection): The database connection object.
-#         pk_key (str): The primary key column name.
-#         joined_cols (list): The list of column names used for joining.
-#         path_ucbt (str): The path of the `path_ucbt` table.
-#         path_ponnot (str): The path of the `path_ponnot` table.
-
-#     Returns:
-#         ResultSet: The result set containing the group keys and corresponding values.
-
-#     """
-#     cols_text = " AND ".join([f"u.{col} = u2.{col}" for col in joined_cols])
-#     t_cols = [f"t.{col}" for col in joined_cols]
-#     dfs = []
-#     muns = conn.query_database(f"select distinct(mun) from {path_ucbt}")
-#     for mun in tqdm(muns["mun"]):
-#         df = conn.query_database(
-#             f"""
-#         SELECT u.group_keys AS chave,
-#             STRING_AGG(u2.{pk_key}::text, ',') AS valores
-#         FROM (
-#             SELECT
-#                 {", ".join(t_cols)},
-#                 STRING_AGG(t.{pk_key}::text, ',') as group_keys
-#             FROM {path_ucbt} t
-#             FULL JOIN {path_ponnot} p
-#             ON t.pn_con = p.cod_id
-#             AND t.dist = p.dist
-#             AND t.mun = p.mun
-#             WHERE p.geometry is null
-#             AND t.mun = '{mun}'
-#             GROUP BY
-#                 {", ".join(t_cols)}
-#         ) AS u
-#         LEFT JOIN {path_ucbt} u2
-#             ON {cols_text}
-#         GROUP BY u.group_keys
-
-#     """
-#         )
-#         dfs.append(df)
-#     return pd.concat(dfs)
-
-
-# def fix_no_join_between_ucbt_and_ponnot(
-#     joined_cols: List[str],
-#     update_ponnot: bool = True,
-#     delete_excluded_keys: bool = True,
-# ):
-#     """
-#     Fixes the no join between the 'ucbt' and 'ponnot' tables by querying the database and
-#     updating the records.
-
-#     Args:
-#         joined_cols (List[str]): The list of columns used for joining the data.
-#     """
-#     conn = DBConnection("bronze")
-#     ucbt_schema = ANEEL_BRONZE_CONTRACTS["ucbt"]["schema"]
-#     ucbt_table_name = ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"]
-#     path_ucbt = ".".join([ucbt_schema, ucbt_table_name])
-#     path_ponnot = ".".join(
-#         [
-#             ANEEL_BRONZE_CONTRACTS["ponnot"]["schema"],
-#             ANEEL_BRONZE_CONTRACTS["ponnot"]["tableName"],
-#         ]
-#     )
-#     pk_key = "id_coluna"
-#     df_empty_ucbt = query_empty_join_ucbt_ponnot(
-#         conn, pk_key, joined_cols, path_ucbt, path_ponnot
-#     )
-#     df_overwrite, exclude_keys = replace_energy_from_empty_ucbt_to_nearest_pncons(
-#         conn, df_empty_ucbt, pk_key, joined_cols
-#     )
-#     if update_ponnot:
-#         conn.update_table(
-#             df_overwrite,
-#             [pk_key],
-#             (ucbt_schema, ucbt_table_name),
-#         )
-#     if delete_excluded_keys:
-#         conn.delete_rows_table(
-#             (ucbt_schema, ucbt_table_name), f"{pk_key} in ({','.join(exclude_keys)})"
-#         )
+    # update_ponnot_id_in_ucbt_table()
+    # fix_empty_ucbt_pncon(joined_cols, True, True)
+    # join_ucbt_and_ponnot()
+    fix_ponnot_without_match(joined_cols)
