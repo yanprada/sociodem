@@ -170,7 +170,7 @@ class DBConnection(DBConnectionHandler):
 
     Methods:
         __create_schema: Create a schema in the database.
-        __add_pk_to_table: Add a primary key to a table in the database.
+        add_pk_to_table: Add a primary key to a table in the database.
         __add_fk_to_table: Add foreign keys to a table in the database.
         __save_as_postgis: Save a table as a PostGIS table in the database.
         __save_to_sql: Save a table as a SQL table in the database.
@@ -197,9 +197,8 @@ class DBConnection(DBConnectionHandler):
             None,
         )
 
-    def __add_pk_to_table(
+    def add_pk_to_table(
         self,
-        conn: sqlalchemy.engine.Connection,
         schema_name: str,
         table_name: str,
         primary_key: str,
@@ -208,24 +207,26 @@ class DBConnection(DBConnectionHandler):
         Add a primary key to a table in the database.
 
         Args:
-            conn (sqlalchemy.engine.Connection): The connection to the database.
             schema_name (str): The name of the schema containing the table.
             table_name (str): The name of the table to which the primary key will be added.
+            primary_key (str): The name of the column that will be set as the primary key.
         """
-        result = conn.execute(
-            text(
-                f"""SELECT constraint_name 
-                FROM information_schema.table_constraints
-                WHERE table_name = '{table_name}' 
-                AND constraint_type = 'PRIMARY KEY'"""
-            )
-        )
-        if not result.fetchone():
-            conn.execute(
+        with self._DBConnectionHandler__engine.begin() as conn:
+            result = conn.execute(
                 text(
-                    f"""ALTER TABLE {schema_name}.{table_name} ADD PRIMARY KEY ({primary_key})"""
+                    f"""SELECT constraint_name 
+                        FROM information_schema.table_constraints
+                        WHERE table_name = '{table_name}' 
+                        AND constraint_type = 'PRIMARY KEY'"""
                 )
             )
+            if not result.fetchone():
+                conn.execute(
+                    text(
+                        f"""ALTER TABLE {schema_name}.{table_name} 
+                            ADD PRIMARY KEY ({primary_key})"""
+                    )
+                )
 
     def __get_fk(self, contract):
         return [
@@ -236,7 +237,6 @@ class DBConnection(DBConnectionHandler):
 
     def __add_fk_to_table(
         self,
-        conn: sqlalchemy.engine.Connection,
         schema_name: str,
         table_name: str,
         foreign_keys: List[tuple[str, str]],
@@ -245,59 +245,58 @@ class DBConnection(DBConnectionHandler):
         Add foreign keys to a table in the database.
 
         Args:
-            conn (sqlalchemy.engine.Connection): The connection to the database.
             schema_name (str): The name of the schema containing the table.
             table_name (str): The name of the table to which the foreign keys will be added.
             foreign_keys (List[tuple[str, str]]): Tuple containing the column name
                                 and the path of the foreging key in the database.
         """
-        for fk_col, fk_path in foreign_keys:
-            result = conn.execute(
-                text(
-                    f"""SELECT constraint_name 
-                        FROM information_schema.table_constraints 
-                        WHERE table_name = '{table_name}' 
-                        AND constraint_type = 'FOREIGN KEY'"""
-                )
-            )
-            if not result.fetchone():
-
-                conn.execute(
+        with self._DBConnectionHandler__engine.begin() as conn:
+            for fk_col, fk_path in foreign_keys:
+                result = conn.execute(
                     text(
-                        f"""ALTER TABLE {schema_name}.{table_name} 
-                                ADD FOREIGN KEY ({fk_col}) 
-                                REFERENCES {fk_path}"""
+                        f"""SELECT constraint_name 
+                            FROM information_schema.table_constraints 
+                            WHERE table_name = '{table_name}' 
+                            AND constraint_type = 'FOREIGN KEY'"""
                     )
                 )
+                if not result.fetchone():
+
+                    conn.execute(
+                        text(
+                            f"""ALTER TABLE {schema_name}.{table_name} 
+                                    ADD FOREIGN KEY ({fk_col}) 
+                                    REFERENCES {fk_path}"""
+                        )
+                    )
 
     def __get_not_null(self, contract: dict):
         return [col["column"] for col in contract["columns"] if col["isNullable"]]
 
     def __add_not_null_to_table(
         self,
-        conn: sqlalchemy.engine.Connection,
         schema_name: str,
         table_name: str,
         not_null_columns: List[tuple[str, str]],
     ):
-
-        for col in not_null_columns:
-            result = conn.execute(
-                text(
-                    f"""SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = '{table_name}' 
-                    AND column_name = '{col}' 
-                    AND is_nullable = 'NO'"""
-                )
-            )
-            if not result.fetchone():
-                conn.execute(
+        with self._DBConnectionHandler__engine.begin() as conn:
+            for col in not_null_columns:
+                result = conn.execute(
                     text(
-                        f"""ALTER TABLE {schema_name}.{table_name} 
-                        ALTER COLUMN {col} SET NOT NULL"""
+                        f"""SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = '{table_name}' 
+                        AND column_name = '{col}' 
+                        AND is_nullable = 'NO'"""
                     )
                 )
+                if not result.fetchone():
+                    conn.execute(
+                        text(
+                            f"""ALTER TABLE {schema_name}.{table_name} 
+                            ALTER COLUMN {col} SET NOT NULL"""
+                        )
+                    )
 
     # def __save_in_parallel(self, partitions, names):
     #     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -442,16 +441,13 @@ class DBConnection(DBConnectionHandler):
 
     def __update_table_keys(self, names, primary_key, foreign_keys, not_null_columns):
         schema_name, table_name = names
-        with self._DBConnectionHandler__engine.begin() as conn:
 
-            if primary_key is not None:
-                self.__add_pk_to_table(conn, schema_name, table_name, primary_key)
-            if len(foreign_keys) > 0:
-                self.__add_fk_to_table(conn, schema_name, table_name, foreign_keys)
-            if len(not_null_columns) > 0:
-                self.__add_not_null_to_table(
-                    conn, schema_name, table_name, not_null_columns
-                )
+        if primary_key is not None:
+            self.add_pk_to_table(schema_name, table_name, primary_key)
+        if len(foreign_keys) > 0:
+            self.__add_fk_to_table(schema_name, table_name, foreign_keys)
+        if len(not_null_columns) > 0:
+            self.__add_not_null_to_table(schema_name, table_name, not_null_columns)
 
     def drop_index(self, schema: str, table_name: str):
         """
