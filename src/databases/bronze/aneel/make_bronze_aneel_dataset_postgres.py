@@ -335,6 +335,31 @@ def run_without_checking_in_db(df_aneel_ids: pd.DataFrame) -> None:
         _ = upload_conj(company_id)
 
 
+def update_ponnot_id_in_ucbt_table():
+    """
+    Retrieves data from the bronze database and performs some transformations.
+    Updates the 'pn_con' column in the 'ucbt' table by joining it with the 'ramlig' table.
+    """
+    conn = DBConnection("bronze")
+    df = conn.query_database(
+        """ 
+        SELECT * 
+        FROM infrastructure.ucbt u 
+        LEFT JOIN infrastructure.ramlig r 
+        ON u.ramal = r.cod_id 
+        WHERE u.pn_con = ' ' 
+        AND r.pn_con_1 != ' ' 
+        AND u.dist = r.dist
+        AND u.conj = r.conj
+        """
+    )
+    saved_columns_ramlig = get_cols_in_db("ramlig")
+    df["pn_con"] = df["pn_con_1"]  # update pn_con column with ramlig pn_con value
+    df = df.iloc[:, : -len(saved_columns_ramlig)]
+    match_cols = [col for col in df.columns if col != "pn_con"]
+    conn.update_table(df, match_cols, ("infrastructure", "ucbt"))
+
+
 def main(check_in_db: bool = True) -> None:
     """
     This function processes each company id from the 'df_aneel_ids' DataFrame,
@@ -348,3 +373,5 @@ def main(check_in_db: bool = True) -> None:
         run_with_check_in_db(df_aneel_ids, id_dict)
     else:
         run_without_checking_in_db(df_aneel_ids)
+    # update empty " " ponnot in bronze ucbt
+    update_ponnot_id_in_ucbt_table()
