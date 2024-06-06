@@ -40,3 +40,43 @@ silver:
       translatedValues:
       sampleValues:
       - 
+  - contractName: contract_validation.yaml
+    tableName: aneel_last_no_join
+    schema: validation
+    physicalPath: databases/silver/validation/aneel_last_no_join/
+    description: this table contains the column id of the ucbt that were missing in ponnot, and that it was not updated in silver aneel dataframe
+    queryYear: 
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+  - contractName: contract_validation.yaml
+    tableName: aneel_last_no_join
+    schema: validation
+    physicalPath: databases/silver/validation/temp_success_join/
+    description: this table contains the column id of the ucbt that were missing in ponnot, and that it was not updated in silver aneel dataframe
+    queryYear: 
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
