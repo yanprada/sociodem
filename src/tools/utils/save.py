@@ -47,6 +47,8 @@ def save_parquet_decorator(
             result = funcao(*args, **kwargs)
             path = contract["physicalPath"].split(".")[0]
             if isinstance(result, (pd.DataFrame, pd.Series)):
+                if len(result) == 0:
+                    return result
                 if save_db:
                     save_in_db(result, medallon, contract)
                 if save_pq:
@@ -56,6 +58,8 @@ def save_parquet_decorator(
                     if isinstance(obj, pd.DataFrame):
                         path = "_".join([path, str(i)])
                         database_contract_single = contract[i]
+                        if len(result) == 0:
+                            return result
                         if save_pq:
                             save_parquet(obj, path, **kwargs)
                         if save_db:
