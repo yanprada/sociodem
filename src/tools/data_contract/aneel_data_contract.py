@@ -51,10 +51,17 @@ def get_aneel_silver_contracts():
     contract_company_id = get_contract(
         "aneel/contract_aneel_companies_id.yaml", "bronze"
     )
-    contract_aneel_silver = get_contract(
-        "aneel/contract_aneel_companies.yaml", "silver"
-    )
-    contracts = {"company_id": contract_company_id, "aneel": contract_aneel_silver}
+    aneel_contracts = get_contract("aneel/contract_aneel_companies.yaml", "silver")
+    contract_aneel_neighbors_list = []
+    for i in range(1, len(aneel_contracts) - 1):
+        contract_aneel_neighbors_list.append(aneel_contracts[i])
+    contracts = {
+        f"neighbors_lvl{i}": contract_aneel_neighbors_list[i]
+        for i in range(len(contract_aneel_neighbors_list))
+    }
+    contracts["company_id"] = contract_company_id
+    contracts["aneel"] = aneel_contracts[0]
+    contracts["temp_join"] = aneel_contracts[-1]
     return EasyDict(contracts)
 
 
