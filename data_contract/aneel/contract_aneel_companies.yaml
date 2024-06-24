@@ -94,22 +94,166 @@ bronze:
       translatedValues:
       sampleValues:
 silver:
-  contractName: contract_aneel_companies.yaml
-  tableName: aneel
-  schema: infrastructure
-  physicalPath: databases/silver/aneel/mun/
-  description: Energy infrastructure points of energy companies
-  queryYear: Null
-  ifExists: append
-  columns:
-  - column: 
-    isPrimaryKey: 
-    ForeignKey: 
-    businessName: 
-    description: 
-    logicalType: 
-    physicalType: 
-    isNullable: 
-    isBlank: 
-    translatedValues:
-    sampleValues:
+  - contractName: contract_aneel_companies.yaml
+    tableName: aneel
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/mun/
+    description: Energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: neighbors_lvl0
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: grouped energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: neighbors_lvl1
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: grouped energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: neighbors_lvl2
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: grouped energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: neighbors_lvl3
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: grouped energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: neighbors_lvl4
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: grouped energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: neighbors_lvl5
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: grouped energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: neighbors_lvl6
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: grouped energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: aneel_temp_join
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/temp/
+    description: Temporary join of energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
