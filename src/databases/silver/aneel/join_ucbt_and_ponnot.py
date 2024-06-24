@@ -31,7 +31,7 @@ from src.tools.data_contract.validation_data_contract import (
     get_validation_partitions,
 )
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.common import check_file_exists, write_log
+from src.tools.utils.common import check_file_exists_in_disk, write_log
 
 ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
@@ -75,29 +75,31 @@ def try_join(
 
 
 @save_parquet_decorator("silver", VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT)
-def save_no_join_ucbt_ponnot(mun_batch: str, id_col_no_match: str, **kwargs):
+def save_no_join_ucbt_ponnot(
+    mun_batch: str, id_col_no_match: str, **kwargs
+) -> pd.DataFrame:
     """
-    Saves the 'pn_con' values that did not match between the 'ucbt' and 'ponnot' tables.
+    Saves the 'ids_no_match' values that did not match between the 'ucbt' and 'ponnot' tables.
 
     Args:
         mun_batch (str): The municipality to filter the data.
-        id_col_no_match (str): The 'pn_con' values that did not match
+        id_col_no_match (str): The 'ids_no_match' values that did not match
                                 between the 'ucbt' and 'ponnot' tables.
         **kwargs: Additional keyword arguments.
 
     Returns:
-        DataFrame: A DataFrame containing the 'mun' and 'pn_con' values.
+        DataFrame: A DataFrame containing the 'mun' and 'ids_no_match' values.
 
     Example:
-        >>> save_no_join_ucbt_ponnot('example_municipality', 'example_pn_con')
-        example_municipality  example_pn_con
+        >>> save_no_join_ucbt_ponnot('example_municipality', 'example_ids_no_match')
+        example_municipality  example_ids_no_match
     """
-    df = pd.DataFrame({"mun_batch": [mun_batch], "pn_con": [id_col_no_match]})
+    df = pd.DataFrame({"mun_batch": [mun_batch], "ids_no_match": [id_col_no_match]})
     return df
 
 
 @save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS["aneel"])
-def save_partitioned_mun(df: pd.DataFrame, **kwargs):
+def save_partitioned_mun(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     """
     Save the concatenated DataFrame with dropped columns.
 
@@ -112,7 +114,7 @@ def save_partitioned_mun(df: pd.DataFrame, **kwargs):
 
 
 @save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS["aneel"])
-def save_mun(df: pd.DataFrame, mun: str, **kwargs):
+def save_mun(df: pd.DataFrame, mun: str, **kwargs) -> pd.DataFrame:
     """
     Save the concatenated DataFrame with dropped columns.
 
@@ -129,12 +131,13 @@ def save_mun(df: pd.DataFrame, mun: str, **kwargs):
         return df_mun
     batch_size = int(1e6)
     df_batches = [df_mun[i : i + batch_size] for i in range(0, len(df_mun), batch_size)]
-    for batch in df_batches:
+    for i, batch in enumerate(df_batches):
+        kwargs = {"filename": "/part_".join([mun, i])}
         _ = save_partitioned_mun(batch, **kwargs)
     return pd.DataFrame()
 
 
-def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]):
+def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None:
     """
     Joins batches of data from two paths based on specific conditions.
 
@@ -189,9 +192,9 @@ def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]):
         _ = save_mun(df, mun, **kwargs)
 
 
-def join_ucbt_and_ponnot():
+def main() -> None:
     """
-    Joins the 'ucbt' and 'ponnot' tables to update the 'pn_con' column in the 'ucbt' table.
+    This is the main function that executes the join_ucbt_and_ponnot operation.
     """
     path_ucbt = ".".join(
         [
@@ -229,21 +232,18 @@ def join_ucbt_and_ponnot():
     mun_batches = [muns[i : i + batch_size] for i in range(0, len(muns), batch_size)]
     for mun_batch in tqdm(mun_batches, desc="Processing mun batches"):
         if all(
-            check_file_exists(mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"])
+            check_file_exists_in_disk(
+                mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"]
+            )
             for mun in mun_batch["mun"].to_list()
         ):
             continue
         mun_batch = ",".join([f"'{mun}'" for mun in mun_batch["mun"].to_list()])
         join_batches(path_ucbt, path_ponnot, mun_batch)
     for mun in tqdm(large_mun_cods, desc="Processing large muns"):
-        if check_file_exists(mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"]):
+        if check_file_exists_in_disk(
+            mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"]
+        ):
             write_log(f"Skipping {mun}")
             continue
         join_batches(path_ucbt, path_ponnot, f"'{mun}'")
-
-
-def main():
-    """
-    This is the main function that executes the join_ucbt_and_ponnot operation.
-    """
-    join_ucbt_and_ponnot()
