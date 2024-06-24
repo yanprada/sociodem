@@ -19,6 +19,7 @@ import sqlalchemy
 from tqdm import tqdm
 from pyspark.sql import SparkSession
 
+
 warnings.filterwarnings("ignore")
 
 # Database credentials
@@ -307,7 +308,7 @@ class DBConnection(DBConnectionHandler):
     #         concurrent.futures.wait(futures)
 
     def __save_in_sequence(self, partitions, names):
-        for partition in tqdm(partitions):
+        for partition in tqdm(partitions, desc="Saving partitions of the dataframe"):
             self._save_small_table(partition, names, "append")
 
     def __save_large_table(
@@ -514,8 +515,7 @@ class DBConnection(DBConnectionHandler):
             if all(table[col_geom].isnull()) or all(table[col_geom] == "None"):
                 table.drop(columns=col_geom, inplace=True)
                 if isinstance(table, gpd.GeoDataFrame):
-                    table = table.to_pandas()
-
+                    table = pd.DataFrame(table)
         self.__save_table(table, names, action_if_table_exists)
         self.__update_table_keys(names, primary_key, foreign_keys, not_null_columns)
 
@@ -566,7 +566,7 @@ class DBConnection(DBConnectionHandler):
         except Exception as e:
             raise e
 
-    @lru_cache(maxsize=2)
+    @lru_cache(maxsize=1)
     def query_database(self, query: str) -> pd.DataFrame:
         """
         Executes a query on the database and returns the result as a DataFrame.
