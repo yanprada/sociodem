@@ -13,3 +13,4 @@ dist
 *.tif
 *.pbf
 *.geojson
+mlruns/
