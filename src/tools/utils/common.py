@@ -8,10 +8,14 @@ Functions:
 
 import os
 import logging
+from functools import lru_cache
 import yaml
 import pandas as pd
+from mlflow.tracking import MlflowClient
+
 from src.tools.data_contract.validation_data_contract import get_validation_partitions
 from src.tools.utils.save import add_partition_size_to_yaml
+from src.tools.databases.data_connection.connection import DBConnection
 
 logging.basicConfig(
     level=logging.INFO,
@@ -123,7 +127,7 @@ def get_test_yaml(yaml_path: str) -> dict:
     return existing_data
 
 
-def check_file_exists(
+def check_file_exists_in_disk(
     filename: str, filepath: str, extension: str = ".parquet"
 ) -> bool:
     """
@@ -156,3 +160,74 @@ def check_file_exists(
                 f"Number of partitions is greater than number of files in {path_large_file}"
             )
     return exist_file
+
+
+@lru_cache(maxsize=10)
+def check_file_exists_in_db(
+    conn: DBConnection, path_saved: str, condition: str = "LIMIT 1"
+):
+    """
+    Check if a file exists in the database.
+
+    Args:
+        conn (DBConnection): The database connection object.
+        path_saved (str): The path of the file to check.
+        condition (str, optional): The condition to apply to the query. Defaults to "LIMIT 1".
+
+    Returns:
+        bool: True if the file exists in the database, False otherwise.
+    """
+    try:
+        file_exists = conn.query_database(f"SELECT * FROM {path_saved} {condition}")
+        return len(file_exists) > 0
+    except:
+        return False
+
+
+def get_ml_flow_data(experiment_name: str) -> pd.DataFrame:
+    """
+    Retrieves data from MLflow for a given experiment.
+
+    Args:
+        experiment_name (str): The name of the MLflow experiment.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the retrieved data.
+    """
+
+    def get_all_runs(client, experiment_id):
+        runs = []
+        page_token = None
+
+        while True:
+            result = client.search_runs(
+                experiment_ids=[experiment_id],
+                order_by=["attributes.start_time desc"],
+                max_results=1000,
+                page_token=page_token,
+            )
+            runs.extend(result)
+            if result.token is None:
+                break
+            page_token = result.token
+
+        return runs
+
+    client = MlflowClient()
+    experiment = client.get_experiment_by_name(experiment_name)
+    experiment_id = experiment.experiment_id
+    runs = get_all_runs(client, experiment_id)
+    data = []
+    for run in runs:
+        run_data = run.data.to_dictionary()
+        row = {
+            "run_id": run.info.run_id,
+            "start_time": run.info.start_time,
+            "end_time": run.info.end_time,
+            "status": run.info.status,
+            **run_data["params"],
+            **run_data["metrics"],
+            **run_data["tags"],
+        }
+        data.append(row)
+    return pd.DataFrame(data)
