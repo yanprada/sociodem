@@ -184,6 +184,36 @@ def check_file_exists_in_db(
         return False
 
 
+def get_all_mlflow_runs(client, experiment_id):
+    """
+    Retrieves all MLflow runs for a given experiment ID.
+
+    Args:
+        client (mlflow.tracking.MlflowClient): The MLflow client object.
+        experiment_id (str): The ID of the experiment.
+
+    Returns:
+        list: A list of MLflow runs.
+
+    """
+    runs = []
+    page_token = None
+
+    while True:
+        result = client.search_runs(
+            experiment_ids=[experiment_id],
+            order_by=["attributes.start_time desc"],
+            max_results=1000,
+            page_token=page_token,
+        )
+        runs.extend(result)
+        if result.token is None:
+            break
+        page_token = result.token
+
+    return runs
+
+
 def get_ml_flow_data(experiment_name: str) -> pd.DataFrame:
     """
     Retrieves data from MLflow for a given experiment.
@@ -195,28 +225,10 @@ def get_ml_flow_data(experiment_name: str) -> pd.DataFrame:
         pd.DataFrame: A DataFrame containing the retrieved data.
     """
 
-    def get_all_runs(client, experiment_id):
-        runs = []
-        page_token = None
-
-        while True:
-            result = client.search_runs(
-                experiment_ids=[experiment_id],
-                order_by=["attributes.start_time desc"],
-                max_results=1000,
-                page_token=page_token,
-            )
-            runs.extend(result)
-            if result.token is None:
-                break
-            page_token = result.token
-
-        return runs
-
     client = MlflowClient()
     experiment = client.get_experiment_by_name(experiment_name)
     experiment_id = experiment.experiment_id
-    runs = get_all_runs(client, experiment_id)
+    runs = get_all_mlflow_runs(client, experiment_id)
     data = []
     for run in runs:
         run_data = run.data.to_dictionary()
