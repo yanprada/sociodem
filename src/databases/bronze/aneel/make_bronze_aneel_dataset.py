@@ -39,6 +39,7 @@ from src.tools.utils.common import (
 )
 
 mlflow.set_experiment("aneel bronze")
+
 CONTRACTS = get_aneel_contracts("bronze")
 VALIDATION_PARTITIONS = get_validation_partitions()
 
@@ -128,6 +129,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
             df = reader.read_geopandas(
                 properties, geometry=geometries, crs=layer_src.crs
             )
+        df = df.drop_duplicates()
         return columns_engineering(df, database)
 
     def parallel_process():
@@ -236,6 +238,7 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
             driver="FileGDB",
             layer=layers_dict[database],
         )
+        df = df.drop_duplicates()
         del reader
         del path
         gc.collect()
@@ -421,6 +424,35 @@ def update_ponnot_id_in_ucbt_table():
     conn.update_table(df, match_cols, (schema_ucbt, table_ucbt))
 
 
+def create_primary_key():
+    """
+    Creates a primary key on the ID column of ucbt table.
+    """
+    conn = DBConnection("bronze")
+    schema = CONTRACTS["ucbt"]["schema"]
+    table_name = CONTRACTS["ucbt"]["tableName"]
+    pk_key = "row_id"
+    df = conn.query_database(f"SELECT * FROM {schema}.{table_name} LIMIT 1")
+    if pk_key not in df.columns:
+        conn.create_pk(schema, table_name, pk_key)
+
+
+def process_files_aneel(df_aneel_ids: pd.DataFrame):
+    """
+    Process the files in the ANEEL dataset based on their sizes.
+
+    Args:
+        df_aneel_ids (pd.DataFrame): The DataFrame containing ANEEL dataset IDs.
+    """
+    extra_large_files, large_files, medium_files, small_files = split_file_sizes(
+        df_aneel_ids
+    )
+    process_small_files(small_files)
+    proccess_medium_files(medium_files)
+    process_large_files(large_files)
+    process_extra_large_files(extra_large_files)
+
+
 def main():
     """
     Main function for making dataset of ANEEL companies.
@@ -431,11 +463,6 @@ def main():
     file reading process.
     """
     df_aneel_ids = load_aneel_ids()
-    extra_large_files, large_files, medium_files, small_files = split_file_sizes(
-        df_aneel_ids
-    )
-    process_small_files(small_files)
-    proccess_medium_files(medium_files)
-    process_large_files(large_files)
-    process_extra_large_files(extra_large_files)
+    process_files_aneel(df_aneel_ids)
     update_ponnot_id_in_ucbt_table()
+    create_primary_key()
