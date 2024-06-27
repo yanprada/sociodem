@@ -1,10 +1,9 @@
 """
 This module contains the pipeline for processing ANEEL data.
 
-The pipeline consists of three steps:
+The pipeline consists of two steps:
 1. Downloading ANEEL companies data
-2. Creating a bronze ANEEL dataset in Parquet format
-3. Creating a bronze ANEEL dataset in PostgreSQL database
+2. Creating a bronze ANEEL dataset in Parquet and PostgreSQL format
 
 To run the pipeline, call the `run()` function.
 """
@@ -21,8 +20,7 @@ def run():
 
     This function executes the following steps:
     1. Downloads ANEEL companies data
-    2. Creates a bronze ANEEL dataset in Parquet format
-    3. Creates a bronze ANEEL dataset in PostgreSQL database
+    2. Creates a bronze ANEEL dataset in Parquet format and also in PostgresSQL database
     """
     download_aneel_companies.main()
     make_bronze_aneel_dataset.main()
