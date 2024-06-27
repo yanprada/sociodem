@@ -8,22 +8,14 @@ from functools import lru_cache
 from typing import Tuple, Set, List
 from tqdm import tqdm
 import pandas as pd
+
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
-from src.tools.data_contract.validation_data_contract import (
-    get_validation_contracts,
-    get_validation_partitions,
-)
 from src.tools.utils.common import write_log, check_file_exists_in_db
 from src.tools.utils.save import save_parquet_decorator
 
 ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
-VALIDATION_PARTITIONS = get_validation_partitions()
-VALIDATION_CONTRACT_EMPTY_STR_UCBT_PONNOT = get_validation_contracts("bronze", 0)
-VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT = get_validation_contracts("silver", 0)
-VALIDATION_CONTRACT_LAST_JOIN = get_validation_contracts("silver", 1)
-VALIDATION_CONTRACT_SUCCESS = get_validation_contracts("silver", 2)
 
 
 def index_table(conn: DBConnection, joined_cols: list):
@@ -40,31 +32,27 @@ def index_table(conn: DBConnection, joined_cols: list):
 
 
 @lru_cache(1)
-def select_ids_without_match(conn: DBConnection) -> Set[int]:
+def select_ids_without_match(
+    conn_bronze: DBConnection,
+    conn_silver: DBConnection,
+    path_bronze: str,
+    path_silver: str,
+) -> Set[int]:
     """
     Retrieves a set of IDs without a match from the specified database connection.
 
     Args:
-        conn (DBConnection): The database connection object.
+        conn_bronze (DBConnection): The database connection object for the bronze database.
+        conn_silver (DBConnection): The database connection object for the silver database.
+        path_bronze (str): The path to the bronze table.
+        path_silver (str): The path to the silver table.
 
     Returns:
         set: A set of IDs without a match.
     """
-    schema_val = VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT["schema"]
-    table_name_val = VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT["tableName"]
-    df_val = conn.query_database(
-        f"""
-        SELECT * 
-        FROM {schema_val}.{table_name_val}
-        """
-    )
-    col_ids = set(
-        int(col_id.replace(" ", "")) if col_id != "" else ""
-        for list_cols_id in df_val.ids_no_match.values
-        for col_id in list_cols_id.split(",")
-    )
-    col_ids.remove("")
-    col_ids = set(int(col_id) for col_id in col_ids)
+    dfb = conn_bronze.query_database(f"""SELECT row_id FROM {path_bronze}""")
+    dfs = conn_silver.query_database(f"""SELECT row_id FROM {path_silver}""")
+    col_ids = set(dfb.row_id).difference(set(dfs.row_id))
     return col_ids
 
 
@@ -358,9 +346,9 @@ def process_rows_distribute_energy(
         desc=f"Processing rows from {i} to {i+batch}",
     ):
         col_id_values = get_cols_ids_to_be_changed(row)
-        df_keys = query_db(conns[0], paths[0], "id_coluna", row.ids_problematicos)
-        df_values = query_db(conns[1], paths[1], "id_coluna", col_id_values)
-        assert col_id_values == set(df_values.id_coluna), "Missing keys in df_values"
+        df_keys = query_db(conns[0], paths[0], "row_id", row.ids_problematicos)
+        df_values = query_db(conns[1], paths[1], "row_id", col_id_values)
+        assert col_id_values == set(df_values.row_id), "Missing keys in df_values"
         if df_values.empty:
             missing_keys.append(
                 ",".join(
@@ -438,12 +426,16 @@ def check_file_exists(conns: Tuple[DBConnection], df: pd.DataFrame) -> bool:
         ]
     )
     last_id = get_cols_ids_to_be_changed(df)
-    condition = f"WHERE id_coluna IN ({last_id})"
+    condition = f"WHERE row_id IN ({last_id})"
     return check_file_exists_in_db(conns[1], path_saved, condition)
 
 
 def process_batch(
-    df: pd.DataFrame, conns: Tuple[DBConnection], paths: List[str], batch: int, lvl: str
+    df: pd.DataFrame,
+    conns: Tuple[DBConnection],
+    paths: Tuple[str],
+    batch: int,
+    lvl: str,
 ) -> None:
     """
     Process files in batches and distribute energy data.
@@ -451,7 +443,7 @@ def process_batch(
     Args:
         df (pd.DataFrame): The DataFrame containing the data to be processed.
         conns (Tuple[DBConnection]): A tuple of database connections.
-        paths (List[str]): A list of file paths.
+        paths (Tuple[str]): A tuple of file paths.
         batch (int): The batch size for processing the files.
         lvl (str): The level of the files being processed.
     """
@@ -485,7 +477,9 @@ def distribute_energy_ponnot_without_match(
         path_bronze (str): Path to the bronze database.
         path_silver (str): Path to the silver database.
     """
-    cols_id = select_ids_without_match(conn_silver)
+    cols_id = select_ids_without_match(
+        conn_bronze, conn_silver, path_bronze, path_silver
+    )
     df_values_ids = get_col_id_neighboors(conn_silver, cols_id)
     process_list = [
         (1, (df_values_ids.ids_totais >= 1e6), "large"),
@@ -527,7 +521,7 @@ def make_aggregation_ids(cols: list, path: str, filename: str):
         conn = DBConnection("bronze")
         query = f"""
         SELECT {", ".join(cols)},
-        STRING_AGG(id_coluna::text, ',') AS ids_agrupados
+        STRING_AGG(row_id::text, ',') AS ids_agrupados
         FROM
         {path} u
         GROUP BY
@@ -571,7 +565,7 @@ def create_grouped_tables() -> None:
             ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"],
         ]
     )
-    for i in range(0, 7):
+    for i in tqdm(range(0, 7), desc="Creating grouped tables"):
         cols = get_cols_to_join(i)
         filename = f"neighbors_lvl{i}"
         db_exists = check_db_exists(filename)
@@ -600,7 +594,7 @@ def main():
         ]
     )
     conn_silver.add_pk_to_table(
-        path_silver.split(".", maxsplit=1)[0], path_silver.split(".")[1], "id_coluna"
+        path_silver.split(".", maxsplit=1)[0], path_silver.split(".")[1], "row_id"
     )
     conn_bronze = DBConnection("bronze")
     distribute_energy_ponnot_without_match(
