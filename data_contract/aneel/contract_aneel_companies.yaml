@@ -78,7 +78,7 @@ bronze:
   - tableName: conj
     schema: infrastructure
     physicalPath: databases/bronze/aneel/conj/
-    description: Energy geometry of energy companies
+    description: geometry area of influence of energy companies
     queryYear: Null
     ifExists: append
     columns:
@@ -98,7 +98,7 @@ silver:
     tableName: aneel
     schema: infrastructure
     physicalPath: databases/silver/aneel/mun/
-    description: Energy infrastructure points of energy companies
+    description: Energy infrastructure points of energy companies, with energy consumption per type (residencial, commercial, industrial, ...)
     queryYear: Null
     ifExists: append
     columns:
@@ -116,7 +116,7 @@ silver:
   - tableName: neighbors_lvl0
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies
+    description: grouped energy infrastructure points of energy companies based on a more granular level
     queryYear: Null
     ifExists: replace
     columns:
@@ -134,7 +134,7 @@ silver:
   - tableName: neighbors_lvl1
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies
+    description: grouped energy infrastructure points of energy companies based on a more general level than level above
     queryYear: Null
     ifExists: replace
     columns:
@@ -152,7 +152,7 @@ silver:
   - tableName: neighbors_lvl2
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies
+    description: grouped energy infrastructure points of energy companies based on a more general level than level above
     queryYear: Null
     ifExists: replace
     columns:
@@ -170,7 +170,7 @@ silver:
   - tableName: neighbors_lvl3
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies
+    description: grouped energy infrastructure points of energy companies based on a more general level than level above
     queryYear: Null
     ifExists: replace
     columns:
@@ -188,7 +188,7 @@ silver:
   - tableName: neighbors_lvl4
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies
+    description: grouped energy infrastructure points of energy companies based on a more general level than level above
     queryYear: Null
     ifExists: replace
     columns:
@@ -206,7 +206,7 @@ silver:
   - tableName: neighbors_lvl5
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies
+    description: grouped energy infrastructure points of energy companies based on a more general level than level above
     queryYear: Null
     ifExists: replace
     columns:
@@ -224,7 +224,7 @@ silver:
   - tableName: neighbors_lvl6
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies
+    description: grouped energy infrastructure points of energy companies based on a more general level than level above
     queryYear: Null
     ifExists: replace
     columns:
