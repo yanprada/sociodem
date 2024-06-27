@@ -23,7 +23,9 @@ The script consists of the following functions:
 
 from typing import List, Tuple
 from tqdm import tqdm
+import mlflow
 import pandas as pd
+
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.data_contract.validation_data_contract import (
@@ -32,6 +34,8 @@ from src.tools.data_contract.validation_data_contract import (
 )
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import check_file_exists_in_disk, write_log
+
+mlflow.set_experiment("aneel silver")
 
 ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
@@ -69,7 +73,7 @@ def try_join(
     dfs_good_match.append(df_good_match.loc[:, ~df_good_match.columns.duplicated()])
 
     id_col_no_match = ", ".join(
-        [str(id_col) for id_col in df[df.geometry.isna()].id_coluna.unique()]
+        [str(id_col) for id_col in df[df.geometry.isna()].row_id.unique()]
     )
     return dfs_good_match, id_col_no_match
 
@@ -127,14 +131,29 @@ def save_mun(df: pd.DataFrame, mun: str, **kwargs) -> pd.DataFrame:
         pd.DataFrame: The filtered DataFrame containing only the specified municipality.
     """
     df_mun = df[df["mun"] == mun]
+    add_to_mlflow(df_mun)
     if len(df_mun) < 1e6:
         return df_mun
     batch_size = int(1e6)
     df_batches = [df_mun[i : i + batch_size] for i in range(0, len(df_mun), batch_size)]
     for i, batch in enumerate(df_batches):
-        kwargs = {"filename": "/part_".join([mun, i])}
+        kwargs = {"filename": "/part_".join([mun, str(i)])}
         _ = save_partitioned_mun(batch, **kwargs)
     return pd.DataFrame()
+
+
+def add_to_mlflow(df: pd.DataFrame) -> None:
+    """
+    Logs the parameters and metrics to MLflow for the given GeoDataFrame.
+
+    Args:
+        df (pd.DataFrame): The dataframe to log.
+    """
+    with mlflow.start_run():
+        mlflow.log_param("municipality", df.mun.unique()[0])
+        mlflow.log_param("company", df.dist.unique()[0])
+        mlflow.log_metric("num_rows", len(df))
+        mlflow.log_metric("energy", df.filter(regex="ene_").sum().sum())
 
 
 def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None:
@@ -166,7 +185,7 @@ def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None
             on u.pn_con = p.cod_id 
             and u.dist = p.dist
             and u.mun = p.mun 
-            where u.id_coluna in ({id_col_no_match})
+            where u.row_id in ({id_col_no_match})
             and u.mun in ({mun_batch})
             """
     dfs_good_match, id_col_no_match = try_join(query, dfs_good_match, id_col_no_match)
@@ -177,7 +196,7 @@ def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None
             on u.pn_con = p.cod_id 
             and u.dist = p.dist
             and u.conj = p.conj 
-            where u.id_coluna in ({id_col_no_match})
+            where u.row_id in ({id_col_no_match})
             and u.mun in ({mun_batch})
             """
     dfs_good_match, id_col_no_match = try_join(query, dfs_good_match, id_col_no_match)
