@@ -18,16 +18,17 @@ ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
 
 
-def index_table(conn: DBConnection, joined_cols: list):
+def index_table(conn: DBConnection, joined_cols: list, filename: str):
     """
     Create an index on a table in the ANEEL bronze database.
 
     Args:
         conn (DBConnection): The database connection object.
         joined_cols (list): The list of columns to be joined.
+        filename (str): The name of the file.
     """
-    schema = ANEEL_SILVER_CONTRACTS["aneel"]["schema"]
-    table_name = ANEEL_SILVER_CONTRACTS["aneel"]["tableName"]
+    schema = ANEEL_SILVER_CONTRACTS[filename]["schema"]
+    table_name = ANEEL_SILVER_CONTRACTS[filename]["tableName"]
     conn.create_index(schema, table_name, joined_cols)
 
 
@@ -555,7 +556,7 @@ def check_db_exists(filename: str) -> bool:
         return False
 
 
-def create_grouped_tables() -> None:
+def create_grouped_tables(conn: DBConnection) -> None:
     """
     Create grouped tables based on the joined columns.
     """
@@ -571,7 +572,7 @@ def create_grouped_tables() -> None:
         db_exists = check_db_exists(filename)
         if not db_exists:
             make_aggregation_ids(cols, path_bronze, filename)
-        index_table(cols, filename)
+        index_table(conn, cols, filename)
         gc.collect()
 
 
@@ -579,8 +580,8 @@ def main():
     """
     Fixes the 'ponnot' without a match in the joined columns.
     """
-    create_grouped_tables()
     conn_silver = DBConnection("silver")
+    create_grouped_tables(conn_silver)
     path_bronze = ".".join(
         [
             ANEEL_BRONZE_CONTRACTS["ucbt"]["schema"],
