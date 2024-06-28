@@ -168,7 +168,7 @@ def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None
     dfs_good_match = []
     id_col_no_match = "()"
     query = f"""
-            SELECT *
+            SELECT DISTINCT *
             FROM {path_ucbt} u
             FULL JOIN {path_ponnot} p
             on u.pn_con = p.cod_id 
@@ -179,7 +179,7 @@ def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None
             """
     dfs_good_match, id_col_no_match = try_join(query, dfs_good_match, id_col_no_match)
     query = f"""
-            SELECT *
+            SELECT DISTINCT *
             FROM {path_ucbt} u
             FULL JOIN {path_ponnot} p
             on u.pn_con = p.cod_id 
@@ -190,7 +190,7 @@ def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None
             """
     dfs_good_match, id_col_no_match = try_join(query, dfs_good_match, id_col_no_match)
     query = f"""
-            SELECT *
+            SELECT DISTINCT *
             FROM {path_ucbt} u
             FULL JOIN {path_ponnot} p
             on u.pn_con = p.cod_id 
