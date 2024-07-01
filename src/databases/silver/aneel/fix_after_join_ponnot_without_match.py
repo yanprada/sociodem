@@ -8,7 +8,6 @@ from functools import lru_cache
 from typing import Tuple, Set, List
 from tqdm import tqdm
 import pandas as pd
-
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.utils.common import write_log, check_file_exists_in_db
@@ -144,8 +143,54 @@ def distribute_energy(df_values: pd.DataFrame, df_keys: pd.DataFrame) -> pd.Data
     return df_result
 
 
+def find_problematic_neighbors(
+    df: pd.DataFrame,
+    new_keys: Set[int],
+    all_keys: Set[int],
+    grouped_lvl: int,
+) -> pd.DataFrame:
+    """
+    Find problematic neighbors in the given DataFrame.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to search for problematic neighbors.
+        new_keys (Set[int]): A set of new keys to search for in the DataFrame.
+        all_keys (Set[int]): A set of all keys in the DataFrame.
+        grouped_lvl (int): The level of grouping.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the problematic neighbors and their counts.
+    """
+    data_dict = {
+        "ids_problematicos": [],
+        "ids_normais": [],
+        "count_ids_problematicos": [],
+        "count_ids_normais": [],
+        "count_ids_totais": [],
+    }
+
+    for ids_agrupado in tqdm(
+        df.ids_agrupados, desc=f"Finding neighbors level {grouped_lvl}"
+    ):
+        elements = ids_agrupado.split(",")
+        int_elements = set(map(int, elements))
+        problematic_elements = int_elements & new_keys
+        count_problematic = len(problematic_elements)
+        if count_problematic > 0:
+            ids_normais = int_elements - all_keys
+            count_normais = len(ids_normais)
+            data_dict["ids_problematicos"].append(
+                ",".join(map(str, problematic_elements))
+            )
+            data_dict["count_ids_problematicos"].append(count_problematic)
+            data_dict["ids_normais"].append(",".join(map(str, ids_normais)))
+            data_dict["count_ids_normais"].append(count_normais)
+            data_dict["count_ids_totais"].append(len(elements))
+    return pd.DataFrame.from_dict(data_dict).sort_values("count_ids_problematicos")
+
+
 def get_neighbors(
-    conn: DBConnection, grouped_lvl: str, keys: Set[int]
+    conn: DBConnection, grouped_lvl: str, keys: Set[int], all_keys: Set[int]
 ) -> Tuple[pd.DataFrame, Set[int]]:
     """
     Retrieves the neighbors of the given keys from the ANEEL Silver Contracts table.
@@ -153,12 +198,15 @@ def get_neighbors(
     Args:
         conn (Connection): The database connection object.
         grouped_lvl (str): The grouped level of the ANEEL Silver Contracts table.
-        keys (list): The list of keys for which to retrieve the neighbors.
+        keys (Set[int]): The set of keys for which to retrieve the neighbors.
+        all_keys (Set[int]): The set of all keys in the ANEEL Silver Contracts table.
 
     Returns:
-        DataFrame: A DataFrame containing the new rows with the neighbors.
+        Tuple[pd.DataFrame, Set[int]]: A tuple containing a DataFrame with the new rows
+        with the neighbors and a set of remaining keys.
 
     """
+    new_keys = keys.copy()
     path = ".".join(
         [
             ANEEL_SILVER_CONTRACTS[grouped_lvl]["schema"],
@@ -170,40 +218,17 @@ def get_neighbors(
     FROM {path}
     """
     df = conn.query_database(query)
-    data_dict = {
-        "ids_problematicos": [],
-        "ids_agrupados": [],
-        "count_ids_problematicos": [],
-        "count_ids_totais": [],
-    }
-    for ids_agrupado in tqdm(
-        df.ids_agrupados, desc=f"Finding neighbors level {grouped_lvl}"
-    ):
-        elements = ids_agrupado.split(",")
-        counter_problematic = 0
-        problematics_str = ""
-        for element in elements:
-            if int(element) in keys:
-                problematics_str = (
-                    element
-                    if counter_problematic == 0
-                    else ",".join([problematics_str, element])
-                )
-                counter_problematic += 1
-        if counter_problematic > 0:
-            data_dict["ids_problematicos"].append(problematics_str)
-            data_dict["count_ids_problematicos"].append(counter_problematic)
-            data_dict["ids_agrupados"].append(ids_agrupado)
-            data_dict["count_ids_totais"].append(len(ids_agrupado.split(",")))
-
-    df = pd.DataFrame.from_dict(data_dict)
-    div_col = df["count_ids_problematicos"] / df["count_ids_totais"]
-    fit_ids = df[(div_col) <= 0.7]["ids_agrupados"]
-    not_fit_ids = df[(div_col) > 0.7]["ids_agrupados"]
-    return df[df.ids_agrupados.isin(fit_ids)].assign(level=grouped_lvl), set(
-        int(x)
-        for sublist in df[df.ids_agrupados.isin(not_fit_ids)]["ids_problematicos"]
-        for x in sublist.split(",")
+    df = find_problematic_neighbors(df, new_keys, all_keys, grouped_lvl).copy()
+    div_col = df["count_ids_problematicos"] / (
+        df["count_ids_normais"] + df["count_ids_problematicos"]
+    )
+    fit_ids = df[(div_col) <= 0.7]["ids_problematicos"]
+    new_keys.difference_update(
+        set(int(x) for sublist in fit_ids for x in sublist.split(","))
+    )
+    return (
+        df[df.ids_problematicos.isin(fit_ids)].assign(level=grouped_lvl),
+        new_keys,
     )
 
 
@@ -222,16 +247,15 @@ def get_col_id_neighboors(conn_silver: DBConnection, cols_id: Set[int]) -> pd.Da
     dfs = []
     ids_for_loop = cols_id
     for i in tqdm(range(7), desc="Finding neighbors in different level aggregations"):
-        temp, ids_for_loop = get_neighbors(
-            conn_silver, f"neighbors_lvl{i}", ids_for_loop
+        temp_df, ids_for_loop = get_neighbors(
+            conn_silver, f"neighbors_lvl{i}", ids_for_loop, cols_id
         )
-        dfs.append(temp)
+        dfs.append(temp_df)
         if ids_for_loop == set():
             write_log(f"All neighbors were found in lvl {i}.")
             break
     df = pd.concat(dfs)
-    df["ids_totais"] = df.filter(regex="count").sum(axis=1)
-    return df.sort_values("ids_totais", ascending=False)
+    return df.sort_values("count_ids_totais", ascending=False)
 
 
 def get_cols_to_join(lvl: int):
@@ -346,20 +370,13 @@ def process_rows_distribute_energy(
         df_values_ids.iloc[i : i + batch].itertuples(),
         desc=f"Processing rows from {i} to {i+batch}",
     ):
-        col_id_values = get_cols_ids_to_be_changed(row)
         df_keys = query_db(conns[0], paths[0], "row_id", row.ids_problematicos)
-        df_values = query_db(conns[1], paths[1], "row_id", col_id_values)
-        assert col_id_values == set(df_values.row_id), "Missing keys in df_values"
+        df_values = query_db(conns[1], paths[1], "row_id", row.ids_normais)
+        assert set(int(x) for x in row.ids_normais.split(",")) == set(
+            df_values.row_id
+        ), "Missing keys in df_values"
         if df_values.empty:
-            missing_keys.append(
-                ",".join(
-                    list(
-                        set(row.ids_agrupados.split(",")).difference(
-                            set(row.ids_problematicos.split(","))
-                        )
-                    )
-                )
-            )
+            missing_keys.append(row.ids_normais)
         joined_cols = get_cols_to_join(int(row.level.split("lvl")[-1]))
         test_integrity_of_join(joined_cols, df_keys, df_values)
         df_keys = df_keys.filter(regex="ene_|dic_|fic_").sum().to_frame()
@@ -382,33 +399,6 @@ def process_rows_distribute_energy(
     return df_overwrite
 
 
-def get_cols_ids_to_be_changed(data: pd.DataFrame) -> set:
-    """
-    Returns a set of column IDs that need to be changed based on the given DataFrame.
-
-    Parameters:
-    data (pd.DataFrame): The DataFrame containing the IDs.
-
-    Returns:
-    set: A set of column IDs to be changed.
-    """
-    if isinstance(data, pd.DataFrame):
-        return ",".join(
-            list(
-                set(data.ids_agrupados.squeeze().split(",")).difference(
-                    set(data.ids_problematicos.squeeze().split(","))
-                )
-            )
-        )
-    return ",".join(
-        list(
-            set(data.ids_agrupados.split(",")).difference(
-                set(data.ids_problematicos.split(","))
-            )
-        )
-    )
-
-
 def check_file_exists(conns: Tuple[DBConnection], df: pd.DataFrame) -> bool:
     """
     Checks if a file exists in the database based on the last ID in the given DataFrame.
@@ -426,7 +416,7 @@ def check_file_exists(conns: Tuple[DBConnection], df: pd.DataFrame) -> bool:
             ANEEL_SILVER_CONTRACTS["temp_join"]["tableName"],
         ]
     )
-    last_id = get_cols_ids_to_be_changed(df)
+    last_id = df.ids_normais.iloc[-1]
     condition = f"WHERE row_id IN ({last_id})"
     return check_file_exists_in_db(conns[1], path_saved, condition)
 
@@ -478,23 +468,31 @@ def distribute_energy_ponnot_without_match(
         path_bronze (str): Path to the bronze database.
         path_silver (str): Path to the silver database.
     """
-    cols_id = select_ids_without_match(
-        conn_bronze, conn_silver, path_bronze, path_silver
-    )
+    # cols_id = select_ids_without_match(
+    #     conn_bronze, conn_silver, path_bronze, path_silver
+    # )
+    cols_id = set(int(x) for x in pd.read_parquet("temp.parquet").cols_id)
     df_values_ids = get_col_id_neighboors(conn_silver, cols_id)
+    df_values_ids.to_parquet("df_values_ids.parquet")
     process_list = [
-        (1, (df_values_ids.ids_totais >= 1e6), "large"),
+        (1, (df_values_ids.count_ids_totais >= 1e6), "large"),
         (
             10,
-            ((df_values_ids.ids_totais >= 7e4) & (df_values_ids.ids_totais < 1e6)),
+            (
+                (df_values_ids.count_ids_totais >= 7e4)
+                & (df_values_ids.count_ids_totais < 1e6)
+            ),
             "medium",
         ),
         (
-            400,
-            ((df_values_ids.ids_totais >= 1e4) & (df_values_ids.ids_totais < 7e4)),
+            200,
+            (
+                (df_values_ids.count_ids_totais >= 1e4)
+                & (df_values_ids.count_ids_totais < 7e4)
+            ),
             "small",
         ),
-        (1000, (df_values_ids.ids_totais < 1e4), "extra small"),
+        (1000, (df_values_ids.count_ids_totais < 1e4), "extra small"),
     ]
     for batch, condition, lvl in process_list:
         df_values_ids_lvl = df_values_ids[condition]
