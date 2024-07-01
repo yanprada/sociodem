@@ -578,5 +578,6 @@ class DBConnection(DBConnectionHandler):
             pd.DataFrame: The result of the query as a DataFrame.
         """
         with self._DBConnectionHandler__engine.connect() as conn:
-            df = pd.read_sql_query(text(query), conn)
+            df = pd.read_sql_query(text(query), conn, chunksize=1000)
+            df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
         return df
