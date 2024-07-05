@@ -43,6 +43,22 @@ def write_log(message, level="info"):
         logger.error("%s", message)
 
 
+def count_files(folder_path):
+    """
+    Count the number of files in a given folder.
+
+    Args:
+        folder_path (str): The path to the folder.
+
+    Returns:
+        int: The number of files in the folder.
+    """
+    file_count = 0
+    for _, _, files in os.walk(folder_path):
+        file_count += len(files)
+    return file_count
+
+
 def get_column_memory_usage(df: pd.DataFrame) -> dict:
     """
     Calculate the memory usage of each column in a DataFrame.
