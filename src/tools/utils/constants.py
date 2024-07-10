@@ -5,7 +5,7 @@ This module contains constants used in the sociodem project.
 - STATES: A list of Brazilian states.
 """
 
-HEX_RESOLUTION = 9
+HEX_RESOLUTION = 10
 CRS = "EPSG:4674"
 
 MAPBIOMAS_CLASSES = {
