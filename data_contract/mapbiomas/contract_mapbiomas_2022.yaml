@@ -20,10 +20,50 @@ datalake:
     sampleValues:
     - 
 bronze:
+  - contractName: contract_layers_mapbiomas.yaml
+    tableName: brasil_coverage_2022
+    schema: land_use
+    physicalPath: databases/bronze/mapbiomas/
+    description: 
+    queryYear: 2022
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+  - tableName: grouped_by_hex_brasil_coverage_2022
+    schema: land_use
+    physicalPath: databases/bronze/mapbiomas/
+    description: 
+    queryYear: 2022
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+silver:
   contractName: contract_layers_mapbiomas.yaml
   tableName: brasil_coverage_2022
   schema: land_use
-  physicalPath: databases/bronze/mapbiomas/
+  physicalPath: databases/silver/mapbiomas/
   description: 
   queryYear: 2022
   ifExists: append
