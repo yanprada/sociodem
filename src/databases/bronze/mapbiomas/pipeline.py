@@ -13,6 +13,7 @@ from src.databases.bronze.mapbiomas import (
     download_mapbiomas,
     transform_to_dataframe,
     process_h3_hexagon,
+    create_grouped_by_hex_mapbiomas,
 )
 
 
@@ -28,3 +29,4 @@ def main():
     download_mapbiomas.main()
     transform_to_dataframe.main()
     process_h3_hexagon.main()
+    create_grouped_by_hex_mapbiomas.main()
