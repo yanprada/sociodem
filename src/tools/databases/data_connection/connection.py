@@ -7,7 +7,6 @@ and managing a database connection using SQLAlchemy.
 
 import warnings
 
-from functools import lru_cache
 from typing import List, Tuple, Union
 from decouple import config
 from sqlalchemy import create_engine, text
@@ -157,6 +156,12 @@ class DBConnectionHandler:
             sqlalchemy.engine.Engine: The database engine.
         """
         return self.__engine
+
+    def close(self):
+        """
+        Close the database engine.
+        """
+        self.__engine.dispose()
 
 
 class DBConnection(DBConnectionHandler):
@@ -566,7 +571,28 @@ class DBConnection(DBConnectionHandler):
         except Exception as e:
             raise e
 
-    @lru_cache(maxsize=1)
+    def create_table_from_sql(self, query: str, path_new_table: str):
+        """
+        Create a new table in the database based on the provided SQL query.
+
+        Args:
+            query (str): The SQL query used to create the new table.
+            path_new_table (str): The name of the new table to be created.
+
+        Raises:
+            Exception: If an error occurs during the table creation process.
+        """
+        creation_query = f"""
+        CREATE TABLE IF NOT EXISTS {path_new_table} AS
+        {query}
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            try:
+                conn.execute(text(creation_query))
+            except Exception as e:
+                conn.rollback()
+                raise e
+
     def query_database(self, query: str) -> pd.DataFrame:
         """
         Executes a query on the database and returns the result as a DataFrame.
