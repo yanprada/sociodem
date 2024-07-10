@@ -15,13 +15,33 @@ from src.tools.utils.data_contract import get_contract
 
 def get_mapbiomas_bronze_contracts():
     """
+    Retrieves the MAPBIOMAS contracts for different companies.
+
+    Returns:
+        contracts (dict): A dictionary containing the ANEEL contracts for different companies.
+            The keys are the names of the companies and the values are the corresponding contracts.
+    """
+    contract_mapbiomas_2022 = get_contract(
+        "mapbiomas/contract_mapbiomas_2022.yaml", "bronze"
+    )
+    datalake = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "datalake")
+    contracts = {
+        "mapbiomas_2022": contract_mapbiomas_2022[0],
+        "grouped_by_hex_mapbiomas_2022": contract_mapbiomas_2022[1],
+        "datalake": datalake,
+    }
+    return EasyDict(contracts)
+
+
+def get_mapbiomas_silver_contracts():
+    """
     Retrieves the CENSO contracts for different companies.
 
     Returns:
         contracts (dict): A dictionary containing the ANEEL contracts for different companies.
             The keys are the names of the companies and the values are the corresponding contracts.
     """
-    contract_mun_2022 = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "bronze")
+    contract_mun_2022 = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "silver")
     datalake = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "datalake")
     contracts = {"mapbiomas_2022": contract_mun_2022, "datalake": datalake}
     return EasyDict(contracts)
@@ -40,4 +60,6 @@ def get_mapbiomas_contracts(medallon: str):
     """
     if medallon == "bronze":
         return get_mapbiomas_bronze_contracts()
+    if medallon == "silver":
+        return get_mapbiomas_silver_contracts()
     return get_contract("contract_template.yaml", medallon)
