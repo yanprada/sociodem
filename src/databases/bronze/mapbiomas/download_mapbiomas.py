@@ -10,9 +10,9 @@ for the specified range of years using the contract defined in CONTRACT.
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterMapbiomas,
 )
-from src.tools.utils.data_contract import get_contract
+from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
 
-CONTRACT = get_contract("mapbiomas/contract_mapbiomas.yaml", "bronze")
+CONTRACT = get_mapbiomas_contracts("bronze")["mapbiomas_2022"]
 
 
 def main():
