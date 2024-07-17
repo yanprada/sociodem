@@ -113,7 +113,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
         Returns:
             GeoDataFrame: The GeoDataFrame containing the saved features.
         """
-        reader = Reader(CONTRACTS[database])
+        reader = Reader()
         features = []
         for feature in layer_src[start : start + chunk_size]:
             features.append(feature)
@@ -227,7 +227,7 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
             "ponnot": "PONNOT",
             "conj": "CONJ",
         }
-        reader = Reader(CONTRACTS[database])
+        reader = Reader()
         path = os.path.join(CONTRACTS["datalake"]["physicalPath"], company_id)
         layers = fiona.listlayers(path)
         assert (

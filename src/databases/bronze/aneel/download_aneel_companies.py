@@ -21,7 +21,7 @@ def load_aneel_ids() -> pd.DataFrame:
     Returns:
         pd.DataFrame: A DataFrame containing ANEEL IDs.
     """
-    reader = Reader(CONTRACTS_BRONZE["company_id"])
+    reader = Reader()
     df = reader.read_csv(CONTRACTS_BRONZE["company_id"]["physicalPath"])
     return df.drop_duplicates()
 
