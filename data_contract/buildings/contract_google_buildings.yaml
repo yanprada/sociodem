@@ -1,8 +1,8 @@
-bronze:
+datalake:
   contractName: contract_google_buildings.yaml
-  tableName: buldings_google
-  schema: infrastructure
-  physicalPath: databases/bronze/buildings/google/
+  tableName: google
+  schema: buildings
+  physicalPath: datalake/buildings/google/
   description: 
   queryYear: 
   ifExists: 
@@ -19,3 +19,44 @@ bronze:
     translatedValues:
     sampleValues:
     - 
+
+bronze:
+  - contractName: contract_google_buildings.yaml
+    tableName: google
+    schema: buildings
+    physicalPath: databases/bronze/buildings/google/
+    description: 
+    queryYear: 
+    ifExists: append
+    columns:
+    - column: hex_col
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: False
+      isBlank: False
+      translatedValues:
+      sampleValues:
+      - 
+  - tableName: google_grouped_by_hex
+    schema: buildings
+    physicalPath: databases/silver/buildings/google_grouped_by_hex/
+    description: 
+    queryYear: 
+    ifExists: append
+    columns:
+    - column: hex_col
+      isPrimaryKey: True
+      ForeignKey: 
+      businessName: hexagon id
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: False
+      isBlank: False
+      translatedValues:
+      sampleValues:
+      - 
