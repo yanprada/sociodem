@@ -14,8 +14,8 @@ class Reader:
     A class that provides methods to read different file formats.
     """
 
-    def __init__(self, contract: dict) -> None:
-        self.contract = contract
+    def __init__(self) -> None:
+        pass
 
     def __read(self, read_fucntion, file_path: str, **kwargs):
         """
