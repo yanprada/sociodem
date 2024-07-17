@@ -14,6 +14,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import gc
 from typing import List
 import rasterio
+import rasterio.windows
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -24,7 +25,9 @@ from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contra
 CONTRACT = get_mapbiomas_contracts("bronze")
 
 
-def process_block(window, transform, file_path):
+def process_block(
+    window: rasterio.windows.Window, transform, file_path: str
+) -> pd.DataFrame:
     """
     Process a block of data from a raster file and transform it into a pandas DataFrame.
 
@@ -65,7 +68,7 @@ def save_mapbiomas(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     return df
 
 
-def generate_windows(height, width, block_size):
+def generate_windows(height: int, width: int, block_size: int):
     """
     Generate windows of a specified block size over a given height and width.
 
@@ -82,7 +85,7 @@ def generate_windows(height, width, block_size):
             yield rasterio.windows.Window(j, i, block_size, block_size)
 
 
-def save_partitions(all_dfs: List[pd.DataFrame], partition: int):
+def save_partitions(all_dfs: List[pd.DataFrame], partition: int) -> int:
     """
     Save the partitions of dataframes into separate files.
 
@@ -105,7 +108,7 @@ def save_partitions(all_dfs: List[pd.DataFrame], partition: int):
 
 def process_batch(
     file_path: str, block_size: int, batch: int, batch_size: int, partition: int
-):
+) -> int:
     """
     Process a batch of raster blocks and transform them into dataframes.
 
@@ -182,7 +185,7 @@ def process_batch(
     return partition
 
 
-def main():
+def main() -> None:
     """
     Main function that processes a raster file and calls the process_batch function.
 

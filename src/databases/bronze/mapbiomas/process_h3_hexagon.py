@@ -14,6 +14,7 @@ import os
 from tqdm import tqdm
 import h3
 import mlflow
+import pandas as pd
 
 from src.tools.utils.constants import HEX_RESOLUTION
 from src.tools.utils.read import Reader
@@ -26,7 +27,7 @@ mlflow.set_experiment("mapbiomas bronze")
 
 
 @save_parquet_decorator("bronze", CONTRACT["mapbiomas_2022"], save_pq=False)
-def load_data(partition: int, folder_path: str):
+def load_data(partition: int, folder_path: str) -> pd.DataFrame:
     """
     Load data from a specific partition.
 
@@ -38,13 +39,13 @@ def load_data(partition: int, folder_path: str):
         pandas.DataFrame: The loaded data grouped by "hex_col", "value", and "size".
     """
     path = os.path.join(folder_path, f"mapbiomas_2022_{partition}.parquet")
-    reader = Reader(CONTRACT["mapbiomas_2022"])
+    reader = Reader()
     df = reader.read_parquet(path)
     df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
     return df.groupby(["hex_col", "value"], as_index=False).size()
 
 
-def process_partition(partition: int, folder_path: str):
+def process_partition(partition: int, folder_path: str) -> pd.DataFrame:
     """
     Process a partition of data.
 
@@ -66,7 +67,7 @@ def process_partition(partition: int, folder_path: str):
     return df
 
 
-def run_process(folder_path: str, start: int, end: int):
+def run_process(folder_path: str, start: int, end: int) -> None:
     """
     Run the process to process H3 hexagon data in parallel.
 
@@ -93,7 +94,7 @@ def run_process(folder_path: str, start: int, end: int):
                 print(e)
 
 
-def main():
+def main() -> None:
     """
     This is the main function that processes the H3 hexagon data.
 

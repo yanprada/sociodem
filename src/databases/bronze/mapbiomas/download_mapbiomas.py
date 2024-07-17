@@ -15,7 +15,7 @@ from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contra
 CONTRACT = get_mapbiomas_contracts("bronze")["mapbiomas_2022"]
 
 
-def main():
+def main() -> None:
     """
     This function is the entry point of the script for downloading Mapbiomas data.
     It initializes an instance of HttpRequesterMapbiomas and makes a request to download data
