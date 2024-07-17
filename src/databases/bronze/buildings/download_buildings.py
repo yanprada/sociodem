@@ -11,28 +11,11 @@ from src.tools.data_contract.aneel_data_contract import get_contract
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterBuildings,
 )
+from src.tools.utils.constants import BUILDING_PARTITIONS
 
 CONTRACTS = {
     "omf": get_contract("buildings/contract_omf_buildings.yaml", "bronze"),
     "google": get_contract("buildings/contract_google_buildings.yaml", "bronze"),
-}
-FILES = {
-    "omf": [
-        "Brazil_0.parquet",
-        "Brazil_2100.parquet",
-        "Brazil_2101.parquet",
-        "Brazil_21030.parquet",
-        "Brazil_210310.parquet",
-        "Brazil_210311.parquet",
-        "Brazil_210312.parquet",
-        "Brazil_210313.parquet",
-        "Brazil_21033.parquet",
-        "Brazil_21100.parquet",
-        "Brazil_21101.parquet",
-        "Brazil_21102.parquet",
-        "Brazil_2112.parquet",
-    ],
-    "google": ["BRA.parquet"],
 }
 
 
@@ -49,7 +32,7 @@ def download_data(source) -> None:
         .replace("databases", "datalake")
         .replace("bronze/", "")
     )
-    files = FILES[source]
+    files = BUILDING_PARTITIONS[source]
     omf_request.request_from_page(
         files,
         path,
