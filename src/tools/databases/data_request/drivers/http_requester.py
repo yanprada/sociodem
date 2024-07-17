@@ -255,7 +255,7 @@ class HttpRequesterBuildings:
         elif self.source == "google":
             self.__url = (
                 "https://data.source.coop/vida/google-microsoft-open-buildings/"
-                "geoparquet/by_country/country_iso=BRA/{filename}"
+                "geoparquet/by_country_s2/country_iso=BRA/{filename}"
             )
         else:
             raise ValueError("Source must be omf or google")
