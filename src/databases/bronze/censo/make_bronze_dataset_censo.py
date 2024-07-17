@@ -42,7 +42,7 @@ def get_dompp_per_state_2022(state, **kwargs):
         FileNotFoundError: If the file for the specified state is not found.
 
     """
-    reader = Reader(CONTRACTS["dompp_2022"])
+    reader = Reader()
     filepath = os.path.join(
         CONTRACTS["dompp_2022"]["physicalPath"]
         .replace("databases", "datalake")
@@ -108,7 +108,7 @@ def upload_censo_data(layer_key):
         Returns:
             pandas.DataFrame: A DataFrame containing the data.
         """
-        reader = Reader(CONTRACTS[layer_key])
+        reader = Reader()
         dfs = []
         for state in tqdm(STATES):
             filepath = os.path.join(
