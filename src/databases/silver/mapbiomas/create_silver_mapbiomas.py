@@ -20,15 +20,17 @@ import pandas as pd
 from tqdm import tqdm
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
+from src.tools.data_contract.validation_data_contract import get_validation_partitions
 from src.tools.utils.constants import MAPBIOMAS_CLASSES
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log
 
-CONTRACT_BRONZE = get_mapbiomas_contracts("bronze")["grouped_by_hex_mapbiomas_2022"]
-CONTRACT_SILVER = get_mapbiomas_contracts("silver")["mapbiomas_2022"]
+CONTRACT_BRONZE = get_mapbiomas_contracts("bronze")
+CONTRACT_SILVER = get_mapbiomas_contracts("silver")
+CONTRACT_PARTITIONS = get_validation_partitions()
 
 
-@save_parquet_decorator("silver", CONTRACT_SILVER)
+@save_parquet_decorator("silver", CONTRACT_SILVER["mapbiomas_2022"])
 def save_mapbiomas_partition(df: pd.DataFrame, **kwargs):
     """
     Saves the MapBiomas partition DataFrame.
@@ -44,7 +46,13 @@ def save_mapbiomas_partition(df: pd.DataFrame, **kwargs):
     return df
 
 
-def save_mapbiomas(df: pd.DataFrame, large_partition: int, partition: int, batch: int):
+def save_mapbiomas(
+    df: pd.DataFrame,
+    large_partition: int,
+    partition: int,
+    batch: int,
+    external_batch: int,
+):
     """
     Saves the MapBiomas DataFrame.
 
@@ -53,13 +61,12 @@ def save_mapbiomas(df: pd.DataFrame, large_partition: int, partition: int, batch
         large_partition (int): The large partition number.
         partition (int): The partition number.
         batch (int): The batch size.
+        external_batch  (int): The external batch size.
     """
-    large_partition = int(large_partition / int(1e8))
+    large_partition = int(large_partition / external_batch)
     partition = int(partition / batch)
-    write_log("Saving data")
     kwargs = {"filename": f"mapbiomas_{large_partition}_{partition}"}
     _ = save_mapbiomas_partition(df, **kwargs)
-    write_log("All data saved successfully")
 
 
 def calculate_percentage(df: pd.DataFrame):
@@ -106,7 +113,6 @@ def pivot_table(df: pd.DataFrame):
     Returns:
         pandas.DataFrame: The pivoted DataFrame.
     """
-    write_log("Pivoting the DataFrame")
     df = df.pivot_table(
         index="hex_col", columns="value", values="pct", aggfunc="sum"
     ).fillna(0)
@@ -124,8 +130,12 @@ def load_mapbiomas(conn: DBConnection, condition: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The loaded data from the bronze database.
     """
-    write_log("Reading data from bronze database")
-    path = ".".join([CONTRACT_BRONZE["schema"], CONTRACT_BRONZE["tableName"]])
+    path = ".".join(
+        [
+            CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]["schema"],
+            CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]["tableName"],
+        ]
+    )
     query = f"SELECT * FROM {path} {condition}"
     return conn.query_database(query)
 
@@ -140,7 +150,6 @@ def add_classes_mapbiomas(df: pd.DataFrame):
     Returns:
         pd.DataFrame: The DataFrame with the 'value' column transformed to mapbiomas classes names.
     """
-    write_log("Transforming value to mapbiomas classes names")
     df["value"] = df["value"].apply(MAPBIOMAS_CLASSES.__getitem__)
     return df
 
@@ -157,10 +166,15 @@ def get_hex_ids(batch: int, i: int) -> List[str]:
         List[str]: The list of all hex ids.
     """
     conn = DBConnection("bronze")
-    write_log("Getting all hex ids from the bronze database")
-    path = ".".join([CONTRACT_BRONZE["schema"], CONTRACT_BRONZE["tableName"]])
-    query = f"SELECT DISTINCT hex_col FROM {path}"
-    query_batch = f"{query} LIMIT {batch} OFFSET {i}"
+    path = ".".join(
+        [
+            CONTRACT_BRONZE["unique_hex_ids"]["schema"],
+            CONTRACT_BRONZE["unique_hex_ids"]["tableName"],
+        ]
+    )
+    query = f"SELECT hex_col FROM {path}"
+    range_col_ids = list(range(i, i + batch))
+    query_batch = f"{query} WHERE col_id in {tuple(range_col_ids)}"
     return conn.query_database(query_batch)["hex_col"].tolist()
 
 
@@ -168,20 +182,24 @@ def get_hex_ids(batch: int, i: int) -> List[str]:
 def get_hex_len() -> int:
     """
     Retrieves the length of distinct hex values from the specified database connection.
+
     Returns:
         The length of distinct hex values.
 
     """
     conn = DBConnection("bronze")
-    path = ".".join([CONTRACT_BRONZE["schema"], CONTRACT_BRONZE["tableName"]])
-    return int(
-        conn.query_database(f"SELECT COUNT(DISTINCT hex_col) FROM {path}")[
-            "count"
-        ].values[0]
+    path = ".".join(
+        [
+            CONTRACT_BRONZE["unique_hex_ids"]["schema"],
+            CONTRACT_BRONZE["unique_hex_ids"]["tableName"],
+        ]
     )
+    return int(conn.query_database(f"SELECT COUNT(*) FROM {path}")["count"].values[0])
 
 
-def process_batch(hex_ids, i, batch, external_partition):
+def process_batch(
+    hex_ids: list, i: int, batch: int, external_batch: int, external_partition: int
+):
     """
     Process a batch of hex IDs to create the silver mapbiomas.
 
@@ -189,8 +207,8 @@ def process_batch(hex_ids, i, batch, external_partition):
         hex_ids (list): List of hex IDs to process.
         i (int): Starting index of the batch.
         batch (int): Number of hex IDs to process in each batch.
-        external_partition (str): External partition to save the mapbiomas.
-
+        external_batch (int): External batch to save the mapbiomas.
+        external_partition (int): External partition to save the mapbiomas.
     """
     conn = DBConnection("bronze")
     query_hex_ids = hex_ids[i : i + batch]
@@ -199,42 +217,29 @@ def process_batch(hex_ids, i, batch, external_partition):
     df = add_classes_mapbiomas(df)
     df = calculate_percentage(df)
     df = pivot_table(df)
-    save_mapbiomas(df, external_partition, i, batch)
+    save_mapbiomas(df, external_partition, i, batch, external_batch)
     del df
     gc.collect()
-
-
-def add_pk(col: str):
-    """
-    Adds a primary key constraint to a column in the 'silver' database table.
-
-    Args:
-        col (str): The name of the column to add the primary key constraint to.
-    """
-    conn = DBConnection("silver")
-    schema = CONTRACT_SILVER["schema"]
-    table_name = CONTRACT_SILVER["tableName"]
-    conn.add_pk_to_table(schema, table_name, col)
 
 
 def main():
     """
     This function retrieves data from the "bronze" database, processes it, and returns a DataFrame.
     """
-    batch = int(1e6)
-    external_batch = int(1e8)
+    batch = int(5e6)
+    external_batch = int(5e6)
     hex_len = get_hex_len()
     for external_partition in tqdm(
         range(0, hex_len, external_batch),
         desc="Processing data in external batch",
     ):
-        if external_partition == 0:
-            continue
         hex_ids = get_hex_ids(external_batch, external_partition)
-        num_cores = min(2, multiprocessing.cpu_count())
+        num_cores = min(1, multiprocessing.cpu_count())
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_cores) as executor:
             futures = [
-                executor.submit(process_batch, hex_ids, i, batch, external_partition)
+                executor.submit(
+                    process_batch, hex_ids, i, batch, external_batch, external_partition
+                )
                 for i in range(0, len(hex_ids), batch)
             ]
 
@@ -250,4 +255,3 @@ def main():
                     write_log(e, "error")
         del hex_ids
         gc.collect()
-    add_pk("hex_col")
