@@ -6,6 +6,7 @@ import gc
 import os
 from functools import lru_cache
 from typing import Tuple, Set, List
+import ipdb
 from tqdm import tqdm
 import pandas as pd
 from src.tools.databases.data_connection.connection import DBConnection
@@ -96,7 +97,10 @@ def test_integrity_of_join(
 
     """
     for col in joined_cols:
-        assert df_keys[col].unique() == df_values[col].unique()
+        try:
+            assert df_keys[col].unique() == df_values[col].unique()
+        except:
+            ipdb.set_trace()
 
 
 def test_integrity_energy_addition(
@@ -115,10 +119,14 @@ def test_integrity_energy_addition(
                       and the corresponding key value is greater than or equal to 1.
     """
     for col in df_values.filter(regex="ene_|fic_|dic_").columns:
-        assert (
-            df_result[col].sum() - (df_values[col].sum() + df_keys.loc[col].squeeze())
-            < 1
-        )
+        try:
+            assert (
+                df_result[col].sum()
+                - (df_values[col].sum() + df_keys.loc[col].squeeze())
+                < 1
+            )
+        except:
+            ipdb.set_trace()
 
 
 def distribute_energy(df_values: pd.DataFrame, df_keys: pd.DataFrame) -> pd.DataFrame:
@@ -468,12 +476,10 @@ def distribute_energy_ponnot_without_match(
         path_bronze (str): Path to the bronze database.
         path_silver (str): Path to the silver database.
     """
-    # cols_id = select_ids_without_match(
-    #     conn_bronze, conn_silver, path_bronze, path_silver
-    # )
-    cols_id = set(int(x) for x in pd.read_parquet("temp.parquet").cols_id)
+    cols_id = select_ids_without_match(
+        conn_bronze, conn_silver, path_bronze, path_silver
+    )
     df_values_ids = get_col_id_neighboors(conn_silver, cols_id)
-    df_values_ids.to_parquet("df_values_ids.parquet")
     process_list = [
         (1, (df_values_ids.count_ids_totais >= 1e6), "large"),
         (
