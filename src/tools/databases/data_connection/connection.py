@@ -17,7 +17,7 @@ import numpy as np
 import sqlalchemy
 from tqdm import tqdm
 from pyspark.sql import SparkSession
-
+from src.tools.utils.read import Reader
 
 warnings.filterwarnings("ignore")
 
@@ -603,6 +603,7 @@ class DBConnection(DBConnectionHandler):
         Returns:
             pd.DataFrame: The result of the query as a DataFrame.
         """
+        reader = Reader()
         with self._DBConnectionHandler__engine.connect() as conn:
-            df = pd.read_sql_query(text(query), conn, chunksize=1000)
-        return pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+            df = reader.read_sql(text(query), conn, chunksize=1000)
+        return df
