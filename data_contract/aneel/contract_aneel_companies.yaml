@@ -257,3 +257,59 @@ silver:
       isBlank: 
       translatedValues:
       sampleValues:
+  - tableName: aneel_final_join
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/final_join/
+    description: Final join of energy infrastructure points of energy companies
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: aneel_hexagon
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/hexagon/
+    description: Energy infrastructure points of energy companies per hexagon
+    queryYear: Null
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+gold:
+  contractName: contract_aneel_companies.yaml
+  tableName: aneel
+  schema: infrastructure
+  physicalPath: databases/gold/aneel/
+  description: Energy infrastructure points of energy companies per hexagon
+  queryYear: Null
+  ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
