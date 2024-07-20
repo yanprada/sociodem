@@ -53,7 +53,7 @@ def get_aneel_silver_contracts():
     )
     aneel_contracts = get_contract("aneel/contract_aneel_companies.yaml", "silver")
     contract_aneel_neighbors_list = []
-    for i in range(1, len(aneel_contracts) - 1):
+    for i in range(1, len(aneel_contracts) - 3):
         contract_aneel_neighbors_list.append(aneel_contracts[i])
     contracts = {
         f"neighbors_lvl{i}": contract_aneel_neighbors_list[i]
@@ -61,8 +61,21 @@ def get_aneel_silver_contracts():
     }
     contracts["company_id"] = contract_company_id
     contracts["aneel"] = aneel_contracts[0]
-    contracts["temp_join"] = aneel_contracts[-1]
+    contracts["temp_join"] = aneel_contracts[-3]
+    contracts["final_aneel"] = aneel_contracts[-2]
+    contracts["aneel_hexagon"] = aneel_contracts[-1]
     return EasyDict(contracts)
+
+
+def get_aneel_gold_contracts():
+    """
+    Retrieves the gold contracts from the ANEEL data contract.
+
+    Returns:
+        An EasyDict object containing the gold contracts from the ANEEL data contract.
+    """
+    contract_aneel = get_contract("aneel/contract_aneel_companies.yaml", "gold")
+    return EasyDict({"aneel": contract_aneel})
 
 
 def get_aneel_contracts(medallon: str):
@@ -77,4 +90,4 @@ def get_aneel_contracts(medallon: str):
         return get_aneel_bronze_contracts()
     if medallon == "silver":
         return get_aneel_silver_contracts()
-    return get_contract("contract_template.yaml", medallon)
+    return get_aneel_gold_contracts()
