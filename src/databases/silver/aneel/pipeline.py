@@ -11,6 +11,8 @@ To run the pipeline, call the main() function.
 from src.databases.silver.aneel import (
     join_ucbt_and_ponnot,
     fix_after_join_ponnot_without_match,
+    process_aneel_after_fixes,
+    process_hex_ids_aneel,
 )
 
 
@@ -24,3 +26,5 @@ def main():
     """
     join_ucbt_and_ponnot.main()
     fix_after_join_ponnot_without_match.main()
+    process_aneel_after_fixes.main()
+    process_hex_ids_aneel.main()
