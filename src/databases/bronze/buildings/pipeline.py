@@ -9,7 +9,7 @@ The pipeline consists of the following steps:
 To execute the pipeline, run the main() function.
 """
 
-from src.databases.bronze.buildings import (
+from src.databases.bronze.buildings.steps import (
     download_buildings,
     group_buildings_by_hex,
     index_h3_polygon,

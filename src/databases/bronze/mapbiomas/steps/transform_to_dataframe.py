@@ -193,18 +193,26 @@ def main() -> None:
     retrieves the transform information,
     and then calls the process_batch function to process the file in batches.
     """
+    for year in range(2018, 2023):
+        filename = "".join([CONTRACT["datalake"]["tableName"], ".tif"]).replace(
+            "2022", str(year)
+        )
+        file_path = os.path.join(
+            CONTRACT["datalake"]["physicalPath"], filename
+        ).replace("2022", str(year))
+        block_size = 2048
+        batch_size = 100  # Limit to a small number for quick profiling
 
-    filename = "".join([CONTRACT["datalake"]["tableName"], ".tif"])
-    file_path = os.path.join(CONTRACT["datalake"]["physicalPath"], filename)
-    block_size = 2048
-    batch_size = 100  # Limit to a small number for quick profiling
-
-    with rasterio.open(file_path) as src:
-        windows = list(generate_windows(src.height, src.width, block_size))
-    partition = 0
-    for batch in tqdm(range(0, len(windows), batch_size), desc="Processing Batches"):
-        partition = process_batch(file_path, block_size, batch, batch_size, partition)
-        gc.collect()
+        with rasterio.open(file_path) as src:
+            windows = list(generate_windows(src.height, src.width, block_size))
+        partition = 0
+        for batch in tqdm(
+            range(0, len(windows), batch_size), desc="Processing Batches"
+        ):
+            partition = process_batch(
+                file_path, block_size, batch, batch_size, partition
+            )
+            gc.collect()
 
 
 if __name__ == "__main__":

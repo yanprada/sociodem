@@ -1,19 +1,20 @@
 """
-This module contains the pipeline for processing H3 hexagon data from the MapBiomas database.
+This module contains the pipeline for processing H3 hexagon data using MapBiomas data.
 
-The pipeline consists of three main steps:
-1. Downloading the MapBiomas data.
-2. Transforming the data into a pandas DataFrame.
-3. Processing the H3 hexagon data.
+The pipeline consists of the following steps:
+1. Downloads the MapBiomas data.
+2. Transforms the data into a pandas DataFrame.
+3. Processes the H3 hexagon data.
+4. Creates a grouped-by-hex mapbiomas.
 
 To run the pipeline, execute the `main` function.
 """
 
-from src.databases.bronze.mapbiomas import (
-    download_mapbiomas,
+from src.databases.bronze.mapbiomas.steps import (
     transform_to_dataframe,
-    process_h3_hexagon,
     create_grouped_by_hex_mapbiomas,
+    download_mapbiomas,
+    process_h3_hexagon,
 )
 
 
@@ -25,6 +26,7 @@ def main():
     1. Downloads the MapBiomas data.
     2. Transforms the data into a pandas DataFrame.
     3. Processes the H3 hexagon data.
+    4. Creates a grouped-by-hex mapbiomas.
     """
     download_mapbiomas.main()
     transform_to_dataframe.main()

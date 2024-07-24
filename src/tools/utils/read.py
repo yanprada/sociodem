@@ -13,8 +13,6 @@ import unidecode
 from sqlalchemy import text
 from tqdm import tqdm
 
-from src.tools.databases.data_connection.connection import DBConnection
-
 
 class Reader:
     """
@@ -141,7 +139,7 @@ class Reader:
         df = self.__read(read_function, file_path, **kwargs)
         return df
 
-    def read_sql(self, conn: DBConnection, query: str, **kwargs):
+    def read_sql(self, conn, query: str, **kwargs):
         """
         Reads data from a SQL query and returns a pandas DataFrame.
 

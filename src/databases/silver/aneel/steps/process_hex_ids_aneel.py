@@ -69,8 +69,13 @@ def calculate_energy_consumption(df: pd.DataFrame) -> pd.DataFrame:
     pandas.DataFrame: The input DataFrame with additional columns for
         energy consumption metrics.
     """
-
+    summer = ["ene_12", "ene_01", "ene_02"]
+    winter = ["ene_05", "ene_06", "ene_07"]
     df_energy = df.filter(regex="ene")
+    df["energy_consumption_summer"] = df[summer].sum(axis=1)
+    df["mean_energy_consumption_summer"] = df[summer].mean(axis=1)
+    df["energy_consumption_winter"] = df[winter].sum(axis=1)
+    df["mean_energy_consumption_winter"] = df[winter].sum(axis=1)
     df["energy_consumption"] = df_energy.sum(axis=1)
     df["mean_energy_consumption"] = df_energy.mean(axis=1)
     df["std_energy_consumption"] = df_energy.std(axis=1)
@@ -127,7 +132,11 @@ def group_columns(df: pd.DataFrame, grouped_cols: List[str]) -> pd.DataFrame:
         .agg(
             {
                 "energy_consumption": "sum",
+                "energy_consumption_summer": "sum",
+                "energy_consumption_winter": "sum",
                 "mean_energy_consumption": "mean",
+                "mean_energy_consumption_winter": "mean",
+                "mean_energy_consumption_summer": "mean",
                 "std_energy_consumption": "std",
                 "mean_energy_interuption_hours": "mean",
                 "mean_energy_interuption_frequency": "mean",
@@ -208,7 +217,11 @@ def group_by_hexagon(df: pd.DataFrame) -> pd.DataFrame:
     df["clas_sub"] = df["clas_sub"].apply(lambda x: ANEEL_CLASSES.get(x, "outros"))
     cols = [
         "energy_consumption",
+        "energy_consumption_summer",
+        "energy_consumption_winter",
         "mean_energy_consumption",
+        "mean_energy_consumption_summer",
+        "mean_energy_consumption_winter",
         "std_energy_consumption",
         "mean_energy_interuption_hours",
         "mean_energy_interuption_frequency",
@@ -294,7 +307,7 @@ def main() -> None:
         ]
     )
     table_length = get_table_lenth(conn, path)
-    batch = int(5e5)
+    batch = int(7e5)
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = [

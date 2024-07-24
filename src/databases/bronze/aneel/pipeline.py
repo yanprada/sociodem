@@ -8,7 +8,7 @@ The pipeline consists of two steps:
 To run the pipeline, call the `run()` function.
 """
 
-from src.databases.bronze.aneel import (
+from src.databases.bronze.aneel.steps import (
     download_aneel_companies,
     make_bronze_aneel_dataset,
 )
