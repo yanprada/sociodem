@@ -7,6 +7,7 @@ the 'create_unique_aneel_pncon' function.
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
+from src.tools.utils.common import get_db_path
 
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
 
@@ -51,9 +52,10 @@ def create_unique_aneel_pncon(conn: DBConnection) -> None:
         FULL OUTER JOIN 
         infrastructure.aneel a ON atj_counts.row_id = a.row_id
     """
-    schema = ANEEL_SILVER_CONTRACTS["final_aneel"]["schema"]
-    table = ANEEL_SILVER_CONTRACTS["final_aneel"]["tableName"]
-    new_path = ".".join([schema, table])
+    contract_aneel = ANEEL_SILVER_CONTRACTS["final_aneel"]
+    new_path = get_db_path(contract_aneel)
+    schema = contract_aneel["schema"]
+    table = contract_aneel["tableName"]
     conn.create_table_from_sql(query, new_path)
     conn.create_pk(schema, table, "row_id")
 

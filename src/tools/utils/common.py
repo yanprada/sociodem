@@ -259,3 +259,16 @@ def get_ml_flow_data(experiment_name: str) -> pd.DataFrame:
         }
         data.append(row)
     return pd.DataFrame(data)
+
+
+def get_db_path(contract: dict) -> str:
+    """
+    Get the path of a database table based on the contract.
+
+    Args:
+        contract (dict): The contract containing the schema and table name.
+
+    Returns:
+        str: The path of the database table.
+    """
+    return ".".join([contract["schema"], contract["tableName"]])

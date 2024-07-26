@@ -18,6 +18,7 @@ from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.utils.constants import HEX_RESOLUTION, ANEEL_CLASSES
 from src.tools.utils.save import save_parquet_decorator
+from src.tools.utils.common import get_db_path
 
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
 
@@ -300,12 +301,8 @@ def main() -> None:
     and groups the data by hexagon.
     """
     conn = DBConnection("silver")
-    path = ".".join(
-        [
-            ANEEL_SILVER_CONTRACTS["final_aneel"]["schema"],
-            ANEEL_SILVER_CONTRACTS["final_aneel"]["tableName"],
-        ]
-    )
+    contract_aneel = ANEEL_SILVER_CONTRACTS["final_aneel"]
+    path = get_db_path(contract_aneel)
     table_length = get_table_lenth(conn, path)
     batch = int(7e5)
 

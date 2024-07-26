@@ -33,7 +33,7 @@ from src.tools.data_contract.validation_data_contract import (
     get_validation_partitions,
 )
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.common import check_file_exists_in_disk, write_log
+from src.tools.utils.common import check_file_exists_in_disk, write_log, get_db_path
 
 mlflow.set_experiment("aneel silver")
 
@@ -215,18 +215,10 @@ def main() -> None:
     """
     This is the main function that executes the join_ucbt_and_ponnot operation.
     """
-    path_ucbt = ".".join(
-        [
-            ANEEL_BRONZE_CONTRACTS["ucbt"]["schema"],
-            ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"],
-        ]
-    )
-    path_ponnot = ".".join(
-        [
-            ANEEL_BRONZE_CONTRACTS["ponnot"]["schema"],
-            ANEEL_BRONZE_CONTRACTS["ponnot"]["tableName"],
-        ]
-    )
+    contract_ucbt = ANEEL_BRONZE_CONTRACTS["ucbt"]
+    contract_ponnot = ANEEL_BRONZE_CONTRACTS["ponnot"]
+    path_ucbt = get_db_path(contract_ucbt)
+    path_ponnot = get_db_path(contract_ponnot)
     conn = DBConnection("bronze")
     muns = conn.query_database(f"select distinct(mun) from {path_ucbt}")
     # list of capital cities

@@ -11,7 +11,7 @@ from tqdm import tqdm
 import pandas as pd
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
-from src.tools.utils.common import write_log, check_file_exists_in_db
+from src.tools.utils.common import write_log, check_file_exists_in_db, get_db_path
 from src.tools.utils.save import save_parquet_decorator
 
 ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
@@ -215,12 +215,8 @@ def get_neighbors(
 
     """
     new_keys = keys.copy()
-    path = ".".join(
-        [
-            ANEEL_SILVER_CONTRACTS[grouped_lvl]["schema"],
-            ANEEL_SILVER_CONTRACTS[grouped_lvl]["tableName"],
-        ]
-    )
+    contract_neighboors = ANEEL_SILVER_CONTRACTS[grouped_lvl]
+    path = get_db_path(contract_neighboors)
     query = f"""
     SELECT ids_agrupados
     FROM {path}
@@ -418,12 +414,8 @@ def check_file_exists(conns: Tuple[DBConnection], df: pd.DataFrame) -> bool:
     Returns:
         bool: True if the file exists in the database, False otherwise.
     """
-    path_saved = ".".join(
-        [
-            ANEEL_SILVER_CONTRACTS["temp_join"]["schema"],
-            ANEEL_SILVER_CONTRACTS["temp_join"]["tableName"],
-        ]
-    )
+    contract_aneel_temp_join = ANEEL_SILVER_CONTRACTS["temp_join"]
+    path_saved = get_db_path(contract_aneel_temp_join)
     last_id = df.ids_normais.iloc[-1]
     condition = f"WHERE row_id IN ({last_id})"
     return check_file_exists_in_db(conns[1], path_saved, condition)
@@ -564,12 +556,8 @@ def create_grouped_tables(conn: DBConnection) -> None:
     """
     Create grouped tables based on the joined columns.
     """
-    path_bronze = ".".join(
-        [
-            ANEEL_BRONZE_CONTRACTS["ucbt"]["schema"],
-            ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"],
-        ]
-    )
+    contract_ucbt = ANEEL_BRONZE_CONTRACTS["ucbt"]
+    path_bronze = get_db_path(contract_ucbt)
     for i in tqdm(range(0, 7), desc="Creating grouped tables"):
         cols = get_cols_to_join(i)
         filename = f"neighbors_lvl{i}"
@@ -586,18 +574,10 @@ def main():
     """
     conn_silver = DBConnection("silver")
     create_grouped_tables(conn_silver)
-    path_bronze = ".".join(
-        [
-            ANEEL_BRONZE_CONTRACTS["ucbt"]["schema"],
-            ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"],
-        ]
-    )
-    path_silver = ".".join(
-        [
-            ANEEL_SILVER_CONTRACTS["aneel"]["schema"],
-            ANEEL_SILVER_CONTRACTS["aneel"]["tableName"],
-        ]
-    )
+    contract_ucbt = ANEEL_BRONZE_CONTRACTS["ucbt"]
+    contract_aneel = ANEEL_BRONZE_CONTRACTS["aneel"]
+    path_bronze = get_db_path(contract_ucbt)
+    path_silver = get_db_path(contract_aneel)
     conn_silver.add_pk_to_table(
         path_silver.split(".", maxsplit=1)[0], path_silver.split(".")[1], "row_id"
     )

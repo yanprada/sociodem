@@ -5,7 +5,7 @@ hex_col and value columns from an existing table.
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.data_contract.buildings_data_contract import get_buildings_contracts
-from src.tools.utils.common import write_log
+from src.tools.utils.common import write_log, get_db_path
 
 CONTRACT_BRONZE = get_buildings_contracts("bronze")
 
@@ -19,15 +19,12 @@ def create_grouped_by_hex_google_buildings(source: str, query: str) -> None:
         query (str): The SQL query to calculate the aggregated values.
     """
     conn = DBConnection("bronze")
-    old_path = ".".join(
-        [
-            CONTRACT_BRONZE[f"buildings_{source}"]["schema"],
-            CONTRACT_BRONZE[f"buildings_{source}"]["tableName"],
-        ]
-    )
-    schema = CONTRACT_BRONZE[f"buildings_{source}_grouped_by_hex"]["schema"]
-    table = CONTRACT_BRONZE[f"buildings_{source}_grouped_by_hex"]["tableName"]
-    new_path = ".".join([schema, table])
+    contract_buildings = CONTRACT_BRONZE[f"buildings_{source}"]
+    contract_building_hex = CONTRACT_BRONZE[f"buildings_{source}_grouped_by_hex"]
+    old_path = get_db_path(contract_buildings)
+    new_path = get_db_path(contract_building_hex)
+    schema = contract_building_hex["schema"]
+    table = contract_building_hex["tableName"]
     creation_query = f"""
     SELECT 
     hex_col,
@@ -76,21 +73,14 @@ def create_joined_table() -> None:
     """
     write_log("Creating joined table for Google and OMF buildings")
     conn = DBConnection("bronze")
-    google_path = ".".join(
-        [
-            CONTRACT_BRONZE["buildings_google_grouped_by_hex"]["schema"],
-            CONTRACT_BRONZE["buildings_google_grouped_by_hex"]["tableName"],
-        ]
-    )
-    omf_path = ".".join(
-        [
-            CONTRACT_BRONZE["buildings_omf_grouped_by_hex"]["schema"],
-            CONTRACT_BRONZE["buildings_omf_grouped_by_hex"]["tableName"],
-        ]
-    )
-    schema = CONTRACT_BRONZE["joined_building"]["schema"]
-    table = CONTRACT_BRONZE["joined_building"]["tableName"]
-    new_path = ".".join([schema, table])
+    contract_building_google = CONTRACT_BRONZE["buildings_google_grouped_by_hex"]
+    contract_building_omf = CONTRACT_BRONZE["buildings_omf_grouped_by_hex"]
+    contract_joined_buildings = CONTRACT_BRONZE["joined_building"]
+    google_path = get_db_path(contract_building_google)
+    omf_path = get_db_path(contract_building_omf)
+    new_path = get_db_path(contract_joined_buildings)
+    schema = contract_joined_buildings["schema"]
+    table = contract_joined_buildings["tableName"]
     creation_query = f"""
     SELECT 
     google.hex_col,

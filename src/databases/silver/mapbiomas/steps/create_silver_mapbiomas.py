@@ -23,7 +23,7 @@ from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contra
 from src.tools.data_contract.validation_data_contract import get_validation_partitions
 from src.tools.utils.constants import MAPBIOMAS_CLASSES
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.common import write_log
+from src.tools.utils.common import write_log, get_db_path
 
 CONTRACT_BRONZE = get_mapbiomas_contracts("bronze")
 CONTRACT_SILVER = get_mapbiomas_contracts("silver")
@@ -130,12 +130,8 @@ def load_mapbiomas(conn: DBConnection, condition: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The loaded data from the bronze database.
     """
-    path = ".".join(
-        [
-            CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]["schema"],
-            CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]["tableName"],
-        ]
-    )
+    contract_mapbiomas = CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]
+    path = get_db_path(contract_mapbiomas)
     query = f"SELECT * FROM {path} {condition}"
     return conn.query_database(query)
 
@@ -166,12 +162,8 @@ def get_hex_ids(batch: int, i: int) -> List[str]:
         List[str]: The list of all hex ids.
     """
     conn = DBConnection("bronze")
-    path = ".".join(
-        [
-            CONTRACT_BRONZE["unique_hex_ids"]["schema"],
-            CONTRACT_BRONZE["unique_hex_ids"]["tableName"],
-        ]
-    )
+    contract_unique_hex = CONTRACT_BRONZE["unique_hex_ids"]
+    path = get_db_path(contract_unique_hex)
     query = f"SELECT hex_col FROM {path}"
     range_col_ids = list(range(i, i + batch))
     query_batch = f"{query} WHERE col_id in {tuple(range_col_ids)}"
@@ -188,12 +180,8 @@ def get_hex_len() -> int:
 
     """
     conn = DBConnection("bronze")
-    path = ".".join(
-        [
-            CONTRACT_BRONZE["unique_hex_ids"]["schema"],
-            CONTRACT_BRONZE["unique_hex_ids"]["tableName"],
-        ]
-    )
+    contract_unique_hex = CONTRACT_BRONZE["unique_hex_ids"]
+    path = get_db_path(contract_unique_hex)
     return int(conn.query_database(f"SELECT COUNT(*) FROM {path}")["count"].values[0])
 
 

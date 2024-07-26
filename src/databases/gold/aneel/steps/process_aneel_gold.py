@@ -18,6 +18,7 @@ import dask.dataframe as dd
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.save import save_parquet_decorator
+from src.tools.utils.common import get_db_path
 
 ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
 
@@ -191,12 +192,8 @@ def main():
     """
 
     conn = DBConnection("silver")
-    path = ".".join(
-        [
-            ANEEL_SILVER_CONTRACTS["aneel_hexagon"]["schema"],
-            ANEEL_SILVER_CONTRACTS["aneel_hexagon"]["tableName"],
-        ]
-    )
+    contract_aneel_hex = ANEEL_SILVER_CONTRACTS["aneel_hexagon"]
+    path = get_db_path(contract_aneel_hex)
     query = f"""
     SELECT * FROM {path}
     """

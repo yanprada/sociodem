@@ -36,6 +36,7 @@ from src.tools.utils.common import (
     check_file_exists_in_db,
     check_file_exists_in_disk,
     write_log,
+    get_db_path,
 )
 
 mlflow.set_experiment("aneel bronze")
@@ -59,9 +60,8 @@ def load_aneel_ids() -> pd.DataFrame:
         2   39048776183
     """
     conn = DBConnection("bronze")
-    path = ".".join(
-        [CONTRACTS["company_id"]["schema"], CONTRACTS["company_id"]["tableName"]]
-    )
+    contract = CONTRACTS["company_id"]
+    path = get_db_path(contract)
     df = conn.query_database(
         f"""
             SELECT * FROM {path} 
@@ -202,7 +202,8 @@ def columns_engineering(df: gpd.GeoDataFrame, database: str) -> gpd.GeoDataFrame
         gpd.GeoDataFrame: The GeoDataFrame with engineered columns.
     """
     conn = DBConnection("bronze")
-    path = ".".join([CONTRACTS[database]["schema"], CONTRACTS[database]["tableName"]])
+    contract = CONTRACTS[database]
+    path = get_db_path(contract)
     if check_file_exists_in_db(conn, path):
         cols = conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
         df = add_missing_columns(df, cols)
