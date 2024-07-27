@@ -4,7 +4,7 @@ This module contains the main function for the pipeline module.
 The main function calls the add_hex_dompp.main() function to perform some operation.
 """
 
-from src.databases.silver.censo.steps import add_hex_dompp
+from src.databases.silver.censo.steps import add_hex_dompp, group_by_hex
 
 
 def main():
@@ -13,3 +13,4 @@ def main():
     It calls the add_hex_dompp.main() function to perform some operation.
     """
     add_hex_dompp.main()
+    group_by_hex.main()
