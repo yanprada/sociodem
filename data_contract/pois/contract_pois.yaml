@@ -1,7 +1,7 @@
 datalake:
   contractName: contract_pois.yaml
   tableName: pois
-  schema: infrastructure
+  schema: places
   physicalPath: datalake/pois/
   description: points of interest
   queryYear: 
@@ -22,7 +22,7 @@ datalake:
 bronze:
   contractName: contract_pois.yaml
   tableName: pois
-  schema: infrastructure
+  schema: places
   physicalPath: database/bronze/pois/
   description: 
   queryYear: 
