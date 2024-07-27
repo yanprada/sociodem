@@ -1,0 +1,42 @@
+datalake:
+  contractName: contract_pois.yaml
+  tableName: pois
+  schema: infrastructure
+  physicalPath: datalake/pois/
+  description: points of interest
+  queryYear: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
+bronze:
+  contractName: contract_pois.yaml
+  tableName: pois
+  schema: infrastructure
+  physicalPath: database/bronze/pois/
+  description: 
+  queryYear: 
+  ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
