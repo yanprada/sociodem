@@ -543,6 +543,26 @@ files = [
 ]
 
 [[package]]
+name = "bokeh"
+version = "2.4.2"
+description = "Interactive plots and applications in the browser from Python"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "bokeh-2.4.2-py3-none-any.whl", hash = "sha256:2a842d717feeee802e668054277c09054b6f1561557a16dddaf5f7c452f2728c"},
+    {file = "bokeh-2.4.2.tar.gz", hash = "sha256:f0a4b53364ed3b7eb936c5cb1a4f4132369e394c7ae0a8ef420459410958033d"},
+]
+
+[package.dependencies]
+Jinja2 = ">=2.9"
+numpy = ">=1.11.3"
+packaging = ">=16.8"
+pillow = ">=7.1.0"
+PyYAML = ">=3.10"
+tornado = ">=5.1"
+typing-extensions = ">=3.10.0"
+
+[[package]]
 name = "botocore"
 version = "1.34.94"
 description = "Low-level, data-driven core of boto 3."
@@ -7120,4 +7140,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "dd7b26e4240bc94f8fd1a487ddd93e7b7d570ed475d50973add9ee730838b553"
+content-hash = "8d57a968a6ab7ca48b52456bd6833d307508407fcdbc6f93f741f65119b3c95e"
