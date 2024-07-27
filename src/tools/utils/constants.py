@@ -9,6 +9,18 @@ HEX_RESOLUTION = 10
 CRS_IBGE = "EPSG:4674"
 CRS_GLOBAL = "EPSG:4326"
 
+
+DOMPP_CLASSES = {
+    1: "domicilio_particular",
+    2: "domicilio_coletivo",
+    3: "estabelecimento_agropecuario",
+    4: "estabelecimento_ensino",
+    5: "estabelecimento_saude",
+    6: "outros_estabelecimentos",
+    7: "edificio_em_construcao",
+    8: "estabelecimento_religioso",
+}
+
 ANEEL_CLASSES = {
     "RE1": "residencial_urbano",
     "RE2": "residencial_urbano_baixa_renda",

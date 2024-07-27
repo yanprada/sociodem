@@ -42,6 +42,22 @@ def get_censo_bronze_contracts():
     return EasyDict(contracts)
 
 
+def get_censo_silver_contracts():
+    """
+    Retrieves the CENSO contracts for different companies.
+
+    Returns:
+        contracts (dict): A dictionary containing the ANEEL contracts for different companies.
+            The keys are the names of the companies and the values are the corresponding contracts.
+    """
+    contract_dompp_2022 = get_contract("censo/contract_dompp_censo_2022.yaml", "silver")
+
+    contracts = {
+        "dompp_2022": contract_dompp_2022,
+    }
+    return EasyDict(contracts)
+
+
 def get_censo_contracts(medallon: str):
     """
     Retrieves the ANEEL contracts for different companies.
@@ -55,4 +71,6 @@ def get_censo_contracts(medallon: str):
     """
     if medallon == "bronze":
         return get_censo_bronze_contracts()
+    if medallon == "silver":
+        return get_censo_silver_contracts()
     return get_contract("contract_template.yaml", medallon)
