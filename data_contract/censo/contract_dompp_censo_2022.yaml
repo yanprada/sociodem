@@ -7,81 +7,36 @@ bronze:
   queryYear: 2022
   ifExists: append
   columns:
-  - column: cod_uf
-    isPrimaryKey: False
+  - column: 
+    isPrimaryKey: 
     ForeignKey: 
-    businessName: UF code of the dompp
-    description: UF code of the dompp
-    logicalType: int
-    physicalType: int
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
     isNullable: False
     isBlank: False 
     translatedValues:
     sampleValues:
-    - 12
-    - 15
-  - column: cod_mun
-    isPrimaryKey: False
+    - 
+silver:
+  contractName: contract_dompp_censo_2022.yaml
+  tableName: dompp_censo_2022_grp_hex
+  schema: layers
+  physicalPath: databases/silver/censo/layers/2022/dompp/
+  description: Domicile grouped by hexagon
+  queryYear: 2022
+  ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
     ForeignKey: 
-    businessName: Municipality code of the dompp
-    description: Municipality code of the dompp
-    logicalType: int
-    physicalType: int
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
     isNullable: False
     isBlank: False 
     translatedValues:
     sampleValues:
-    - 1200013
-    - 1200807
-  - column: cod_especie
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Type code of the dompp
-    description: Type code of the dompp
-    logicalType: int
-    physicalType: int
-    isNullable: False
-    isBlank: False 
-    translatedValues:
-    sampleValues:
-    - 1
-    - 7
-  - column: latitude
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Latitude of the dompp
-    description: Latitude of the dompp
-    logicalType: float
-    physicalType: float
-    isNullable: False
-    isBlank: False 
-    translatedValues:
-    sampleValues:
-    - -10.070508
-    - -9.685503
-  - column: longitude
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Longitude of the dompp
-    description: Longitude of the dompp
-    logicalType: float
-    physicalType: float
-    isNullable: False
-    isBlank: False 
-    translatedValues:
-    sampleValues:
-    - -67.049360 
-    - -67.744106
-  - column: nv_geo_coord
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Method used to locate coordinate of the dompp
-    description: Method used to locate coordinate of the dompp
-    logicalType: float
-    physicalType: float
-    isNullable: False
-    isBlank: False 
-    translatedValues:
-    sampleValues:
-    - 1 
-    - 3
+    - 
