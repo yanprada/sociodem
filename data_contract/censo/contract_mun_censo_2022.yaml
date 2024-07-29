@@ -1,6 +1,6 @@
 bronze:
   contractName: contract_mun_censo_2022.yaml
-  tableName: mun_layer_censo_2022
+  tableName: mun_censo_2022
   schema: layers
   physicalPath: databases/bronze/censo/layers/2022/municipios/
   description: Municipality geometry layer from the 2022 Census
