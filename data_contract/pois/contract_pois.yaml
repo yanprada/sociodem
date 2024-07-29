@@ -23,7 +23,7 @@ bronze:
   contractName: contract_pois.yaml
   tableName: pois
   schema: places
-  physicalPath: database/bronze/pois/
+  physicalPath: databases/bronze/pois/processed/
   description: 
   queryYear: 
   ifExists: append
