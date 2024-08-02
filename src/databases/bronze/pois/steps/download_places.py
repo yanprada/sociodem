@@ -17,25 +17,19 @@ in the download directory.
 
 """
 
-import json
 import os
 import boto3
+from tqdm import tqdm
 from botocore import UNSIGNED
 from botocore.config import Config
 
-BRAZILIAN_BBOX = [
-    [
-        [-74.0703974804, -34.2545333765],
-        [-33.1129000343, -34.2545333765],
-        [-33.1129000343, 5.6600149373],
-        [-74.0703974804, 5.6600149373],
-        [-74.0703974804, -34.2545333765],
-    ]
-]
+from src.tools.data_contract.pois_data_contract import get_pois_contracts
+from src.tools.utils.common import write_log
+
+POIS_CONTRACTS = get_pois_contracts("bronze")
 
 
-# Function to list and download files
-def list_and_download_files(download_dir, bucket, prefix):
+def list_and_download_files_omf(download_dir, bucket, prefix):
     """
     Lists and downloads files from an S3 bucket with the given prefix.
 
@@ -43,14 +37,9 @@ def list_and_download_files(download_dir, bucket, prefix):
         download_dir (str): The local directory where the files will be downloaded.
         bucket (str): The name of the S3 bucket.
         prefix (str): The prefix used to filter the files in the S3 bucket.
-
-    Returns:
-        list: A list of file keys that were downloaded.
-
     """
     s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
     continuation_token = None
-    files = []
     while True:
         if continuation_token:
             response = s3.list_objects_v2(
@@ -59,18 +48,16 @@ def list_and_download_files(download_dir, bucket, prefix):
         else:
             response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
         if "Contents" in response:
-            for obj in response["Contents"]:
+            for obj in tqdm(response["Contents"], desc="Downloading files"):
                 key = obj["Key"]
                 file_name = key.split("/")[-1]
                 file_path = os.path.join(download_dir, file_name)
                 s3.download_file(bucket, key, file_path)
-                print(f"Downloaded {file_name} to {file_path}")
-                files.append(key)
+                write_log(f"Downloaded {file_name}")
         if response.get("IsTruncated"):  # More pages to fetch
             continuation_token = response.get("NextContinuationToken")
         else:
             break
-    return files
 
 
 def main():
@@ -78,11 +65,8 @@ def main():
     Downloads files from a specified bucket and prefix, and saves the
     downloaded files information in a JSON file.
     """
-    download_dir = "downloaded_files"
+    download_dir = POIS_CONTRACTS["datalake"]["physicalPath"]
     bucket = "overturemaps-us-west-2"
     prefix = "release/2024-07-22.0/theme=places/"
     os.makedirs(download_dir, exist_ok=True)
-    files_downloaded = list_and_download_files(download_dir, bucket, prefix)
-    output = {"bucket": bucket, "prefix": prefix, "files": files_downloaded}
-    with open("downloaded_files.json", "w", encoding="utf-8") as output_file:
-        output_file.write(json.dumps(output, indent=4))
+    list_and_download_files_omf(download_dir, bucket, prefix)
