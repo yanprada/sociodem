@@ -25,7 +25,8 @@ def get_pois_bronze_contracts():
     contract_pois_dl = get_contract("pois/contract_pois.yaml", "datalake")
     contracts = {
         "pois": contract_pois,
-        "datalake": contract_pois_dl,
+        "datalake": contract_pois_dl[0],
+        "categories": contract_pois_dl[1],
     }
     return EasyDict(contracts)
 
