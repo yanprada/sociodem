@@ -7,6 +7,8 @@ Functions:
 """
 
 import os
+import random
+import string
 import logging
 from functools import lru_cache
 import yaml
@@ -272,3 +274,17 @@ def get_db_path(contract: dict) -> str:
         str: The path of the database table.
     """
     return ".".join([contract["schema"], contract["tableName"]])
+
+
+def generate_random_string(length):
+    """
+    Generates a random string of specified length.
+
+    Args:
+        length (int): The length of the random string.
+
+    Returns:
+        str: The random string.
+    """
+    letters = string.ascii_letters + string.digits
+    return "".join(random.choice(letters) for _ in range(length))
