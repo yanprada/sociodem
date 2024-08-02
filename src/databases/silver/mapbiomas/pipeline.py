@@ -5,7 +5,7 @@ The pipeline consists of the following steps:
 1. Creates a silver MapBiomas dataset in Parquet format and also in PostgresSQL database.
 """
 
-from src.databases.silver.mapbiomas.steps import create_silver_mapbiomas
+from src.databases.silver.mapbiomas.steps import a_create_silver_mapbiomas
 
 
 def main():
@@ -15,4 +15,4 @@ def main():
     This function executes the following steps:
     1. Creates a silver MapBiomas dataset in Parquet format and also in PostgresSQL database.
     """
-    create_silver_mapbiomas.main()
+    a_create_silver_mapbiomas.main()

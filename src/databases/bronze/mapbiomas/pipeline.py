@@ -11,10 +11,10 @@ To run the pipeline, execute the `main` function.
 """
 
 from src.databases.bronze.mapbiomas.steps import (
-    transform_to_dataframe,
-    create_grouped_by_hex_mapbiomas,
-    download_mapbiomas,
-    process_h3_hexagon,
+    a_download_mapbiomas,
+    b_transform_to_dataframe,
+    c_process_h3_hexagon,
+    d_create_grouped_by_hex_mapbiomas,
 )
 
 
@@ -28,7 +28,7 @@ def main():
     3. Processes the H3 hexagon data.
     4. Creates a grouped-by-hex mapbiomas.
     """
-    download_mapbiomas.main()
-    transform_to_dataframe.main()
-    process_h3_hexagon.main()
-    create_grouped_by_hex_mapbiomas.main()
+    a_download_mapbiomas.main()
+    b_transform_to_dataframe.main()
+    c_process_h3_hexagon.main()
+    d_create_grouped_by_hex_mapbiomas.main()

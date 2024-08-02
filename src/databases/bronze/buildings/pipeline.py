@@ -10,9 +10,9 @@ To execute the pipeline, run the main() function.
 """
 
 from src.databases.bronze.buildings.steps import (
-    download_buildings,
-    group_buildings_by_hex,
-    index_h3_polygon,
+    a_download_buildings,
+    b_index_h3_polygon,
+    c_group_buildings_by_hex,
 )
 
 
@@ -21,6 +21,6 @@ def main():
     This is the main function of the pipeline module.
     It executes the necessary steps to process the buildings data.
     """
-    download_buildings.main()
-    index_h3_polygon.main()
-    group_buildings_by_hex.main()
+    a_download_buildings.main()
+    b_index_h3_polygon.main()
+    c_group_buildings_by_hex.main()

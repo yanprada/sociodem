@@ -9,8 +9,8 @@ To run the pipeline, call the `run()` function.
 """
 
 from src.databases.bronze.aneel.steps import (
-    download_aneel_companies,
-    make_bronze_aneel_dataset,
+    a_download_aneel_companies,
+    b_make_bronze_aneel_dataset,
 )
 
 
@@ -22,5 +22,5 @@ def run():
     1. Downloads ANEEL companies data
     2. Creates a bronze ANEEL dataset in Parquet format and also in PostgresSQL database
     """
-    download_aneel_companies.main()
-    make_bronze_aneel_dataset.main()
+    a_download_aneel_companies.main()
+    b_make_bronze_aneel_dataset.main()

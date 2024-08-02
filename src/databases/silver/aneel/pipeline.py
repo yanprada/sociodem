@@ -8,13 +8,12 @@ The pipeline consists of the following steps:
 To run the pipeline, call the main() function.
 """
 
-from src.databases.silver.aneel import (
-    join_ucbt_and_ponnot,
-    fix_after_join_ponnot_without_match,
-)
 from src.databases.silver.aneel.steps import (
-    process_aneel_after_fixes,
-    process_hex_ids_aneel,
+    a_join_ucbt_and_ponnot,
+    b_fix_after_join_ponnot_without_match,
+    c_process_aneel_after_fixes,
+    d_process_hex_ids_aneel,
+    e_group_by_hex,
 )
 
 
@@ -26,7 +25,8 @@ def main():
     1. Joins UCBT and PONNOT
     2. Fixes after join PONNOT without match
     """
-    join_ucbt_and_ponnot.main()
-    fix_after_join_ponnot_without_match.main()
-    process_aneel_after_fixes.main()
-    process_hex_ids_aneel.main()
+    a_join_ucbt_and_ponnot.main()
+    b_fix_after_join_ponnot_without_match.main()
+    c_process_aneel_after_fixes.main()
+    d_process_hex_ids_aneel.main()
+    e_group_by_hex.main()

@@ -6,7 +6,10 @@ The pipeline consists of the following steps:
 2. Creates a bronze Censo dataset in Parquet format and also in PostgresSQL database
 """
 
-from src.databases.bronze.censo.steps import download_layers, make_bronze_dataset_censo
+from src.databases.bronze.censo.steps import (
+    a_download_layers,
+    b_make_bronze_dataset_censo,
+)
 
 
 def main():
@@ -17,5 +20,5 @@ def main():
     1. Downloads Censo data
     2. Creates a bronze Censo dataset in Parquet format and also in PostgresSQL database
     """
-    download_layers.main()
-    make_bronze_dataset_censo.main()
+    a_download_layers.main()
+    b_make_bronze_dataset_censo.main()
