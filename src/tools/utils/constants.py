@@ -8,6 +8,12 @@ This module contains constants used in the sociodem project.
 HEX_RESOLUTION = 10
 CRS_IBGE = "EPSG:4674"
 CRS_GLOBAL = "EPSG:4326"
+BBOX_BRAZIL = {
+    "xmin": -73.9403379576,
+    "ymin": -34.2093068356,
+    "xmax": -32.3460996763,
+    "ymax": 5.7482989621,
+}
 
 
 DOMPP_CLASSES = {
