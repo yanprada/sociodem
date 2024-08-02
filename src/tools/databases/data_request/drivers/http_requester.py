@@ -4,10 +4,13 @@ Module to make requests to pages.
 
 import os
 from typing import Tuple, Dict
+import boto3
+from tqdm import tqdm
+from botocore import UNSIGNED
+from botocore.config import Config
 import requests
 import pandas as pd
 from retry import retry
-from tqdm import tqdm
 from src.tools.utils.common import write_log
 
 
@@ -340,3 +343,48 @@ class HttpRequesterMapbiomas:
                 write_log(
                     f"File {file_path} already exists in destination.", level="warning"
                 )
+
+
+class HttpRequesterOvertureMaps:
+    """
+    Http request class to download Overture Maps data
+    """
+
+    def __init__(self, prefix: str, download_path: str) -> None:
+        self.bucket = "overturemaps-us-west-2"
+        self.prefix = prefix
+        self.download_path = download_path
+        os.makedirs(download_path, exist_ok=True)
+
+    def update(self):
+        """
+        This method is responsible for updating the data.
+        """
+
+    def download_files_omf(self):
+        """
+        Requests files from a page and saves them to the specified destination path.
+
+        """
+        s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+        continuation_token = None
+        while True:
+            if continuation_token:
+                response = s3.list_objects_v2(
+                    Bucket=self.bucket,
+                    Prefix=self.prefix,
+                    ContinuationToken=continuation_token,
+                )
+            else:
+                response = s3.list_objects_v2(Bucket=self.bucket, Prefix=self.prefix)
+            if "Contents" in response:
+                for obj in tqdm(response["Contents"], desc="Downloading files"):
+                    key = obj["Key"]
+                    file_name = key.split("/")[-1]
+                    file_path = os.path.join(self.download_path, file_name)
+                    s3.download_file(self.bucket, key, file_path)
+                    write_log(f"Downloaded {file_name}")
+            if response.get("IsTruncated"):  # More pages to fetch
+                continuation_token = response.get("NextContinuationToken")
+            else:
+                break
