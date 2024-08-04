@@ -11,8 +11,6 @@ import random
 import string
 import logging
 from functools import lru_cache
-import h3
-from shapely.geometry import Polygon
 import yaml
 import pandas as pd
 from mlflow.tracking import MlflowClient
@@ -290,12 +288,3 @@ def generate_random_string(length):
     """
     letters = string.ascii_letters + string.digits
     return "".join(random.choice(letters) for _ in range(length))
-
-
-def h3_to_polygon(h3_index):
-    """Convert an H3 index to a Shapely Polygon."""
-    # Get the boundary coordinates of the H3 hexagon
-    boundary = h3.h3_to_geo_boundary(h3_index, geo_json=True)
-    # Create a Shapely Polygon from the boundary coordinates
-    polygon = Polygon(boundary)
-    return polygon
