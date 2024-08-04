@@ -82,13 +82,17 @@ def process_in_parallel(gdf: gpd.GeoDataFrame, key: str) -> Tuple[List[str], Lis
             contains the H3 index values for each geometry, and the second list contains
             the corresponding key values.
     """
+    hex_list = []
+    cod_list = []
     for k, g in tqdm(zip(gdf[key], gdf.geometry), desc="Adding H3 index"):
         temp = mapping(g)
         temp["coordinates"] = [[[j[1], j[0]] for j in i] for i in temp["coordinates"]]
         temp = flatten_multipolygon(temp)
         hex_ids = list(h3.polyfill(temp, HEX_RESOLUTION))
         cod_sc = [k] * len(hex_ids)
-    return hex_ids, cod_sc
+        hex_list.extend(hex_ids)
+        cod_list.extend(cod_sc)
+    return hex_list, cod_list
 
 
 def add_h3_index_to_large_geom(gdf: gpd.GeoDataFrame, key: str) -> gpd.GeoDataFrame:
@@ -114,8 +118,9 @@ def add_h3_index_to_large_geom(gdf: gpd.GeoDataFrame, key: str) -> gpd.GeoDataFr
     for future in tqdm(
         as_completed(futures), total=len(futures), desc="Adding H3 index"
     ):
-        hex_list.extend(future.result()[0])
-        cod_list.extend(future.result()[1])
+        result_hex, result_cod = future.result()
+        hex_list.extend(result_hex)
+        cod_list.extend(result_cod)
     client.close()
     dfh = pd.DataFrame({"hex_col": hex_list, key: cod_list})
     gdf = pd.DataFrame(gdf.drop(columns="geometry"))
