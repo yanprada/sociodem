@@ -34,7 +34,7 @@ def get_censo_bronze_contracts():
 
     contracts = {
         "municipalities_2010": contract_mun_2010,
-        "municipalities_2022": contract_mun_2022,
+        "mun_2022": contract_mun_2022,
         "sectors_2010": contract_sector_2010,
         "sectors_2022": contract_sector_2022,
         "dompp_2022": contract_dompp_2022,
@@ -51,9 +51,14 @@ def get_censo_silver_contracts():
             The keys are the names of the companies and the values are the corresponding contracts.
     """
     contract_dompp_2022 = get_contract("censo/contract_dompp_censo_2022.yaml", "silver")
-
+    contract_mun_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "silver")
+    contract_sector_2022 = get_contract(
+        "censo/contract_sectors_censo_2022.yaml", "silver"
+    )
     contracts = {
         "dompp_2022": contract_dompp_2022,
+        "mun_2022": contract_mun_2022,
+        "sectors_2022": contract_sector_2022,
     }
     return EasyDict(contracts)
 
