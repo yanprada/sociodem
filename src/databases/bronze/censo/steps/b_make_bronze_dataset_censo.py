@@ -4,7 +4,7 @@ Censo 2022 datasets and saves it as parquet files and to database.
 
 The script contains the following functions:
 - get_municipalities_2010: Retrieves the municipalities data from the Censo 2010 dataset.
-- get_municipalities_2022: Retrieves the municipalities data from the Censo 2022 dataset.
+- get_mun_2022: Retrieves the municipalities data from the Censo 2022 dataset.
 - get_sectors_2010: Retrieves the census sectors data from the Censo 2010 dataset.
 - main: The main function that executes the script.
 
@@ -141,7 +141,7 @@ def main():
     """
     for layer_key in [
         "municipalities_2010",
-        "municipalities_2022",
+        "mun_2022",
         "sectors_2010",
         "sectors_2022",
     ]:
