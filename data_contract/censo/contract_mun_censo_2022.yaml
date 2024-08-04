@@ -7,42 +7,36 @@ bronze:
   queryYear: 2022
   ifExists: append
   columns:
-  - column: cd_geocodm
+  - column:
     isPrimaryKey: False
     ForeignKey: 
-    businessName: Municipality code Census 2022
-    description: 7 digits IBGE municipality code Census 2022
-    logicalType: int
-    physicalType: int
+    businessName:
+    description:
+    logicalType:
+    physicalType:
     isNullable: False
     isBlank: False
     translatedValues:
     sampleValues:
-    - 1200013
-    - 1200013
-  - column: nm_municip
+    -
+silver:
+  contractName: contract_mun_censo_2022.yaml
+  tableName: mun_hex_2022
+  schema: layers
+  physicalPath: databases/silver/censo/layers/2022/municipios/
+  description: Hexagon id in Municipality from the 2022 Census
+  queryYear: 2022
+  ifExists: append
+  columns:
+  - column:
     isPrimaryKey: False
     ForeignKey: 
-    businessName: Municipality name Census 2022
-    description: IBGE municipality name Census 2022
-    logicalType: str
-    physicalType: str
+    businessName:
+    description:
+    logicalType:
+    physicalType:
     isNullable: False
     isBlank: False
     translatedValues:
     sampleValues:
-    - ACRELÂNDIA
-    - MÂNCIO LIMA
-  - column: geometry
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Municipality geometry Census 2022 
-    description: IBGE municipality geometry Census 2022
-    logicalType: geometry
-    physicalType: geom
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - POLYGON ((-67.14117 -9.68337, -67.13951 -9.683, -67.139 -9.683 ))
-    - POLYGON ((-69.8 -10.507, -69.8 -10.506, -69.8 -10.506, -69.8 -10.505
+    -
