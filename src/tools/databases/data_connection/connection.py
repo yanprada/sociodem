@@ -18,6 +18,8 @@ import sqlalchemy
 from tqdm import tqdm
 from pyspark.sql import SparkSession
 
+from src.tools.utils.constants import CRS_GLOBAL
+
 warnings.filterwarnings("ignore")
 
 # Database credentials
@@ -592,7 +594,9 @@ class DBConnection(DBConnectionHandler):
                 conn.rollback()
                 raise e
 
-    def query_database(self, query: str) -> pd.DataFrame:
+    def query_database(
+        self, query: str, geo: bool = False
+    ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
         """
         Executes a query on the database and returns the result as a DataFrame.
 
@@ -604,4 +608,7 @@ class DBConnection(DBConnectionHandler):
         """
         with self._DBConnectionHandler__engine.connect() as conn:
             df = pd.read_sql_query(text(query), conn, chunksize=1000)
-        return pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+            df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+            if geo:
+                df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
+        return df
