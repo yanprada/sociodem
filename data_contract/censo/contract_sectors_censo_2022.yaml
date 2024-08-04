@@ -7,133 +7,36 @@ bronze:
   queryYear: 2022
   ifExists: replace
   columns:
-  - column: cd_setor
-    isPrimaryKey: False
+  - column: 
+    isPrimaryKey: 
     ForeignKey: 
-    businessName: Sectors code
-    description: 16 digits IBGE Sectors code
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
     translatedValues:
     sampleValues:
-    - 120001305000001P
-    - 120080725000004P
-  - column: area_km2
-    isPrimaryKey: False
+    - 
+silver:
+  contractName: contract_sectors_censo_2022.yaml
+  tableName: hex_to_sc
+  schema: layers
+  physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
+  description: Census sectors geometry layer from the 2022 Census
+  queryYear: 2022
+  ifExists: replace
+  columns:
+  - column: 
+    isPrimaryKey: 
     ForeignKey: 
-    businessName: Sectors area
-    description: Sectors area in km2
-    logicalType: float
-    physicalType: float
-    isNullable: False
-    isBlank: False
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
     translatedValues:
     sampleValues:
-    - 0.406588
-    - 168.897058
-  - column: cd_uf
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors uf code
-    description: Sectors uf code
-    logicalType: int
-    physicalType: int
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - 12
-    - 15
-  - column: nm_uf
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors uf name
-    description: Sectors uf
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - Acre
-    - Rio de Janeiro
-  - column: cd_mun
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors municipality code
-    description: Sectors municipality code
-    logicalType: int
-    physicalType: int
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - 1200013
-    - 1200807
-  - column: nm_mun
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors district name
-    description: Sectors district name
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - Acrelândia
-    - Porto Acre
-  - column: cd_dist
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors district digit code
-    description: Sectors district digit code
-    logicalType: int
-    physicalType: int
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - 120001305
-    - 120080725
-  - column: nm_dist
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors district name
-    description: Sectors district name
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - Acrelândia
-    - Vila do Incra
-  - column: nm_micro
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors microregion name
-    description: Sectors microregion name
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - CRUZEIRO DO SUL
-    - RIO BRANCO
-  - column: geometry
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors name
-    description: IBGE Sectors name
-    logicalType: geometry
-    physicalType: geom
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - POLYGON ((-67.14117 -9.68337, -67.13951 -9.683, -67.139 -9.683 ))
-    - POLYGON ((-69.8 -10.507, -69.8 -10.506, -69.8 -10.506, -69.8 -10.505
+    - 
