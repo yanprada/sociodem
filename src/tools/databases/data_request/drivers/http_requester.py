@@ -12,6 +12,10 @@ import requests
 import pandas as pd
 from retry import retry
 from src.tools.utils.common import write_log
+from src.tools.utils.read import Reader
+from src.tools.utils.constants import BBOX_BRAZIL
+
+tqdm.pandas()
 
 
 class HttpRequesterAneel:
@@ -356,11 +360,6 @@ class HttpRequesterOvertureMaps:
         self.download_path = download_path
         os.makedirs(download_path, exist_ok=True)
 
-    def update(self):
-        """
-        This method is responsible for updating the data.
-        """
-
     def download_files_omf(self):
         """
         Requests files from a page and saves them to the specified destination path.
@@ -388,3 +387,24 @@ class HttpRequesterOvertureMaps:
                 continuation_token = response.get("NextContinuationToken")
             else:
                 break
+
+    @staticmethod
+    def read_files_bbox_brazil(path: str) -> pd.DataFrame:
+        """
+        Reads the parquet files from the specified path and returns the data.
+
+        Args:
+            path (str): The name of the parquet file.
+
+        Returns:
+            DataFrame: The data read from the parquet file.
+        """
+        reader = Reader()
+        df = reader.read_parquet(path)
+        df["in_brazil"] = df["bbox"].progress_apply(
+            lambda bb: bb["xmin"] > BBOX_BRAZIL["xmin"]
+            and bb["xmax"] < BBOX_BRAZIL["xmax"]
+            and bb["ymin"] > BBOX_BRAZIL["ymin"]
+            and bb["ymax"] < BBOX_BRAZIL["ymax"]
+        )
+        return df[df["in_brazil"]]
