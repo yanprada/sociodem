@@ -107,6 +107,6 @@ def main():
     This is the main function of the pipeline module.
     It executes the necessary steps to process the buildings data.
     """
-    # create_grouped_google()
-    # create_grouped_omf()
+    create_grouped_google()
+    create_grouped_omf()
     create_joined_table()
