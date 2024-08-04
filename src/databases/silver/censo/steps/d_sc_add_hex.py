@@ -63,7 +63,7 @@ def main():
     for partition in tqdm(range(0, len(df_sc), batch), desc="Processing hexagons"):
         with mlflow.start_run(run_name=str(partition)):
             kwargs = {"filename": str(partition)}
-            df = df_sc[partition : partition + batch]
+            df = df_sc.iloc[partition : partition + batch]
             df = add_hex_from_geom(df, **kwargs)
             mlflow.log_metric("num_sc", df["cd_setor"].nunique())
             mlflow.log_metric("num_hex", df["hex_col"].nunique())
