@@ -9,7 +9,7 @@ Functions:
     the hexagon ID of each point.
 - create_geom_col(df): Creates a new column in the DataFrame containing
     the geometry of each point.
-- group_by_hex(df): Groups the DataFrame by hexagon ID and species code, 
+- group_by_hex_sc(df): Groups the DataFrame by hexagon ID and species code, 
     aggregating the number of points, the total DOMPP, and the maximum 
     number of points.
 - process_mun(mun): Process the municipality data for a given municipality code.
@@ -18,56 +18,34 @@ Functions:
     the `process_mun` function.
 """
 
-from functools import lru_cache
 import math
-import h3
+from typing import List
+import mlflow
+import pandas as pd
+import geopandas as gpd
 from shapely import Point
 from tqdm import tqdm
 from dask.distributed import Client, LocalCluster, as_completed
 
 from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.utils.loader import Loader
 from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from src.tools.utils.common import get_db_path, write_log
-from src.tools.utils.constants import HEX_RESOLUTION, DOMPP_CLASSES
+from src.tools.utils.h3 import create_hex_col_from_dot
+from src.tools.utils.constants import (
+    DOMPP_CLASSES,
+    CRS_GLOBAL,
+    CRS_IBGE,
+)
 from src.tools.utils.save import save_parquet_decorator
+
+mlflow.set_experiment("dompp censo silver")
 
 CONTRACT_CENSO_BRONZE = get_censo_contracts("bronze")
 CONTRACT_CENSO_SILVER = get_censo_contracts("silver")
 
 
-@lru_cache(maxsize=1)
-def get_muns():
-    """
-    Retrieves a list of distinct municipality codes from the specified database table.
-
-    Returns:
-        list: A list of distinct municipality codes.
-    """
-    contract_dompp = CONTRACT_CENSO_BRONZE["dompp_2022"]
-    path = get_db_path(contract_dompp)
-    conn = DBConnection("bronze")
-    query = f"SELECT DISTINCT cod_mun FROM {path}"
-    return conn.query_database(query)["cod_mun"].tolist()
-
-
-def create_hex_col(df):
-    """
-    Creates a new column in the DataFrame containing the hexagon ID of each point.
-
-    Args:
-        df (DataFrame): The DataFrame containing the points.
-
-    Returns:
-        DataFrame: The DataFrame with the new column.
-    """
-    df["hex_id"] = df.apply(
-        lambda row: h3.geo_to_h3(row["latitude"], row["longitude"], HEX_RESOLUTION),
-        axis=1,
-    )
-    return df
-
-
-def create_geom_col(df):
+def create_geom_col(df: pd.DataFrame) -> gpd.GeoDataFrame:
     """
     Creates a new column in the DataFrame containing the geometry of each point.
 
@@ -80,10 +58,31 @@ def create_geom_col(df):
     df["geometry"] = df.apply(
         lambda row: Point(row["longitude"], row["latitude"]), axis=1
     )
-    return df
+    return gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_IBGE).to_crs(CRS_GLOBAL)
 
 
-def group_by_hex(df):
+def merge_with_sc(df: gpd.GeoDataFrame, df_sc: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """
+    Merges the DataFrame with the sector data.
+
+    Args:
+        df (DataFrame): The DataFrame containing the points.
+        df_sc (DataFrame): The DataFrame containing the sector data.
+
+    Returns:
+        DataFrame: The merged DataFrame.
+    """
+    join_df = gpd.sjoin(df, df_sc, how="inner", op="intersects").drop(
+        columns="index_right"
+    )
+    assert len(join_df) - len(df) < 0.01 * len(
+        df
+    ), "The length of the DataFrame is different from the original dompp DataFrame"
+    mlflow.log_metric("num_dompp_after_join", join_df["count"].sum())
+    return join_df
+
+
+def group_by_hex_sc(df: gpd.GeoDataFrame) -> pd.DataFrame:
     """
     Groups the DataFrame by hexagon ID and species code,
     aggregating the number of points, the total DOMPP and
@@ -95,14 +94,15 @@ def group_by_hex(df):
     Returns:
         DataFrame: The DataFrame grouped by hexagon ID and species code.
     """
-    return df.groupby(["hex_id", "cod_especie"], as_index=False).agg(
+    df = pd.DataFrame(df.drop(columns=["geometry"]))
+    return df.groupby(["hex_id", "cd_setor", "cod_especie"], as_index=False).agg(
         num_points=("cod_especie", "size"),
         dompp_total=("count", "sum"),
         max_points=("count", "max"),
     )
 
 
-def pivot_table(df):
+def pivot_table(df: pd.DataFrame) -> pd.DataFrame:
     """
     Pivot the DataFrame to have the species codes as columns.
 
@@ -114,7 +114,7 @@ def pivot_table(df):
     """
     df["cod_especie"] = df["cod_especie"].apply(DOMPP_CLASSES.__getitem__)
     df = df.pivot_table(
-        index="hex_id",
+        index=["hex_id", "cd_setor"],
         columns="cod_especie",
         values=["num_points", "dompp_total", "max_points"],
         fill_value=0,
@@ -124,39 +124,43 @@ def pivot_table(df):
 
 
 @save_parquet_decorator("silver", CONTRACT_CENSO_SILVER["dompp_2022"], save_pq=False)
-def process_mun(conn, mun):
+def process_mun(conn: DBConnection, mun: str, df_sc: gpd.GeoDataFrame):
     """
     Process the municipality data for a given municipality code.
 
     Args:
         conn (Connection): The database connection object.
         mun (str): The municipality code.
-
+        df_sc (DataFrame): The DataFrame containing the sector data.
     Returns:
         DataFrame: The processed data for the municipality.
     """
     contract_dompp = CONTRACT_CENSO_BRONZE["dompp_2022"]
     path = get_db_path(contract_dompp)
+    df = conn.query_database(f"SELECT * FROM {path} WHERE cod_mun = '{mun}'")
+    mlflow.log_metric("num_dompp", df["count"].sum())
     df = (
-        conn.query_database(f"SELECT * FROM {path} WHERE cod_mun = '{mun}'")
-        .pipe(create_geom_col)
-        .pipe(create_hex_col)
-        .pipe(group_by_hex)
+        create_geom_col(df)
+        .pipe(create_hex_col_from_dot)
+        .pipe(merge_with_sc, df_sc)
+        .pipe(group_by_hex_sc)
         .pipe(pivot_table)
     )
     return df
 
 
-def process_muns(muns):
+def process_muns(muns: List[str], df_sc: gpd.GeoDataFrame) -> None:
     """
     Process the municipality data for a given list of municipality codes.
 
     Args:
         muns (list): A list of municipality codes.
+        df_sc (DataFrame): The DataFrame containing the sector data.
     """
     conn = DBConnection("bronze")
     for mun in tqdm(muns, desc="Processing batch"):
-        _ = process_mun(conn, mun)
+        with mlflow.start_run(run_name=str(mun)):
+            _ = process_mun(conn, mun, df_sc)
 
 
 def main():
@@ -164,13 +168,15 @@ def main():
     This is the main function that processes municipalities.
     It retrieves a list of municipalities and processes each one using the `process_mun` function.
     """
-    cluster = LocalCluster(n_workers=10)
+    loader = Loader()
+    cluster = LocalCluster(n_workers=8)
     client = Client(cluster)
     num_workers = len(client.scheduler_info()["workers"])
-    muns = get_muns()
+    muns = loader.get_muns_cod()
     steps = math.ceil(len(muns) / num_workers)
+    df_sc = loader.get_sc()
     futures = [
-        client.submit(process_muns, muns[i * steps : i * steps + steps])
+        client.submit(process_muns, muns[i * steps : i * steps + steps], df_sc)
         for i in range(num_workers)
     ]
     for future in tqdm(
@@ -180,3 +186,4 @@ def main():
             future.result()
         except Exception as e:
             write_log(f"An error occurred: {e}")
+    client.close()

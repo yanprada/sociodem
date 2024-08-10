@@ -14,6 +14,7 @@ from tqdm import tqdm
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import BUILDING_PARTITIONS, CRS_GLOBAL
 from src.tools.utils.read import Reader
+from src.tools.utils.loader import Loader
 from src.tools.data_contract.buildings_data_contract import get_buildings_contracts
 from src.tools.utils.h3 import add_h3_index_to_small_geom
 
@@ -38,12 +39,29 @@ def set_crs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return gdf
 
 
-def process_data(source: str) -> None:
+def add_sc_index_to_small_geom(
+    gdf: gpd.GeoDataFrame, df_sc: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    """
+    Adds a spatial index to a GeoDataFrame.
+
+    Parameters:
+    gdf (gpd.GeoDataFrame): The GeoDataFrame to add the spatial index to.
+    df_sc (gpd.GeoDataFrame): The GeoDataFrame containing the spatial index.
+
+    Returns:
+    gpd.GeoDataFrame: The GeoDataFrame with the spatial index added.
+    """
+    return gpd.sjoin(gdf, df_sc, how="inner", op="intersects")
+
+
+def process_data(source: str, df_sc: gpd.GeoDataFrame) -> None:
     """
     Process the data from a specific source and return a GeoDataFrame.
 
     Args:
         source (str): The source of the data.
+        df_sc (gpd.GeoDataFrame): The GeoDataFrame containing the spatial index.
     """
 
     @save_parquet_decorator("bronze", CONTRACT_BRONZE[f"buildings_{source}"])
@@ -63,6 +81,7 @@ def process_data(source: str) -> None:
         if source == "google":
             gdf = gdf.query("confidence >= 0.75").reset_index(drop=True)
         gdf = add_h3_index_to_small_geom(gdf)
+        gdf = add_sc_index_to_small_geom(gdf, df_sc)
         gdf = gdf[cols[source]]
         kwargs = {"filename": f"partition_{i}"}
         save_partition(gdf, **kwargs)
@@ -72,5 +91,6 @@ def main() -> None:
     """
     This is the main function that processes data for "omf" and "google".
     """
-    process_data("google")
-    process_data("omf")
+    df_sc = Loader().get_sc()
+    process_data("google", df_sc)
+    process_data("omf", df_sc)
