@@ -56,7 +56,8 @@ def get_censo_silver_contracts():
         "censo/contract_sectors_censo_2022.yaml", "silver"
     )
     contracts = {
-        "dompp_2022": contract_dompp_2022,
+        "dompp_2022": contract_dompp_2022[0],
+        "dompp_pct_2022": contract_dompp_2022[1],
         "mun_2022": contract_mun_2022,
         "sectors_2022": contract_sector_2022,
     }
