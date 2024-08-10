@@ -29,8 +29,6 @@ from shapely.geometry import shape
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.reader import Reader
-from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
-from src.tools.data_contract.validation_data_contract import get_validation_partitions
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import (
     check_file_exists_in_db,
@@ -38,11 +36,15 @@ from src.tools.utils.common import (
     write_log,
     get_db_path,
 )
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.aneel.config import EXECUTION_ID, BASE_PARAMS
 
-mlflow.set_experiment("aneel bronze")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID)
+CONTRACTS_BRONZE = execution_parameters["data_contract"]
+EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
 
-CONTRACTS = get_aneel_contracts("bronze")
-VALIDATION_PARTITIONS = get_validation_partitions()
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 
 @lru_cache(maxsize=10)
@@ -60,7 +62,7 @@ def load_aneel_ids() -> pd.DataFrame:
         2   39048776183
     """
     conn = DBConnection("bronze")
-    contract = CONTRACTS["company_id"]
+    contract = CONTRACTS_BRONZE["company_id"]
     path = get_db_path(contract)
     df = conn.query_database(
         f"""
@@ -79,14 +81,13 @@ def add_to_mlflow(df: gpd.GeoDataFrame, database: str, company_id: str) -> None:
         database (str): The name of the database.
         company_id (str): The ID of the company.
     """
-    with mlflow.start_run(run_name=company_id):
-        mlflow.log_param("database", database)
-        mlflow.log_param("company", df.dist.unique()[0])
-        mlflow.log_metric("num_rows", len(df))
-        if database == "ucbt":
-            mlflow.log_metric("energy", df.filter(regex="ene_").sum().sum())
-        else:
-            mlflow.log_metric("energy", 0)
+    mlflow.log_param("database", database)
+    mlflow.log_param("company", df.dist.unique()[0])
+    mlflow.log_metric("num_rows", len(df))
+    if database == "ucbt":
+        mlflow.log_metric("energy", df.filter(regex="ene_").sum().sum())
+    else:
+        mlflow.log_metric("energy", 0)
 
 
 def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
@@ -99,7 +100,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
         **kwargs: Additional keyword arguments.
     """
 
-    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS[database])
+    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE[database])
     def read_aneel_in_chunks(layer_src, start, chunk_size, **kwargs):
         """
         Read a chunk of features from a layer source into a GeoDataFrame.
@@ -165,7 +166,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
         "conj": "CONJ",
     }
     path = os.path.join(
-        CONTRACTS["datalake"]["physicalPath"],
+        CONTRACTS_BRONZE["datalake"]["physicalPath"],
         company_id,
     )
     assert layers_dict[database] in fiona.listlayers(
@@ -202,7 +203,7 @@ def columns_engineering(df: gpd.GeoDataFrame, database: str) -> gpd.GeoDataFrame
         gpd.GeoDataFrame: The GeoDataFrame with engineered columns.
     """
     conn = DBConnection("bronze")
-    contract = CONTRACTS[database]
+    contract = CONTRACTS_BRONZE[database]
     path = get_db_path(contract)
     if check_file_exists_in_db(conn, path):
         cols = conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
@@ -220,7 +221,7 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
         **kwargs: Additional keyword arguments.
     """
 
-    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS[database])
+    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE[database])
     def read_aneel(company_id: str, **kwargs) -> gpd.GeoDataFrame:
         layers_dict = {
             "ramlig": "RAMLIG",
@@ -229,7 +230,7 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
             "conj": "CONJ",
         }
         reader = Reader()
-        path = os.path.join(CONTRACTS["datalake"]["physicalPath"], company_id)
+        path = os.path.join(CONTRACTS_BRONZE["datalake"]["physicalPath"], company_id)
         layers = fiona.listlayers(path)
         assert (
             layers_dict[database] in layers
@@ -245,8 +246,9 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
         gc.collect()
         return columns_engineering(df, database)
 
-    df = read_aneel(company_id, **kwargs)
-    add_to_mlflow(df, database, company_id)
+    with mlflow.start_run(run_name=company_id, nested=True):
+        df = read_aneel(company_id, **kwargs)
+        add_to_mlflow(df, database, company_id)
 
 
 def read_file(database: str, company_id: str, is_large_file: bool = False) -> None:
@@ -260,14 +262,15 @@ def read_file(database: str, company_id: str, is_large_file: bool = False) -> No
                                         large or not. Defaults to False.
     """
     file_name = company_id.split(".")[0]
-    file_path = CONTRACTS[database]["physicalPath"]
+    file_path = CONTRACTS_BRONZE[database]["physicalPath"]
     exist_file = check_file_exists_in_disk(file_name, file_path)
     if not exist_file:
-        kwargs = {"filename": file_name}
-        if is_large_file:
-            read_aneel_wraper_large_file(database, company_id, **kwargs)
-        else:
-            read_aneel_wraper(database, company_id, **kwargs)
+        with mlflow.start_run(run_name=str(database)):
+            kwargs = {"filename": file_name}
+            if is_large_file:
+                read_aneel_wraper_large_file(database, company_id, **kwargs)
+            else:
+                read_aneel_wraper(database, company_id, **kwargs)
 
 
 def read_aneel_company_files(company_id: str, is_large_file: bool = False) -> None:
@@ -301,7 +304,7 @@ def split_file_sizes(df_aneel_ids) -> Tuple[List[str], List[str]]:
     for company_id in df_aneel_ids["company_ids"]:
         company_id = "".join([company_id, ".gdb.zip"])
         file_path = os.path.join(
-            CONTRACTS["datalake"]["physicalPath"],
+            CONTRACTS_BRONZE["datalake"]["physicalPath"],
             company_id,
         )
         file_size = os.path.getsize(file_path)
@@ -389,8 +392,8 @@ def get_cols_in_db(table_name) -> List[str]:
     Returns:
     list: A list of column names.
     """
-    schema = CONTRACTS[table_name]["schema"]
-    table = CONTRACTS[table_name]["tableName"]
+    schema = CONTRACTS_BRONZE[table_name]["schema"]
+    table = CONTRACTS_BRONZE[table_name]["tableName"]
     conn = DBConnection("bronze")
     return conn.query_database(f"SELECT * FROM {schema}.{table} LIMIT 1").columns
 
@@ -402,10 +405,10 @@ def update_ponnot_id_in_ucbt_table():
     """
     write_log("Updating 'pn_con' column in 'ucbt' table")
     conn = DBConnection("bronze")
-    schema_ucbt = CONTRACTS["ucbt"]["schema"]
-    table_ucbt = CONTRACTS["ucbt"]["tableName"]
-    schema_ramlig = CONTRACTS["ramlig"]["schema"]
-    table_ramlig = CONTRACTS["ramlig"]["tableName"]
+    schema_ucbt = CONTRACTS_BRONZE["ucbt"]["schema"]
+    table_ucbt = CONTRACTS_BRONZE["ucbt"]["tableName"]
+    schema_ramlig = CONTRACTS_BRONZE["ramlig"]["schema"]
+    table_ramlig = CONTRACTS_BRONZE["ramlig"]["tableName"]
     df = conn.query_database(
         f""" 
         SELECT * 
@@ -430,8 +433,8 @@ def create_primary_key():
     Creates a primary key on the ID column of ucbt table.
     """
     conn = DBConnection("bronze")
-    schema = CONTRACTS["ucbt"]["schema"]
-    table_name = CONTRACTS["ucbt"]["tableName"]
+    schema = CONTRACTS_BRONZE["ucbt"]["schema"]
+    table_name = CONTRACTS_BRONZE["ucbt"]["tableName"]
     pk_key = "row_id"
     df = conn.query_database(f"SELECT * FROM {schema}.{table_name} LIMIT 1")
     if pk_key not in df.columns:
