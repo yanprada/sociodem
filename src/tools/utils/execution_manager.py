@@ -12,6 +12,7 @@ Classes:
     get_collection(): Returns the collection associated with the current instance.
 """
 
+import fileinput
 from datetime import datetime
 from pymongo import MongoClient
 from src.tools.utils.common import generate_random_string, write_log
@@ -126,6 +127,7 @@ class ExecutionManager:
     def __init__(self, params: dict):
         self.medallon = params["medallon"]
         self.data_name = params["data_name"]
+        self.config_path = params["config_path"]
         self.execution_details = params.get("execution_details", None)
         self.conn = MongoDBConnection(f"executions_{self.medallon}", self.data_name)
         self.collection = self.conn.get_collection()
@@ -166,6 +168,7 @@ class ExecutionManager:
         self.__create_mlflow_experiment_name()
         self.collection.insert_one(self.execution_details)
         write_log(f"Execution ID `{self.execution_id}` saved in MongoDB")
+        self.overwrite_execution_id()
 
     def update_status(self, status: str):
         """
@@ -206,6 +209,16 @@ class ExecutionManager:
         Returns:
             dict: A dictionary containing the execution details.
         """
-
+        if execution_id is None and self.execution_id is None:
+            self.create_execution()
         query = {"execution_id": execution_id if execution_id else self.execution_id}
         return self.collection.find_one(query)
+
+    def overwrite_execution_id(self):
+        """
+        Overwrites a constant in a .py file with a new value.
+        """
+        for line in fileinput.input(self.config_path, inplace=True):
+            if line.startswith("EXECUTION_ID"):
+                line = f"{'EXECUTION_ID'} = {self.execution_id}\n"
+            print(line, end="")
