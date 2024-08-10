@@ -18,7 +18,7 @@ import os
 import ast
 from tqdm import tqdm
 from shapely import wkt, wkb
-import numpy as np
+import h3
 import pandas as pd
 import geopandas as gpd
 
@@ -28,7 +28,7 @@ from src.tools.data_contract.pois_data_contract import get_pois_contracts
 from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import generate_random_string, get_db_path
-from src.tools.utils.constants import CRS_GLOBAL
+from src.tools.utils.constants import CRS_GLOBAL, HEX_RESOLUTION
 from src.tools.databases.data_connection.connection import DBConnection
 
 
@@ -277,7 +277,7 @@ def get_primary_cat_info(record_str: str) -> str:
         str: The source information extracted from the record.
 
     """
-    if record_str is np.NA:
+    if pd.isna(record_str):
         return ""
     record = ast.literal_eval(
         str(record_str)
@@ -301,7 +301,7 @@ def get_secondary_cat_info(record_str: str) -> str:
         str: The source information extracted from the record.
 
     """
-    if record_str is np.NA:
+    if pd.isna(record_str):
         return ""
     record = ast.literal_eval(
         str(record_str)
@@ -330,7 +330,7 @@ def get_tertiary_cat_info(record_str: str) -> str:
         str: The source information extracted from the record.
 
     """
-    if record_str is np.NA:
+    if pd.isna(record_str):
         return ""
     record = ast.literal_eval(
         str(record_str)
@@ -367,6 +367,22 @@ def process_categories_column(df: pd.DataFrame, pois_cat_map: dict) -> pd.DataFr
     return df.drop(columns=["categories"])
 
 
+def add_h3_index(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds the H3 index to the given DataFrame.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to add the H3 index to.
+
+    Returns:
+        pd.DataFrame: The DataFrame with the H3 index added.
+    """
+    df["lng"] = df.geometry.x
+    df["lat"] = df.geometry.y
+    df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
+    return df.drop(columns=["lat", "lng"])
+
+
 def process_files(files: list, df_brazil_geom: pd.DataFrame, pois_cat_map: dict):
     """
     Process the given files and perform spatial join with df_brazil_geom.
@@ -384,6 +400,7 @@ def process_files(files: list, df_brazil_geom: pd.DataFrame, pois_cat_map: dict)
             .pipe(process_name_column)
             .pipe(process_brand_column)
             .pipe(process_categories_column, pois_cat_map)
+            .pipe(add_h3_index)
             .pipe(change_column_dtypes)
         )
         random_string = generate_random_string(10)
