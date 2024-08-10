@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import BUILDING_PARTITIONS, CRS_GLOBAL
-from src.tools.utils.read import Reader
+from src.tools.utils.reader import Reader
 from src.tools.utils.loader import Loader
 from src.tools.data_contract.buildings_data_contract import get_buildings_contracts
 from src.tools.utils.h3 import add_h3_index_to_small_geom

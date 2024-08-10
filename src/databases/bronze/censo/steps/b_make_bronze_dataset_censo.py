@@ -15,7 +15,7 @@ import os
 import zipfile
 import pandas as pd
 from tqdm import tqdm
-from src.tools.utils.read import Reader
+from src.tools.utils.reader import Reader
 from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from src.tools.data_contract.validation_data_contract import get_validation_partitions
 from src.tools.utils.save import save_parquet_decorator

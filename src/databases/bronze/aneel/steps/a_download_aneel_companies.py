@@ -8,7 +8,7 @@ import os
 import pandas as pd
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.read import Reader
+from src.tools.utils.reader import Reader
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 
 CONTRACTS_BRONZE = get_aneel_contracts("bronze")

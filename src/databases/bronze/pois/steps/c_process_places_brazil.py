@@ -23,7 +23,7 @@ import pandas as pd
 import geopandas as gpd
 
 
-from src.tools.utils.read import Reader
+from src.tools.utils.reader import Reader
 from src.tools.data_contract.pois_data_contract import get_pois_contracts
 from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from src.tools.utils.save import save_parquet_decorator

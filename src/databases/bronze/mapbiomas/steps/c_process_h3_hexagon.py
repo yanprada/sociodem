@@ -17,7 +17,7 @@ import mlflow
 import pandas as pd
 
 from src.tools.utils.constants import HEX_RESOLUTION
-from src.tools.utils.read import Reader
+from src.tools.utils.reader import Reader
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
 from src.tools.utils.common import count_files

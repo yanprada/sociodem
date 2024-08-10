@@ -12,7 +12,7 @@ import requests
 import pandas as pd
 from retry import retry
 from src.tools.utils.common import write_log
-from src.tools.utils.read import Reader
+from src.tools.utils.reader import Reader
 from src.tools.utils.constants import BBOX_BRAZIL
 
 tqdm.pandas()
