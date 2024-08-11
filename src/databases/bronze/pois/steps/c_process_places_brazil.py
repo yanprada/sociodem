@@ -24,16 +24,22 @@ import geopandas as gpd
 
 
 from src.tools.utils.reader import Reader
-from src.tools.data_contract.pois_data_contract import get_pois_contracts
-from src.tools.data_contract.censo_data_contract import get_censo_contracts
+
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import generate_random_string, get_db_path
 from src.tools.utils.constants import CRS_GLOBAL, HEX_RESOLUTION
 from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.pois.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_3")
 
-POIS_CONTRACTS = get_pois_contracts("bronze")
-MUN_CONTRACTS = get_censo_contracts("bronze")
+POIS_CONTRACTS = execution_parameters["data_contracts"][0]
+
+MUN_CONTRACTS = execution_parameters["data_contracts"][1]
 
 
 def read_files(file: str) -> pd.DataFrame:
