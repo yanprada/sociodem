@@ -11,6 +11,7 @@ from typing import List, Tuple, Union
 from decouple import config
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from pymongo import MongoClient
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -20,11 +21,76 @@ from pyspark.sql import SparkSession
 
 from src.tools.utils.constants import CRS_GLOBAL
 
+
 warnings.filterwarnings("ignore")
 
 # Database credentials
 DB_USER = config("DB_USER")
 DB_PASSWORD = config("DB_PASSWORD")
+
+
+class MongoDBConnection:
+    """
+    Represents a MongoDB collection.
+    Attributes:
+        collection (pymongo.collection.Collection): The MongoDB collection object.
+    Methods:
+        find(query: dict): Finds documents in the collection that match the specified query.
+        Args:
+            query (dict): The query to filter documents.
+        Returns:
+            pymongo.cursor.Cursor: A cursor object containing the matching documents.
+        ...
+        insert_one(document: dict): Inserts a document into the collection.
+        Args:
+            document (dict): The document to insert.
+        Returns:
+            None
+        ...
+        update_one(filter: dict, update: dict): Updates a single document in the collection.
+        Args:
+            filter (dict): The filter to select the document to update.
+            update (dict): The update operation to perform on the document.
+        Returns:
+            None
+        ...
+    """
+
+    def __init__(self, database: str, collection: str):
+        self.mongo_url = "mongodb://localhost:27017"
+        self.client = MongoClient(self.mongo_url)
+        self.database = self.client[database]
+        self.collection = self.database[collection]
+
+    def test_connection(self):
+        """
+        Test the connection to MongoDB server.
+        Returns:
+            bool: True if the connection is successful, False otherwise.
+        """
+
+        try:
+            self.client.server_info()
+            return True
+        except Exception as e:
+            print(f"Error connecting to MongoDB: {e}")
+            return False
+
+    def get_database(self):
+        """
+        Returns the database associated with the current instance.
+        Returns:
+            The database object.
+        """
+        return self.database
+
+    def get_collection(self):
+        """
+        Returns the collection associated with the current instance.
+        :return: The collection object.
+        """
+
+        return self.collection
 
 
 class PySparkConnection:

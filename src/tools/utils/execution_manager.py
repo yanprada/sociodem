@@ -14,73 +14,9 @@ Classes:
 
 import fileinput
 from datetime import datetime
-from pymongo import MongoClient
+
 from src.tools.utils.common import generate_random_string, write_log
-
-
-class MongoDBConnection:
-    """
-    Represents a MongoDB collection.
-    Attributes:
-        collection (pymongo.collection.Collection): The MongoDB collection object.
-    Methods:
-        find(query: dict): Finds documents in the collection that match the specified query.
-        Args:
-            query (dict): The query to filter documents.
-        Returns:
-            pymongo.cursor.Cursor: A cursor object containing the matching documents.
-        ...
-        insert_one(document: dict): Inserts a document into the collection.
-        Args:
-            document (dict): The document to insert.
-        Returns:
-            None
-        ...
-        update_one(filter: dict, update: dict): Updates a single document in the collection.
-        Args:
-            filter (dict): The filter to select the document to update.
-            update (dict): The update operation to perform on the document.
-        Returns:
-            None
-        ...
-    """
-
-    def __init__(self, database: str, collection: str):
-        self.mongo_url = "mongodb://localhost:27017"
-        self.client = MongoClient(self.mongo_url)
-        self.database = self.client[database]
-        self.collection = self.database[collection]
-
-    def test_connection(self):
-        """
-        Test the connection to MongoDB server.
-        Returns:
-            bool: True if the connection is successful, False otherwise.
-        """
-
-        try:
-            self.client.server_info()
-            write_log("MongoDB connection successful")
-            return True
-        except Exception as e:
-            write_log(f"MongoDB connection failed: {str(e)}")
-            return False
-
-    def get_database(self):
-        """
-        Returns the database associated with the current instance.
-        Returns:
-            The database object.
-        """
-        return self.database
-
-    def get_collection(self):
-        """
-        Returns the collection associated with the current instance.
-        :return: The collection object.
-        """
-
-        return self.collection
+from src.tools.databases.data_connection.connection import MongoDBConnection
 
 
 class ExecutionManager:
@@ -125,50 +61,132 @@ class ExecutionManager:
     """
 
     def __init__(self, params: dict):
-        self.medallon = params["medallon"]
-        self.data_name = params["data_name"]
-        self.config_path = params["config_path"]
+        self.params = params
         self.execution_details = params.get("execution_details", None)
-        self.conn = MongoDBConnection(f"executions_{self.medallon}", self.data_name)
+        self.data_contracts = params.get("data_contracts", None)
+        self.run_mode = params.get("run_mode", None)
+        self.conn = MongoDBConnection(
+            f"executions_{self.params['medallon']}", self.params["data_name"]
+        )
         self.collection = self.conn.get_collection()
         self.execution_id = None
 
-    def __create_execution_id(self):
+    def __create_execution_id(self, overwrite: bool):
         execution_id_str = generate_random_string(15)
-        execution_id = f"{self.medallon}-{self.data_name}-{execution_id_str}"
+        execution_id = (
+            f"{self.params['medallon']}-{self.params['data_name']}-{execution_id_str}"
+        )
         self.execution_details["execution_id"] = execution_id
         self.execution_id = execution_id
-        write_log(f"Execution ID `{execution_id}` successfully created.")
+        if overwrite:
+            write_log(f"Execution ID `{execution_id}` successfully created.")
 
-    def __create_datetime(self):
-        date = datetime.now().strftime("%d-%m-%Y %H:%M")
+    def __create_datetime(self, overwrite: bool):
+        date = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         self.execution_details["creation_date"] = date
-        write_log(f"Created execution at {date}")
+        if overwrite:
+            write_log(f"Created execution at {date}")
 
-    def __create_mlflow_experiment_name(self):
-        experiment_name = f"{self.data_name}_{self.medallon}"
-        self.execution_details["mlflow_experiment_name"] = experiment_name
-        write_log(f"MLflow experiment name: {experiment_name}")
+    def __create_mlflow_experiment_name(self, overwrite: bool):
+        experiment_name = f"{self.params['data_name']}_{self.params['medallon']}"
+        self.execution_details["mlflow_experiment"] = experiment_name
+        self.execution_details["mlflow_runs"] = {}
+        if overwrite:
+            write_log(f"MLflow experiment name: {experiment_name}")
 
-    def __create_status(self):
+    def __create_status(self, overwrite: bool):
         status = "pending"
         self.execution_details["status"] = status
-        write_log(f"Status: {status}")
+        if overwrite:
+            write_log(f"Status: {status}")
 
-    def create_execution(self):
+    def __create_data_contracts(self, overwrite: bool):
+        self.execution_details["data_contracts"] = self.data_contracts
+        if overwrite:
+            write_log("Data contracts added to execution details")
+
+    def __create_steps(self, overwrite: bool):
+        self.execution_details["steps"] = self.execution_details.get("steps", [])
+        num_steps = len(self.execution_details["steps"])
+        if overwrite:
+            write_log(f"{num_steps} steps added to execution details")
+
+    def __create_run_mode(self, overwrite: bool):
+        self.execution_details["run_mode"] = self.run_mode
+        if overwrite:
+            write_log(f"Initialized with mode as {self.run_mode}")
+
+    def __create_last_run(self, overwrite: bool):
+        self.execution_details["last_run"] = self.params["last_run"]
+        if overwrite:
+            write_log(f"Last run set to {self.params['last_run']}")
+
+    def __create_execution(self, overwrite: bool):
+        self.execution_details = {}
+        self.__create_execution_id(overwrite)
+        self.__create_datetime(overwrite)
+        self.__create_status(overwrite)
+        self.__create_mlflow_experiment_name(overwrite)
+        self.__create_data_contracts(overwrite)
+        self.__create_steps(overwrite)
+        self.__create_run_mode(overwrite)
+        self.__create_last_run(overwrite)
+
+    def create_execution(self, overwrite: bool = False):
         """
         Creates an execution with a unique execution ID, current date and time, status,
         and MLflow experiment name.
         The execution details are saved in MongoDB.
         """
-        self.execution_details = {}
-        self.__create_execution_id()
-        self.__create_datetime()
-        self.__create_status()
-        self.__create_mlflow_experiment_name()
-        self.collection.insert_one(self.execution_details)
-        write_log(f"Execution ID `{self.execution_id}` saved in MongoDB")
-        self.overwrite_execution_id()
+        self.__create_execution(overwrite)
+        if overwrite:
+            self.collection.insert_one(self.execution_details)
+            write_log(f"Execution ID `{self.execution_id}` saved in MongoDB")
+            self.overwrite_execution_id()
+
+    def start_execution(self, execution_id: str = None, overwrite: bool = True):
+        """
+        Starts the execution process.
+        This method updates the status to "running" and writes a log message indicating
+        that the execution with the given ID has started.
+        """
+        if execution_id is None:
+            self.create_execution(overwrite)
+            execution_id = self.execution_id
+
+        write_log(f"Execution ID {execution_id} started.")
+        for i, func_step in enumerate(self.params["execution_details"]["steps"]):
+            if func_step["run"]:
+                self.update_status(f"running_step_{i}")
+                func_step["function"]()
+
+    def get_execution_details(self, execution_id: str = None, overwrite: bool = False):
+        """
+        Retrieves the execution details based on the provided execution ID.
+        Args:
+            execution_id (optional): The execution ID to retrieve details for.
+                If not provided, the method uses the default execution ID.
+            overwrite (bool): Overwrite the execution ID in the config file.
+        Returns:
+            dict: A dictionary containing the execution details.
+        """
+        if execution_id is None and self.execution_id is None:
+            self.create_execution(overwrite)
+            if not overwrite:
+                return self.execution_details
+        query = {"execution_id": execution_id if execution_id else self.execution_id}
+        self.execution_details = self.collection.find_one(query)
+        self.execution_id = self.execution_details["execution_id"]
+        return self.execution_details
+
+    def overwrite_execution_id(self):
+        """
+        Overwrites a constant in a .py file with a new value.
+        """
+        for line in fileinput.input(self.params["config_path"], inplace=True):
+            if line.startswith("EXECUTION_ID"):
+                line = f"{'EXECUTION_ID'} = '{self.execution_id}'\n"
+            print(line, end="")
 
     def update_status(self, status: str):
         """
@@ -184,41 +202,30 @@ class ExecutionManager:
         )
         write_log(f"Execution ID {self.execution_id} updated to {status}")
 
-    def start_execution(self, execution_id: str = None):
+    def update_mlflow_runs(self, run_name: str):
         """
-        Starts the execution process.
-        This method updates the status to "running" and writes a log message indicating
-        that the execution with the given ID has started.
-        """
-        if execution_id is None:
-            self.create_execution()
-            execution_id = self.execution_id
-
-        write_log(f"Execution ID {execution_id} started.")
-        for i, step in enumerate(self.execution_details["steps"]):
-            self.update_status(f"running_step_{i}")
-            if step["run"]:
-                step["function"]()
-
-    def get_execution_details(self, execution_id: None):
-        """
-        Retrieves the execution details based on the provided execution ID.
+        Update the mlflow runs of the execution.
         Args:
-            execution_id (optional): The execution ID to retrieve details for.
-                If not provided, the method uses the default execution ID.
-        Returns:
-            dict: A dictionary containing the execution details.
+            run_name (str): The new mlflow execution.
         """
-        if execution_id is None and self.execution_id is None:
-            self.create_execution()
-        query = {"execution_id": execution_id if execution_id else self.execution_id}
-        return self.collection.find_one(query)
 
-    def overwrite_execution_id(self):
+        self.execution_details["mlflow_runs"][
+            self.execution_details["status"].replace("running_", "")
+        ] = run_name
+        self.collection.update_one(
+            {"execution_id": self.execution_id},
+            {"$set": {"mlflow_runs": self.execution_details["mlflow_runs"]}},
+        )
+        write_log(f"Execution ID {self.execution_id} updated mlflow runs")
+
+    def update_last_run(self):
         """
-        Overwrites a constant in a .py file with a new value.
+        Update the last run of the execution.
         """
-        for line in fileinput.input(self.config_path, inplace=True):
-            if line.startswith("EXECUTION_ID"):
-                line = f"{'EXECUTION_ID'} = {self.execution_id}\n"
-            print(line, end="")
+        date = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        self.execution_details["last_run"] = date
+        self.collection.update_one(
+            {"execution_id": self.execution_id},
+            {"$set": {"last_run": date}},
+        )
+        write_log(f"Execution ID {self.execution_id} updated last_run to {date}")
