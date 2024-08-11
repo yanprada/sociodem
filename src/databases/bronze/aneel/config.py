@@ -11,10 +11,16 @@ Attributes:
 
 import os
 
-EXECUTION_ID = None
+from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
+from config.run_mode import DEBUG
+
+EXECUTION_ID = "bronze-aneel-CyD8lAfmAw1kJUF"
 
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "aneel",
     "config_path": os.path.abspath(__file__),
+    "data_contracts": [get_aneel_contracts("bronze")],
+    "run_mode": "single_file" if DEBUG else "pipeline",
+    "last_run": None,
 }

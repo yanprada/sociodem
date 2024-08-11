@@ -38,12 +38,16 @@ from src.tools.utils.common import (
 )
 from src.tools.utils.execution_manager import ExecutionManager
 from src.databases.bronze.aneel.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID)
-CONTRACTS_BRONZE = execution_parameters["data_contract"]
-EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_2")
 
+CONTRACTS_BRONZE = execution_parameters["data_contracts"][0]
+
+
+EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 
@@ -156,8 +160,9 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
                     for future in tqdm(
                         concurrent.futures.as_completed(tasks), total=len(tasks)
                     ):
-                        df = future.result()
-                        add_to_mlflow(df, database, company_id)
+                        with mlflow.start_run(run_name=company_id, nested=True):
+                            df = future.result()
+                            add_to_mlflow(df, database, company_id)
 
     layers_dict = {
         "ramlig": "RAMLIG",
@@ -266,6 +271,7 @@ def read_file(database: str, company_id: str, is_large_file: bool = False) -> No
     exist_file = check_file_exists_in_disk(file_name, file_path)
     if not exist_file:
         with mlflow.start_run(run_name=str(database)):
+            manager.update_mlflow_runs(str(database))
             kwargs = {"filename": file_name}
             if is_large_file:
                 read_aneel_wraper_large_file(database, company_id, **kwargs)
@@ -470,3 +476,4 @@ def main():
     process_files_aneel(df_aneel_ids)
     update_ponnot_id_in_ucbt_table()
     create_primary_key()
+    manager.update_last_run()

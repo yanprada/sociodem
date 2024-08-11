@@ -1,7 +1,7 @@
 # Script Execution Order
 
-1. `download_aneel_companies.py`
-2. `make_bronze_aneel_dataset.py`
+1. `a_download_aneel_companies.py`
+2. `b_make_bronze_aneel_dataset.py`
 
 # Process Overview
 
