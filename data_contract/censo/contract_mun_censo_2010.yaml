@@ -1,3 +1,25 @@
+datalake:
+  contractName: contract_mun_censo_2022.yaml
+  tableName: 
+  schema: 
+  physicalPath: datalake/censo/layers/2022/
+  description: Municipality geometry layer from the 2022 Census
+  queryYear: 2022
+  ifExists: append
+  columns:
+  - column:
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName:
+    description:
+    logicalType:
+    physicalType:
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    -
+
 bronze:
   contractName: contract_mun_censo_2010.yaml
   tableName: mun_censo_2010
