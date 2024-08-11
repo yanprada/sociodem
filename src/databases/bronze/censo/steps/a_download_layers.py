@@ -6,21 +6,20 @@ The functions use the `HttpRequesterCenso` class to make HTTP requests and retri
 """
 
 from itertools import product
-from src.tools.data_contract.aneel_data_contract import get_contract
+
+
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterCenso,
 )
 from src.tools.utils.constants import STATES
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.censo.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACT_LAYERS_CENSO_2010 = get_contract(
-    "censo/contract_layers_censo_2010.yaml", "bronze"
-)
-CONTRACT_LAYERS_CENSO_2022 = get_contract(
-    "censo/contract_layers_censo_2022.yaml", "bronze"
-)
-CONTRACT_DOMPP_CENSO_2022 = get_contract(
-    "censo/contract_dompp_censo_2022.yaml", "bronze"
-)
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+CONTRACTS = execution_parameters["data_contracts"][0]
+manager.update_status("running_step_1")
 
 
 def download_info_censo_2010():
@@ -46,7 +45,7 @@ def download_layers_censo_2010(censo_request: HttpRequesterCenso):
         STATES.keys(),
         ["setores_censitarios", "subdistritos", "distritos", "municipios"],
     )
-    path_to_save = CONTRACT_LAYERS_CENSO_2010["physicalPath"]
+    path_to_save = CONTRACTS["datalake_2010"]["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
 
 
@@ -75,7 +74,7 @@ def download_layers_censo_2022(censo_request: HttpRequesterCenso):
         STATES.keys(),
         ["setores", "subdistritos", "distritos", "municipios"],
     )
-    path_to_save = CONTRACT_LAYERS_CENSO_2022["physicalPath"]
+    path_to_save = CONTRACTS["datalake_2022"]["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
 
 
@@ -96,7 +95,7 @@ def download_dompp_censo_2022(censo_request: HttpRequesterCenso):
     :type censo_request: HttpRequesterCenso
     """
     path_to_save = (
-        CONTRACT_DOMPP_CENSO_2022["physicalPath"]
+        CONTRACTS["dompp_2022"]["physicalPath"]
         .replace("databases", "datalake")
         .replace("bronze/", "")
     )
@@ -110,3 +109,4 @@ def main():
     """
     download_info_censo_2010()
     download_info_censo_2022()
+    manager.update_last_run()

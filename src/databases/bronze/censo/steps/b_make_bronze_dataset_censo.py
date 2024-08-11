@@ -16,14 +16,19 @@ import zipfile
 import pandas as pd
 from tqdm import tqdm
 from src.tools.utils.reader import Reader
-from src.tools.data_contract.censo_data_contract import get_censo_contracts
-from src.tools.data_contract.validation_data_contract import get_validation_partitions
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import STATES
 from src.tools.utils.common import write_log, check_data_consistency
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.censo.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACT_PARTITIONS = get_validation_partitions()
-CONTRACTS = get_censo_contracts("bronze")
+
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+CONTRACTS = execution_parameters["data_contracts"][0]
+CONTRACT_PARTITIONS = execution_parameters["data_contracts"][1]
+manager.update_status("running_step_2")
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACTS["dompp_2022"])
@@ -147,3 +152,4 @@ def main():
     ]:
         upload_censo_data(layer_key)
     upload_dompp_2022()
+    manager.update_last_run()
