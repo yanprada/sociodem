@@ -4,10 +4,16 @@ hex_col and value columns from an existing table.
 """
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.data_contract.buildings_data_contract import get_buildings_contracts
 from src.tools.utils.common import write_log, get_db_path
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.buildings.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACT_BRONZE = get_buildings_contracts("bronze")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+
+CONTRACT_BRONZE = execution_parameters["data_contracts"][1]
+manager.update_status("running_step_3")
 
 
 def create_grouped_by_hex_google_buildings(source: str, query: str) -> None:
@@ -110,3 +116,4 @@ def main():
     create_grouped_google()
     create_grouped_omf()
     create_joined_table()
+    manager.update_last_run()

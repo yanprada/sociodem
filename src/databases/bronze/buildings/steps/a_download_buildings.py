@@ -7,16 +7,18 @@ The module includes the following functions:
 """
 
 import os
-from src.tools.data_contract.aneel_data_contract import get_contract
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterBuildings,
 )
 from src.tools.utils.constants import BUILDING_PARTITIONS
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.buildings.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACTS = {
-    "omf": get_contract("buildings/contract_omf_buildings.yaml", "bronze"),
-    "google": get_contract("buildings/contract_google_buildings.yaml", "bronze"),
-}
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+CONTRACTS = execution_parameters["data_contracts"][0]
+manager.update_status("running_step_1")
 
 
 def download_data(source) -> None:
@@ -27,11 +29,7 @@ def download_data(source) -> None:
         source (str): The data source to download from.
     """
     omf_request = HttpRequesterBuildings(source)
-    path = os.path.join(
-        CONTRACTS[source]["physicalPath"]
-        .replace("databases", "datalake")
-        .replace("bronze/", "")
-    )
+    path = os.path.join(CONTRACTS[source]["physicalPath"])
     files = BUILDING_PARTITIONS[source]
     omf_request.request_from_page(
         files,
@@ -46,3 +44,4 @@ def main() -> None:
     """
     download_data("omf")
     download_data("google")
+    manager.update_last_run()

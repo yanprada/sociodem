@@ -15,11 +15,17 @@ from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import BUILDING_PARTITIONS, CRS_GLOBAL
 from src.tools.utils.reader import Reader
 from src.tools.utils.loader import Loader
-from src.tools.data_contract.buildings_data_contract import get_buildings_contracts
 from src.tools.utils.h3 import add_h3_index_to_small_geom
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.buildings.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACT_DATALAKE = get_buildings_contracts("datalake")
-CONTRACT_BRONZE = get_buildings_contracts("bronze")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+
+CONTRACT_DATALAKE = execution_parameters["data_contracts"][0]
+CONTRACT_BRONZE = execution_parameters["data_contracts"][1]
+manager.update_status("running_step_2")
 
 
 def set_crs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -94,3 +100,4 @@ def main() -> None:
     df_sc = Loader().get_sc()
     process_data("google", df_sc)
     process_data("omf", df_sc)
+    manager.update_last_run()
