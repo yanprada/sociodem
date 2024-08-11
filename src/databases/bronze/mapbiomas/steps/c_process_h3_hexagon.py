@@ -19,14 +19,22 @@ import pandas as pd
 from src.tools.utils.constants import HEX_RESOLUTION
 from src.tools.utils.reader import Reader
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
 from src.tools.utils.common import count_files
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACT = get_mapbiomas_contracts("bronze")
-mlflow.set_experiment("mapbiomas bronze")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+CONTRACTS = execution_parameters["data_contracts"][0]
+manager.update_status("running_step_3")
 
 
-@save_parquet_decorator("bronze", CONTRACT["mapbiomas_2022"], save_pq=False)
+EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
+mlflow.set_experiment(EXPERIMENT_ID)
+
+
+@save_parquet_decorator("bronze", CONTRACTS["mapbiomas_2022"], save_pq=False)
 def load_data(partition: int, folder_path: str) -> pd.DataFrame:
     """
     Load data from a specific partition.
@@ -59,7 +67,7 @@ def process_partition(partition: int, folder_path: str) -> pd.DataFrame:
     """
     df = load_data(partition, folder_path)
     temp = df.groupby(["hex_col"])["size"].sum()
-    with mlflow.start_run(run_name=str(partition)):
+    with mlflow.start_run(run_name=str(partition), nested=True):
         mlflow.log_metric("num_hex", df["hex_col"].nunique())
         mlflow.log_metric("num_points", df["size"].sum())
         mlflow.log_metric("mean_points_per_hex", temp.mean())
@@ -102,13 +110,17 @@ def main() -> None:
     counts the number of files in the folder,
     and then loads the data for each partition in parallel using ProcessPoolExecutor.
     """
-    folder_path = CONTRACT["mapbiomas_2022"]["physicalPath"]
-    num_files = count_files(folder_path)
-    start = 0
-    batch = 100
-    for i in tqdm(range(start, num_files, batch), desc="Processing h3 data"):
-        end = i + batch if i + batch < num_files else num_files
-        run_process(folder_path, i, end)
+    date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
+    manager.update_mlflow_runs(date)
+    with mlflow.start_run(run_name=str(date)):
+        folder_path = CONTRACTS["mapbiomas_2022"]["physicalPath"]
+        num_files = count_files(folder_path)
+        start = 0
+        batch = 100
+        for i in tqdm(range(start, num_files, batch), desc="Processing h3 data"):
+            end = i + batch if i + batch < num_files else num_files
+            run_process(folder_path, i, end)
+    manager.update_last_run()
 
 
 if __name__ == "__main__":

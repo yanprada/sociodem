@@ -20,9 +20,15 @@ import numpy as np
 from tqdm import tqdm
 
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACT = get_mapbiomas_contracts("bronze")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_2")
+
+CONTRACTS = execution_parameters["data_contracts"][0]
 
 
 def process_block(
@@ -53,7 +59,7 @@ def process_block(
         return pd.DataFrame({"lng": x_coords, "lat": y_coords, "value": values})
 
 
-@save_parquet_decorator("bronze", CONTRACT["mapbiomas_2022"], save_db=False)
+@save_parquet_decorator("bronze", CONTRACTS["mapbiomas_2022"], save_db=False)
 def save_mapbiomas(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     """
     Save the MapBiomas dataframe to a file or database.
@@ -194,11 +200,11 @@ def main() -> None:
     and then calls the process_batch function to process the file in batches.
     """
     for year in range(2018, 2023):
-        filename = "".join([CONTRACT["datalake"]["tableName"], ".tif"]).replace(
+        filename = "".join([CONTRACTS["datalake"]["tableName"], ".tif"]).replace(
             "2022", str(year)
         )
         file_path = os.path.join(
-            CONTRACT["datalake"]["physicalPath"], filename
+            CONTRACTS["datalake"]["physicalPath"], filename
         ).replace("2022", str(year))
         block_size = 2048
         batch_size = 100  # Limit to a small number for quick profiling
@@ -213,6 +219,7 @@ def main() -> None:
                 file_path, block_size, batch, batch_size, partition
             )
             gc.collect()
+    manager.update_last_run()
 
 
 if __name__ == "__main__":

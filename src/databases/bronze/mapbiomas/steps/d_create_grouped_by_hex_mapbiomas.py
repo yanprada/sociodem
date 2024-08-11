@@ -7,10 +7,16 @@ and stores the result in the 'silver' table.
 """
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
 from src.tools.utils.common import get_db_path
 
-CONTRACT_BRONZE = get_mapbiomas_contracts("bronze")
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
+
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+CONTRACTS = execution_parameters["data_contracts"][0]
+manager.update_status("running_step_4")
 
 
 def create_grouped_by_hex_mapbiomas(conn: DBConnection) -> None:
@@ -20,8 +26,8 @@ def create_grouped_by_hex_mapbiomas(conn: DBConnection) -> None:
     Args:
         conn (DBConnection): The database connection object.
     """
-    contract_mapbiomas = CONTRACT_BRONZE["mapbiomas_2022"]
-    contract_mapbiomas_hex = CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]
+    contract_mapbiomas = CONTRACTS["mapbiomas_2022"]
+    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas_2022"]
     old_path = get_db_path(contract_mapbiomas)
     new_path = get_db_path(contract_mapbiomas_hex)
     query = f"""
@@ -39,8 +45,8 @@ def create_unique_hex_ids_mapbiomas(conn: DBConnection) -> None:
     Args:
         conn (DBConnection): The database connection object.
     """
-    contract_mapbiomas_hex = CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]
-    contract_mapbiomas_unique_hex = CONTRACT_BRONZE["unique_hex_ids"]
+    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas_2022"]
+    contract_mapbiomas_unique_hex = CONTRACTS["unique_hex_ids"]
     old_path = get_db_path(contract_mapbiomas_hex)
     new_path = get_db_path(contract_mapbiomas_unique_hex)
     query = f"""
@@ -65,3 +71,8 @@ def main() -> None:
     conn = DBConnection("bronze")
     create_grouped_by_hex_mapbiomas(conn)
     create_unique_hex_ids_mapbiomas(conn)
+    manager.update_last_run()
+
+
+if __name__ == "__main__":
+    main()
