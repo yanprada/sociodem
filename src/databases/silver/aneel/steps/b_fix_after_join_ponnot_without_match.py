@@ -9,13 +9,22 @@ from typing import Tuple, Set, List
 import ipdb
 from tqdm import tqdm
 import pandas as pd
+
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.utils.common import write_log, check_file_exists_in_db, get_db_path
 from src.tools.utils.save import save_parquet_decorator
 
-ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
-ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.silver.aneel.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
+
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_2")
+
+
+ANEEL_BRONZE_CONTRACTS = execution_parameters["data_contracts"][0]
+ANEEL_SILVER_CONTRACTS = execution_parameters["data_contracts"][1]
 
 
 def index_table(conn: DBConnection, joined_cols: list, filename: str):
@@ -585,3 +594,5 @@ def main():
     distribute_energy_ponnot_without_match(
         conn_bronze, conn_silver, path_bronze, path_silver
     )
+    manager.update_status("finished_step_2")
+    manager.update_last_run()

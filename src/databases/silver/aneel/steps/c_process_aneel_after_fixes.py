@@ -6,10 +6,17 @@ the 'create_unique_aneel_pncon' function.
 """
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.utils.common import get_db_path
 
-ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.silver.aneel.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
+
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_3")
+
+ANEEL_SILVER_CONTRACTS = execution_parameters["data_contracts"][1]
 
 
 def create_unique_aneel_pncon(conn: DBConnection) -> None:
@@ -69,3 +76,5 @@ def main():
     """
     conn = DBConnection("silver")
     create_unique_aneel_pncon(conn)
+    manager.update_status("finished_step_3")
+    manager.update_last_run()

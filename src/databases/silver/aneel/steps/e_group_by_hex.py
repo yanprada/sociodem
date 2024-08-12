@@ -13,11 +13,17 @@ The `main` function is the entry point of the program. It connects to the
 by hex IDs, and performs further processing.
 """
 
-from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.silver.aneel.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_5")
+
+ANEEL_SILVER_CONTRACTS = execution_parameters["data_contracts"][1]
 
 
 def create_grouped_table() -> None:
@@ -185,3 +191,5 @@ def main():
     groups the data by hex IDs, and performs further processing.
     """
     create_grouped_table()
+    manager.update_status("finished_step_5")
+    manager.update_last_run()

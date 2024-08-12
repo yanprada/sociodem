@@ -27,20 +27,26 @@ import mlflow
 import pandas as pd
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
-from src.tools.data_contract.validation_data_contract import (
-    get_validation_contracts,
-    get_validation_partitions,
-)
+
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import check_file_exists_in_disk, write_log, get_db_path
 
-mlflow.set_experiment("aneel silver")
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.silver.aneel.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-ANEEL_BRONZE_CONTRACTS = get_aneel_contracts("bronze")
-ANEEL_SILVER_CONTRACTS = get_aneel_contracts("silver")
-VALIDATION_PARTITIONS = get_validation_partitions()
-VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT = get_validation_contracts("silver", 0)
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_1")
+
+
+ANEEL_BRONZE_CONTRACTS = execution_parameters["data_contracts"][0]
+ANEEL_SILVER_CONTRACTS = execution_parameters["data_contracts"][1]
+VALIDATION_PARTITIONS = execution_parameters["data_contracts"][2]
+VALIDATION_CONTRACT_NO_JOIN_UCBT_PONNOT = execution_parameters["data_contracts"][3]
+
+EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 
 def try_join(
@@ -149,11 +155,10 @@ def add_to_mlflow(df: pd.DataFrame) -> None:
     Args:
         df (pd.DataFrame): The dataframe to log.
     """
-    with mlflow.start_run():
-        mlflow.log_param("municipality", df.mun.unique()[0])
-        mlflow.log_param("company", df.dist.unique()[0])
-        mlflow.log_metric("num_rows", len(df))
-        mlflow.log_metric("energy", df.filter(regex="ene_").sum().sum())
+    mlflow.log_param("municipality", df.mun.unique()[0])
+    mlflow.log_param("company", df.dist.unique()[0])
+    mlflow.log_metric("num_rows", len(df))
+    mlflow.log_metric("energy", df.filter(regex="ene_").sum().sum())
 
 
 def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None:
@@ -207,54 +212,62 @@ def join_batches(path_ucbt: str, path_ponnot: str, mun_batch: List[str]) -> None
     _ = save_no_join_ucbt_ponnot(mun_batch, id_col_no_match, **kwargs)
     mun_batch = mun_batch.replace("'", "").split(",")
     for mun in tqdm(mun_batch, desc="Saving municipalities"):
-        kwargs = {"filename": mun}
-        _ = save_mun(df, mun, **kwargs)
+        with mlflow.start_run(run_name=mun, nested=True):
+            kwargs = {"filename": mun}
+            _ = save_mun(df, mun, **kwargs)
 
 
 def main() -> None:
     """
     This is the main function that executes the join_ucbt_and_ponnot operation.
     """
-    contract_ucbt = ANEEL_BRONZE_CONTRACTS["ucbt"]
-    contract_ponnot = ANEEL_BRONZE_CONTRACTS["ponnot"]
-    path_ucbt = get_db_path(contract_ucbt)
-    path_ponnot = get_db_path(contract_ponnot)
-    conn = DBConnection("bronze")
-    muns = conn.query_database(f"select distinct(mun) from {path_ucbt}")
-    # list of capital cities
-    large_mun_cods = [
-        "3550308",
-        "3304557",
-        "3106200",
-        "5300108",
-        "2304400",
-        "2927408",
-        "1302603",
-        "4106902",
-        "2611606",
-        "5208707",
-        "4314902",
-        "3518800",
-        "3509502",
-        "2111300",
-    ]
-    batch_size = 150
-    muns = muns[~muns["mun"].isin(large_mun_cods)]
-    mun_batches = [muns[i : i + batch_size] for i in range(0, len(muns), batch_size)]
-    for mun_batch in tqdm(mun_batches, desc="Processing mun batches"):
-        if all(
-            check_file_exists_in_disk(
+    date = pd.Timestamp.now().strftime("%d-%m-%Y %H:%M:%S")
+    manager.update_mlflow_runs(date)
+    with mlflow.start_run(run_name=date):
+        contract_ucbt = ANEEL_BRONZE_CONTRACTS["ucbt"]
+        contract_ponnot = ANEEL_BRONZE_CONTRACTS["ponnot"]
+        path_ucbt = get_db_path(contract_ucbt)
+        path_ponnot = get_db_path(contract_ponnot)
+        conn = DBConnection("bronze")
+        muns = conn.query_database(f"select distinct(mun) from {path_ucbt}")
+        # list of capital cities
+        large_mun_cods = [
+            "3550308",
+            "3304557",
+            "3106200",
+            "5300108",
+            "2304400",
+            "2927408",
+            "1302603",
+            "4106902",
+            "2611606",
+            "5208707",
+            "4314902",
+            "3518800",
+            "3509502",
+            "2111300",
+        ]
+        batch_size = 150
+        muns = muns[~muns["mun"].isin(large_mun_cods)]
+        mun_batches = [
+            muns[i : i + batch_size] for i in range(0, len(muns), batch_size)
+        ]
+        for mun_batch in tqdm(mun_batches, desc="Processing mun batches"):
+            if all(
+                check_file_exists_in_disk(
+                    mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"]
+                )
+                for mun in mun_batch["mun"].to_list()
+            ):
+                continue
+            mun_batch = ",".join([f"'{mun}'" for mun in mun_batch["mun"].to_list()])
+            join_batches(path_ucbt, path_ponnot, mun_batch)
+        for mun in tqdm(large_mun_cods, desc="Processing large muns"):
+            if check_file_exists_in_disk(
                 mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"]
-            )
-            for mun in mun_batch["mun"].to_list()
-        ):
-            continue
-        mun_batch = ",".join([f"'{mun}'" for mun in mun_batch["mun"].to_list()])
-        join_batches(path_ucbt, path_ponnot, mun_batch)
-    for mun in tqdm(large_mun_cods, desc="Processing large muns"):
-        if check_file_exists_in_disk(
-            mun, ANEEL_SILVER_CONTRACTS["aneel"]["physicalPath"]
-        ):
-            write_log(f"Skipping {mun}")
-            continue
-        join_batches(path_ucbt, path_ponnot, f"'{mun}'")
+            ):
+                write_log(f"Skipping {mun}")
+                continue
+            join_batches(path_ucbt, path_ponnot, f"'{mun}'")
+        manager.update_status("finished_step_1")
+        manager.update_last_run()
