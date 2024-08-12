@@ -19,15 +19,21 @@ from typing import List
 import pandas as pd
 from tqdm import tqdm
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
-from src.tools.data_contract.validation_data_contract import get_validation_partitions
+
 from src.tools.utils.constants import MAPBIOMAS_CLASSES
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log, get_db_path
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-CONTRACT_BRONZE = get_mapbiomas_contracts("bronze")
-CONTRACT_SILVER = get_mapbiomas_contracts("silver")
-CONTRACT_PARTITIONS = get_validation_partitions()
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_1")
+
+CONTRACT_BRONZE = execution_parameters["data_contracts"][0]
+CONTRACT_SILVER = execution_parameters["data_contracts"][1]
+CONTRACT_PARTITIONS = execution_parameters["data_contracts"][2]
 
 
 @save_parquet_decorator("silver", CONTRACT_SILVER["mapbiomas_2022"])
@@ -243,3 +249,5 @@ def main():
                     write_log(e, "error")
         del hex_ids
         gc.collect()
+    manager.update_status("finished_step_1")
+    manager.update_last_run()
