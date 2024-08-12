@@ -44,4 +44,5 @@ def main() -> None:
     """
     download_data("omf")
     download_data("google")
+    manager.update_status("finished_step_1")
     manager.update_last_run()

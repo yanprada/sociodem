@@ -64,4 +64,5 @@ def main():
         save_file(df, **kwargs)
         del df
         gc.collect()
+    manager.update_status("finished_step_2")
     manager.update_last_run()

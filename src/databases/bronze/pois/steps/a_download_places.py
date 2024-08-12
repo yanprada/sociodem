@@ -27,4 +27,5 @@ def main():
     prefix = "release/2024-07-22.0/theme=places/"
     requester = HttpRequesterOvertureMaps(prefix, download_path)
     requester.download_files_omf()
+    manager.update_status("finished_step_1")
     manager.update_last_run()

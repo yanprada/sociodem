@@ -100,4 +100,5 @@ def main() -> None:
     df_sc = Loader().get_sc()
     process_data("google", df_sc)
     process_data("omf", df_sc)
+    manager.update_status("finished_step_2")
     manager.update_last_run()

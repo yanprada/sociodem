@@ -120,6 +120,7 @@ def main() -> None:
         for i in tqdm(range(start, num_files, batch), desc="Processing h3 data"):
             end = i + batch if i + batch < num_files else num_files
             run_process(folder_path, i, end)
+    manager.update_status("finished_step_3")
     manager.update_last_run()
 
 

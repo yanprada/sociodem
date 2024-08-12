@@ -152,4 +152,5 @@ def main():
     ]:
         upload_censo_data(layer_key)
     upload_dompp_2022()
+    manager.update_status("finished_step_2")
     manager.update_last_run()

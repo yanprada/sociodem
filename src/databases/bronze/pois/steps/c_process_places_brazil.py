@@ -429,3 +429,5 @@ def main():
     df_brazil_geom_geom = get_brazil_geom()
     pois_cat_map = get_pois_categories_map()
     process_files(files, df_brazil_geom_geom, pois_cat_map)
+    manager.update_status("finished_step_3")
+    manager.update_last_run()

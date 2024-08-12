@@ -476,4 +476,5 @@ def main():
     process_files_aneel(df_aneel_ids)
     update_ponnot_id_in_ucbt_table()
     create_primary_key()
+    manager.update_status("finished_step_2")
     manager.update_last_run()

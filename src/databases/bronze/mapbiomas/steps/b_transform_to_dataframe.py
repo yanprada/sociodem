@@ -219,6 +219,7 @@ def main() -> None:
                 file_path, block_size, batch, batch_size, partition
             )
             gc.collect()
+    manager.update_status("finished_step_2")
     manager.update_last_run()
 
 

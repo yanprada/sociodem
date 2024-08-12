@@ -116,4 +116,5 @@ def main():
     create_grouped_google()
     create_grouped_omf()
     create_joined_table()
+    manager.update_status("finished_step_3")
     manager.update_last_run()

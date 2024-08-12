@@ -109,4 +109,5 @@ def main():
     """
     download_info_censo_2010()
     download_info_censo_2022()
+    manager.update_status("finished_step_1")
     manager.update_last_run()

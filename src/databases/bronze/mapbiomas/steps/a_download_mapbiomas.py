@@ -31,6 +31,7 @@ def main() -> None:
     requester.request_from_page(
         range(2018, 2023), CONTRACTS["mapbiomas_2022"]["physicalPath"]
     )
+    manager.update_status("finished_step_1")
     manager.update_last_run()
 
 

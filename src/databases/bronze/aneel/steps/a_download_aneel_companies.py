@@ -66,4 +66,5 @@ def main():
     """
     df = load_aneel_ids()
     download_aneel_company_files(df)
+    manager.update_status("finished_step_1")
     manager.update_last_run()

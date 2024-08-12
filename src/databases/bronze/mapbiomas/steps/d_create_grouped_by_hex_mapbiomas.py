@@ -71,6 +71,7 @@ def main() -> None:
     conn = DBConnection("bronze")
     create_grouped_by_hex_mapbiomas(conn)
     create_unique_hex_ids_mapbiomas(conn)
+    manager.update_status("finished_step_4")
     manager.update_last_run()
 
 
