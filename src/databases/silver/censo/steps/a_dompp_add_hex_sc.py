@@ -29,7 +29,7 @@ from dask.distributed import Client, LocalCluster, as_completed
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.loader import Loader
-from src.tools.data_contract.censo_data_contract import get_censo_contracts
+
 from src.tools.utils.common import get_db_path, write_log
 from src.tools.utils.h3 import create_hex_col_from_dot
 from src.tools.utils.constants import (
@@ -38,11 +38,21 @@ from src.tools.utils.constants import (
     CRS_IBGE,
 )
 from src.tools.utils.save import save_parquet_decorator
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.silver.censo.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-mlflow.set_experiment("dompp censo silver")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 
-CONTRACT_CENSO_BRONZE = get_censo_contracts("bronze")
-CONTRACT_CENSO_SILVER = get_censo_contracts("silver")
+manager.update_status("running_step_1")
+
+
+CONTRACT_CENSO_BRONZE = execution_parameters["data_contracts"][0]
+CONTRACT_CENSO_SILVER = execution_parameters["data_contracts"][1]
+
+EXPERIMENT_NAME = "_".join([execution_parameters["mlflow_experiment"], "step_1"])
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 
 def create_geom_col(df: pd.DataFrame) -> gpd.GeoDataFrame:
@@ -159,7 +169,7 @@ def process_muns(muns: List[str], df_sc: gpd.GeoDataFrame) -> None:
     """
     conn = DBConnection("bronze")
     for mun in tqdm(muns, desc="Processing batch"):
-        with mlflow.start_run(run_name=str(mun)):
+        with mlflow.start_run(run_name=str(mun), nested=True):
             _ = process_mun(conn, mun, df_sc)
 
 
@@ -168,22 +178,27 @@ def main():
     This is the main function that processes municipalities.
     It retrieves a list of municipalities and processes each one using the `process_mun` function.
     """
-    loader = Loader()
-    cluster = LocalCluster(n_workers=8)
-    client = Client(cluster)
-    num_workers = len(client.scheduler_info()["workers"])
-    muns = loader.get_muns_cod()
-    steps = math.ceil(len(muns) / num_workers)
-    df_sc = loader.get_sc()
-    futures = [
-        client.submit(process_muns, muns[i * steps : i * steps + steps], df_sc)
-        for i in range(num_workers)
-    ]
-    for future in tqdm(
-        as_completed(futures), total=len(futures), desc="Processing municipalities"
-    ):
-        try:
-            future.result()
-        except Exception as e:
-            write_log(f"An error occurred: {e}")
-    client.close()
+    date = pd.Timestamp.now().strftime("%d-%m-%Y %H:%M:%S")
+    manager.update_mlflow_runs(date)
+    with mlflow.start_run(run_name=date):
+        loader = Loader()
+        cluster = LocalCluster(n_workers=8)
+        client = Client(cluster)
+        num_workers = len(client.scheduler_info()["workers"])
+        muns = loader.get_muns_cod()
+        steps = math.ceil(len(muns) / num_workers)
+        df_sc = loader.get_sc()
+        futures = [
+            client.submit(process_muns, muns[i * steps : i * steps + steps], df_sc)
+            for i in range(num_workers)
+        ]
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Processing municipalities"
+        ):
+            try:
+                future.result()
+            except Exception as e:
+                write_log(f"An error occurred: {e}")
+        client.close()
+        manager.update_status("finished_step_1")
+        manager.update_last_run()

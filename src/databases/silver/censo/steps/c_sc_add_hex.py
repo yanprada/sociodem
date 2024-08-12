@@ -14,19 +14,30 @@ import mlflow
 from tqdm import tqdm
 import pandas as pd
 import geopandas as gpd
-from src.tools.data_contract.censo_data_contract import get_censo_contracts
-from src.tools.utils.common import get_db_path
+
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.loader import Loader
+from src.tools.utils.execution_manager import ExecutionManager
+
+from src.tools.utils.common import get_db_path
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.h3 import add_h3_index_to_large_geom
 
+from src.databases.silver.censo.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
+
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
-mlflow.set_experiment("sc silver hex")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 
-CONTRACT_SCS_CENSO_BRONZE = get_censo_contracts("bronze")
-CONTRACT_SCS_CENSO_SILVER = get_censo_contracts("silver")
+manager.update_status("running_step_3")
+
+CONTRACT_SCS_CENSO_BRONZE = execution_parameters["data_contracts"][0]
+CONTRACT_SCS_CENSO_SILVER = execution_parameters["data_contracts"][1]
+
+EXPERIMENT_NAME = "_".join([execution_parameters["mlflow_experiment"], "step_3"])
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 
 def get_pct_dompp_hex_sc():
@@ -69,7 +80,8 @@ def main():
     df_sc = Loader().get_sc()
     df_pct_sc_hex = get_pct_dompp_hex_sc()
     batch = 10000
-    date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
+    date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M:%S")
+    manager.update_mlflow_runs(date)
     with mlflow.start_run(run_name=date):
         for partition in tqdm(range(0, len(df_sc), batch), desc="Processing hexagons"):
             with mlflow.start_run(run_name=str(partition), nested=True):
@@ -80,3 +92,5 @@ def main():
                 mlflow.log_metric("num_hex", df["hex_col"].nunique())
                 del df
                 gc.collect()
+    manager.update_status("finished_step_3")
+    manager.update_last_run()

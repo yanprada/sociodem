@@ -3,10 +3,19 @@ Creates a table with the percentage of different types of domiciles per hexagon 
 """
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from src.tools.utils.common import get_db_path
 
-CONTRACT_CENSO_SILVER = get_censo_contracts("silver")
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.silver.censo.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
+
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+
+manager.update_status("running_step_2")
+
+
+CONTRACT_CENSO_SILVER = execution_parameters["data_contracts"][1]
 
 
 def create_pct_dompp_hex_sc() -> None:
@@ -74,3 +83,5 @@ def main():
     the percentage of different types of domiciles per hexagon per sector.
     """
     create_pct_dompp_hex_sc()
+    manager.update_status("finished_step_2")
+    manager.update_last_run()
