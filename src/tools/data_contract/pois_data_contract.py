@@ -39,6 +39,9 @@ def get_pois_silver_contracts():
         contracts (dict): A dictionary containing the ANEEL contracts for different companies.
             The keys are the names of the companies and the values are the corresponding contracts.
     """
+    contract_pois = get_contract("pois/contract_pois.yaml", "silver")
+    contracts = {"pois_hex": contract_pois}
+    return EasyDict(contracts)
 
 
 def get_pois_contracts(medallon: str):
