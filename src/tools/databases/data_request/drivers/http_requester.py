@@ -3,7 +3,7 @@ Module to make requests to pages.
 """
 
 import os
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Union, Optional
 import boto3
 from tqdm import tqdm
 from botocore import UNSIGNED
@@ -42,13 +42,19 @@ class HttpRequesterAneel:
         """
         return requests.get(self.__url.format(id=id_param), timeout=10)
 
-    def request_from_page(self, id_params: pd.Series, destination_path: str):
+    def request_from_page(
+        self,
+        id_params: pd.Series,
+        destination_path: str,
+        titles: Optional[Union[str, None]] = None,
+    ):
         """Method to request Aneel data from website.
 
         Args:
             id_params (pd.Series): A pandas Series containing the id
                                     parameters for the Aneel database.
             destination_path (str): The path where the downloaded files will be saved.
+            titles (Union[str, None]): The titles of the files to be saved.
 
         Raises:
             TimeoutError: If the request to the website times out.
@@ -64,9 +70,12 @@ class HttpRequesterAneel:
 
         """
         destination_dir = os.path.abspath(destination_path)
-        for id_param in tqdm(id_params):
+        if titles is None:
+            titles = id_params
+        for id_param, title in tqdm(zip(id_params, titles)):
             write_log(f"Requesting {id_param}")
-            filename = os.path.join(destination_dir, "".join([id_param, ".gdb.zip"]))
+            file = f"{title}.gdb.zip"
+            filename = os.path.join(destination_dir, file)
             if not os.path.exists(filename):
                 response = self.get_response(id_param)
                 self.__save_file(response, filename)

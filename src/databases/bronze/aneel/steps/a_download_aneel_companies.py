@@ -17,7 +17,7 @@ from config.run_mode import DEBUG
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_1")
-CONTRACTS_BRONZE = execution_parameters["data_contracts"][0]
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["company_id"])
@@ -29,8 +29,11 @@ def load_aneel_ids() -> pd.DataFrame:
         pd.DataFrame: A DataFrame containing ANEEL IDs.
     """
     reader = Reader()
-    df = reader.read_csv(CONTRACTS_BRONZE["company_id"]["physicalPath"])
-    return df.drop_duplicates()
+    return (
+        reader.read_csv(CONTRACTS_BRONZE["company_id_datalake"]["physicalPath"])
+        .rename(columns={"id": "company_ids"})
+        .drop_duplicates()
+    )
 
 
 def download_aneel_company_files(df_aneel_ids: pd.DataFrame) -> None:
@@ -47,8 +50,7 @@ def download_aneel_company_files(df_aneel_ids: pd.DataFrame) -> None:
     aneel_request = HttpRequesterAneel()
     path = os.path.join(CONTRACTS_BRONZE["datalake"]["physicalPath"])
     aneel_request.request_from_page(
-        df_aneel_ids["company_ids"],
-        path,
+        df_aneel_ids["company_ids"], path, df_aneel_ids["title"]
     )
 
 
