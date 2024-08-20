@@ -16,7 +16,7 @@ from src.tools.data_contract.pois_data_contract import get_pois_contracts
 
 from config.run_mode import DEBUG
 
-EXECUTION_ID = None
+EXECUTION_ID = "silver-pois-EuKrqaMAD1JmO5c"
 
 BASE_PARAMS = {
     "medallon": "silver",
