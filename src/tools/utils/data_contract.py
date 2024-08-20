@@ -48,7 +48,7 @@ def get_contract(
             'tableName': None,
             'path': None,
             'description': None,
-            'queryYear': None,
+            'queryYears': None,
             'columns':
             [
                 {
