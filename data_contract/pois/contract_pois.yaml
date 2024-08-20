@@ -4,7 +4,7 @@ datalake:
     schema: places
     physicalPath: datalake/pois/files/
     description: points of interest
-    queryYear: 
+    queryYears: 
     ifExists: 
     columns:
     - column: 
@@ -23,7 +23,7 @@ datalake:
     schema: places
     physicalPath: datalake/pois/categories/pois_categories.csv
     description: points of interest general categories classification
-    queryYear: 
+    queryYears: 
     ifExists: 
     columns:
     - column: 
@@ -44,8 +44,30 @@ bronze:
   schema: places
   physicalPath: databases/bronze/pois/processed/
   description: 
-  queryYear: 
+  queryYears: 
   ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
+
+silver:
+  contractName: contract_pois.yaml
+  tableName: pois
+  schema: places
+  physicalPath: databases/silver/pois/processed/
+  description: 
+  queryYears: 
+  ifExists: replace
   columns:
   - column: 
     isPrimaryKey: 

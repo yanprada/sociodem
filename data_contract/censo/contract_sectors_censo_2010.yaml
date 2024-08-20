@@ -4,7 +4,7 @@ bronze:
   schema: layers
   physicalPath: databases/bronze/censo/layers/2010/setores_censitarios/
   description: Census sectors geometry layer from the 2010 Census
-  queryYear: 2010
+  queryYears: 2010
   ifExists: replace
   columns:
   - column: cd_geocodi

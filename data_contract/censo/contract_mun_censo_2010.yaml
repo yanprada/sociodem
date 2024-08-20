@@ -4,7 +4,7 @@ datalake:
   schema: 
   physicalPath: datalake/censo/layers/2022/
   description: Municipality geometry layer from the 2022 Census
-  queryYear: 2022
+  queryYears: 2022
   ifExists: append
   columns:
   - column:
@@ -26,7 +26,7 @@ bronze:
   schema: layers
   physicalPath: databases/bronze/censo/layers/2010/municipios/
   description: Municipality geometry layer from the 2010 Census
-  queryYear: 2010
+  queryYears: 2010
   ifExists: replace
   columns:
   - column: cd_geocodm

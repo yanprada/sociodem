@@ -4,7 +4,7 @@ bronze:
   schema: layers
   physicalPath: databases/bronze/censo/layers/2022/dompp/
   description: Domicile mapped by lat/long from the 2022 Census
-  queryYear: 2022
+  queryYears: 2022
   ifExists: append
   columns:
   - column: 
@@ -25,7 +25,7 @@ silver:
     schema: layers
     physicalPath: databases/silver/censo/layers/2022/dompp_hex/
     description: Domicile grouped by hexagon
-    queryYear: 2022
+    queryYears: 2022
     ifExists: append
     columns:
     - column: 
@@ -44,7 +44,7 @@ silver:
     schema: layers
     physicalPath: databases/silver/censo/layers/2022/dompp_pct_hex_sc/
     description: Domicile percentage hexagon sc
-    queryYear: 2022
+    queryYears: 2022
     ifExists: append
     columns:
     - column: 

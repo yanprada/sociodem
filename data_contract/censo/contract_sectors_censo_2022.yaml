@@ -4,7 +4,7 @@ bronze:
   schema: layers
   physicalPath: databases/bronze/censo/layers/2022/setores_censitarios/
   description: Census sectors geometry layer from the 2022 Census
-  queryYear: 2022
+  queryYears: 2022
   ifExists: replace
   columns:
   - column: 
@@ -25,7 +25,7 @@ silver:
   schema: layers
   physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
   description: Census sectors geometry layer from the 2022 Census
-  queryYear: 2022
+  queryYears: 2022
   ifExists: replace
   columns:
   - column: 

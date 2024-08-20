@@ -4,7 +4,7 @@ datalake:
   schema: buildings
   physicalPath: datalake/buildings/omf/
   description: 
-  queryYear: 
+  queryYears: 
   ifExists: 
   columns:
   - column: 
@@ -25,7 +25,7 @@ bronze:
     schema: buildings
     physicalPath: databases/bronze/buildings/omf/
     description: 
-    queryYear: 
+    queryYears: 
     ifExists: append
     columns:
     - column: 
@@ -44,7 +44,7 @@ bronze:
     schema: buildings
     physicalPath: databases/silver/buildings/omf_grouped_by_hex/
     description: 
-    queryYear: 
+    queryYears: 
     ifExists: append
     columns:
     - column: hex_col

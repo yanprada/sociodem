@@ -4,7 +4,7 @@ bronze:
   schema: 
   physicalPath: 
   description: 
-  queryYear: 
+  queryYears: 
   ifExists: 
   columns:
   - column: 

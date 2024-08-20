@@ -4,7 +4,7 @@ datalake:
   schema: infrastructure
   physicalPath: datalake/transportation/
   description: roads network data
-  queryYear: 
+  queryYears: 
   ifExists: 
   columns:
   - column: 
@@ -25,7 +25,7 @@ bronze:
   schema: infrastructure
   physicalPath: databases/bronze/transportation/
   description: 
-  queryYear: 
+  queryYears: 
   ifExists: append
   columns:
   - column: 

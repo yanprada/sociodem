@@ -4,7 +4,7 @@ datalake:
   schema: buildings
   physicalPath: datalake/buildings/google/
   description: 
-  queryYear: 
+  queryYears: 
   ifExists: 
   columns:
   - column: 
@@ -26,7 +26,7 @@ bronze:
     schema: buildings
     physicalPath: databases/bronze/buildings/google/
     description: 
-    queryYear: 
+    queryYears: 
     ifExists: append
     columns:
     - column: hex_col
@@ -45,7 +45,7 @@ bronze:
     schema: buildings
     physicalPath: databases/silver/buildings/google_grouped_by_hex/
     description: 
-    queryYear: 
+    queryYears: 
     ifExists: append
     columns:
     - column: hex_col

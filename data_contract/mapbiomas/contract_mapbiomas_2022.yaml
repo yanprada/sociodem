@@ -4,7 +4,7 @@ datalake:
   schema: 
   physicalPath: datalake/mapbiomas/
   description: 
-  queryYear: 
+  queryYears: 
   ifExists: 
   columns:
   - column: 
@@ -25,7 +25,7 @@ bronze:
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/
     description: 
-    queryYear: 2022
+    queryYears: 2022
     ifExists: append
     columns:
     - column: 
@@ -44,7 +44,7 @@ bronze:
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/
     description: 
-    queryYear: 2022
+    queryYears: 2022
     ifExists: append
     columns:
     - column: 
@@ -63,7 +63,7 @@ bronze:
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/unique_hex_ids/
     description: 
-    queryYear: 2022
+    queryYears: 2022
     ifExists: append
     columns:
     - column: 
@@ -84,7 +84,7 @@ silver:
   schema: land_use
   physicalPath: databases/silver/mapbiomas/land_use/
   description: 
-  queryYear: 2022
+  queryYears: 2022
   ifExists: append
   columns:
   - column: hex_col
