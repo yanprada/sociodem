@@ -161,3 +161,86 @@ def create_hex_col_from_dot(df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         axis=1,
     )
     return df
+
+
+def kring_smoothing(df, hex_col, metric_col, k):
+    """
+    Apply k-ring smoothing to a DataFrame.
+    Parameters:
+    - df (DataFrame): The input DataFrame.
+    - hex_col (str): The name of the column containing the hexagonal IDs.
+    - metric_col (str): The name of the column containing the metric values.
+    - k (int): The number of rings to consider for smoothing.
+    Returns:
+    - DataFrame: The smoothed DataFrame with additional columns for latitude and longitude.
+    """
+    dfk = df[[hex_col]]
+    dfk.index = dfk[hex_col]
+    dfs = (
+        dfk[hex_col]
+        .apply(lambda x: pd.Series(list(h3.k_ring(x, k))))
+        .stack()
+        .to_frame("hexk")
+        .reset_index(1, drop=True)
+        .reset_index()
+        .merge(df[[hex_col, metric_col]])
+        .fillna(0)
+        .groupby(["hexk"])[[metric_col]]
+        .sum()
+        .divide((1 + 3 * k * (k + 1)))
+        .reset_index()
+        .rename(index=str, columns={"hexk": hex_col})
+    )
+    dfs["lat"] = dfs[hex_col].apply(lambda x: h3.h3_to_geo(x)[0])
+    dfs["lng"] = dfs[hex_col].apply(lambda x: h3.h3_to_geo(x)[1])
+    return dfs
+
+
+def weighted_kring_smoothing(df, hex_col, metric_col, coef):
+    """
+    Apply weighted kring smoothing to a DataFrame.
+    Parameters:
+    - df (DataFrame): The input DataFrame.
+    - hex_col (str): The name of the column containing hexagonal coordinates.
+    - metric_col (str): The name of the column containing the metric to be smoothed.
+    - coef (list): The list of coefficients for weighted smoothing.
+    Returns:
+    - dfs (DataFrame): The smoothed DataFrame.
+    """
+    # normalize the coef
+    a = []
+    for k, coe in enumerate(coef):
+        if k == 0:
+            a.append(coe)
+        else:
+            a.append(k * 6 * coe)
+    coef = [c / sum(a) for c in coef]
+
+    # weighted smoothing
+    df_agg = df[[hex_col]]
+    df_agg["hexk"] = df_agg[hex_col]
+    df_agg.set_index(hex_col, inplace=True)
+    temp2 = [df_agg["hexk"].reset_index()]
+    temp2[-1]["k"] = 0
+    k_len = len(coef) - 1
+    for k_var in range(1, k_len + 1):
+        temp2.append(
+            (
+                df_agg["hexk"]
+                .apply(lambda x, k_var=k_var: pd.Series(list(h3.hex_ring(x, k_var))))
+                .stack()
+                .to_frame("hexk")
+                .reset_index(1, drop=True)
+                .reset_index()
+            )
+        )
+        temp2[-1]["k"] = k_var
+    df_all = pd.concat(temp2).merge(df)
+    df_all[metric_col] = df_all[metric_col] * df_all.k.apply(lambda x: coef[x])
+    dfs = (
+        df_all.groupby("hexk")[[metric_col]]
+        .sum()
+        .reset_index()
+        .rename(index=str, columns={"hexk": hex_col})
+    )
+    return dfs
