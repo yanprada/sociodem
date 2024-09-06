@@ -187,7 +187,7 @@ def main():
         num_workers = len(client.scheduler_info()["workers"])
         muns = loader.get_muns_cod()
         steps = math.ceil(len(muns) / num_workers)
-        df_sc = loader.get_sc()
+        df_sc = loader.get_sc_2022()
         futures = [
             client.submit(process_muns, muns[i * steps : i * steps + steps], df_sc)
             for i in range(num_workers)

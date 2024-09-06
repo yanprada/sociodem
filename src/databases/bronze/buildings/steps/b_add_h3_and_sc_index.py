@@ -97,7 +97,7 @@ def main() -> None:
     """
     This is the main function that processes data for "omf" and "google".
     """
-    df_sc = Loader().get_sc()
+    df_sc = Loader().get_sc_2022()
     process_data("google", df_sc)
     process_data("omf", df_sc)
     manager.update_status("finished_step_2")

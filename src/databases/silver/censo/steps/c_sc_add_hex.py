@@ -77,7 +77,7 @@ def main():
     """
     Main function.
     """
-    df_sc = Loader().get_sc()
+    df_sc = Loader().get_sc_2022()
     df_pct_sc_hex = get_pct_dompp_hex_sc()
     batch = 10000
     date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M:%S")

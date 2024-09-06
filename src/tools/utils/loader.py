@@ -27,7 +27,7 @@ class Loader:
     """
     A utility class for loading data from a database.
     Methods:
-        get_sc(): Get the file from the physical path.
+        get_sc_2022(): Get the file from the physical path.
         get_muns_cod(): Retrieves a list of distinct municipality
             codes from the specified database table.
     """
@@ -36,7 +36,19 @@ class Loader:
         pass
 
     @staticmethod
-    def get_sc():
+    def get_sc_2010():
+        """
+        Get the file from the physical path.
+        """
+        conn = DBConnection("bronze")
+        path = get_db_path(CONTRACT_CENSO_BRONZE["sectors_2010"])
+        df = conn.query_database(f"SELECT cd_geocodi, geometry FROM {path}", geo=False)
+        df["geometry"] = gpd.GeoSeries.from_wkb(df["geometry"])
+        df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_IBGE).to_crs(CRS_GLOBAL)
+        return df.rename(columns={"cd_geocodi": "cod_setor"})
+
+    @staticmethod
+    def get_sc_2022():
         """
         Get the file from the physical path.
         """
