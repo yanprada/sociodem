@@ -24,16 +24,20 @@ import geopandas as gpd
 
 
 from src.tools.utils.reader import Reader
-from src.tools.data_contract.pois_data_contract import get_pois_contracts
-from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import generate_random_string, get_db_path
 from src.tools.utils.constants import CRS_GLOBAL
 from src.tools.databases.data_connection.connection import DBConnection
 
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.transportation.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
 
-POIS_CONTRACTS = get_pois_contracts("bronze")
-MUN_CONTRACTS = get_censo_contracts("bronze")
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.update_status("running_step_3")
+
+TRANSPORT_CONTRACTS = execution_parameters["data_contracts"][0]
 
 
 def read_files(file: str) -> pd.DataFrame:
@@ -48,7 +52,7 @@ def read_files(file: str) -> pd.DataFrame:
     """
     reader = Reader()
     path = os.path.join(
-        POIS_CONTRACTS["pois"]["physicalPath"].replace("processed", "tmp"), file
+        TRANSPORT_CONTRACTS["pois"]["physicalPath"].replace("processed", "tmp"), file
     )
     df = reader.read_parquet(
         path,
@@ -86,7 +90,7 @@ def get_pois_categories_map() -> dict:
         dict: A dictionary containing the POIs categories, with the primary category
         as the key and the GPT category as the value.
     """
-    path = POIS_CONTRACTS["categories"]["physicalPath"]
+    path = TRANSPORT_CONTRACTS["categories"]["physicalPath"]
     reader = Reader()
     df = reader.read_csv(path)
     assert all(
@@ -109,7 +113,7 @@ def get_brazil_geom():
         GeoDataFrame: A GeoDataFrame containing the Brazil geometry.
     """
     conn = DBConnection("bronze")
-    contract = MUN_CONTRACTS["mun_2022"]
+    contract = TRANSPORT_CONTRACTS["mun_2022"]
     path = get_db_path(contract)
     df = conn.query_database(f"SELECT cd_mun, nm_mun, sigla_uf, geometry FROM {path}")
     df["geometry"] = df["geometry"].apply(wkb.loads)
@@ -221,7 +225,7 @@ def change_column_dtypes(df):
     return df
 
 
-@save_parquet_decorator("bronze", POIS_CONTRACTS["pois"])
+@save_parquet_decorator("bronze", TRANSPORT_CONTRACTS["pois"])
 def save_file(df: pd.DataFrame, **kwargs):
     """
     Saves a DataFrame to a Parquet file.
@@ -401,7 +405,7 @@ def main():
     It also handles any exceptions that occur
     during the processing and logs them using the `write_log` function.
     """
-    path = POIS_CONTRACTS["pois"]["physicalPath"].replace("processed", "tmp")
+    path = TRANSPORT_CONTRACTS["pois"]["physicalPath"].replace("processed", "tmp")
     files = os.listdir(path)
     df_brazil_geom_geom = get_brazil_geom()
     pois_cat_map = get_pois_categories_map()
