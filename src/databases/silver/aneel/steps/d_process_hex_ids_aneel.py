@@ -261,9 +261,7 @@ def get_data(conn: DBConnection, path: str, batch: int, i: int) -> pd.DataFrame:
     return conn.query_database(query)
 
 
-@save_parquet_decorator(
-    "silver", ANEEL_SILVER_CONTRACTS["aneel_hexagon"], save_pq=False
-)
+@save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS["aneel_hexagon"])
 def save_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Save the DataFrame to the database.

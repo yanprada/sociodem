@@ -200,11 +200,11 @@ def main() -> None:
     and then calls the process_batch function to process the file in batches.
     """
     for year in range(2018, 2023):
-        filename = "".join([CONTRACTS["datalake"]["tableName"], ".tif"]).replace(
+        filename = "".join([CONTRACTS["raw_data"]["tableName"], ".tif"]).replace(
             "2022", str(year)
         )
         file_path = os.path.join(
-            CONTRACTS["datalake"]["physicalPath"], filename
+            CONTRACTS["raw_data"]["physicalPath"], filename
         ).replace("2022", str(year))
         block_size = 2048
         batch_size = 100  # Limit to a small number for quick profiling

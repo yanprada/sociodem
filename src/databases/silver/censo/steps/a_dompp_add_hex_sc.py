@@ -133,7 +133,7 @@ def pivot_table(df: pd.DataFrame) -> pd.DataFrame:
     return df.reset_index()
 
 
-@save_parquet_decorator("silver", CONTRACT_CENSO_SILVER["dompp_2022"], save_pq=False)
+@save_parquet_decorator("silver", CONTRACT_CENSO_SILVER["dompp_2022"])
 def process_mun(conn: DBConnection, mun: str, df_sc: gpd.GeoDataFrame):
     """
     Process the municipality data for a given municipality code.

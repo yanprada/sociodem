@@ -1,8 +1,8 @@
-datalake:
+raw_data:
   contractName: contract_transportation.yaml
   tableName: transportation
   schema: infrastructure
-  physicalPath: datalake/transportation/
+  physicalPath: raw_data/transportation/
   description: roads network data
   queryYears: 
   ifExists: 

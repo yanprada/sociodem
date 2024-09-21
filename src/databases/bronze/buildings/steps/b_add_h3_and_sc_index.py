@@ -23,7 +23,7 @@ from config.run_mode import DEBUG
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 
-CONTRACT_DATALAKE = execution_parameters["data_contracts"][0]
+CONTRACT_RAW_DATA = execution_parameters["data_contracts"][0]
 CONTRACT_BRONZE = execution_parameters["data_contracts"][1]
 manager.update_status("running_step_2")
 
@@ -82,7 +82,7 @@ def process_data(source: str, df_sc: gpd.GeoDataFrame) -> None:
         enumerate(BUILDING_PARTITIONS[source]), desc="Processing partitions"
     ):
         reader = Reader()
-        path = CONTRACT_DATALAKE[f"buildings_{source}"]["physicalPath"]
+        path = CONTRACT_RAW_DATA[f"buildings_{source}"]["physicalPath"]
         gdf = reader.read_geoparquet("".join([path, file])).pipe(set_crs)
         if source == "google":
             gdf = gdf.query("confidence >= 0.75").reset_index(drop=True)

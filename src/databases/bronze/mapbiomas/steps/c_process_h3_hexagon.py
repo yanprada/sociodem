@@ -34,7 +34,7 @@ EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_ID)
 
 
-@save_parquet_decorator("bronze", CONTRACTS["mapbiomas_2022"], save_pq=False)
+@save_parquet_decorator("bronze", CONTRACTS["mapbiomas_2022"])
 def load_data(partition: int, folder_path: str) -> pd.DataFrame:
     """
     Load data from a specific partition.

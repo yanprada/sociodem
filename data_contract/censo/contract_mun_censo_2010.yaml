@@ -1,8 +1,8 @@
-datalake:
+raw_data:
   contractName: contract_mun_censo_2022.yaml
   tableName: 
   schema: 
-  physicalPath: datalake/censo/layers/2022/
+  physicalPath: raw_data/censo/layers/2022/
   description: Municipality geometry layer from the 2022 Census
   queryYears: 2022
   ifExists: append

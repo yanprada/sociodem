@@ -1,8 +1,8 @@
-datalake:
+raw_data:
   contractName: contract_aneel_companies_id.yaml
   tableName: aneel_companies_id
   schema: infrastructure
-  physicalPath: datalake/aneel/companies_id.csv
+  physicalPath: raw_data/aneel/companies_id.csv
   description: Energy companies ids that are registered in ANEEL. This table is used to link the companies with the data that is downloaded from the url.
   queryYears: [2023, 2022, 2021, 2020, 2019, 2018]
   ifExists :  replace

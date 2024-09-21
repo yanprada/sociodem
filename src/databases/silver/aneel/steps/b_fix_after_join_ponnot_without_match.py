@@ -355,7 +355,7 @@ def get_cols_to_join(lvl: int):
     return col_list[lvl]
 
 
-@save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS["temp_join"], save_pq=False)
+@save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS["temp_join"])
 def process_rows_distribute_energy(
     df_values_ids: pd.DataFrame,
     i: int,
@@ -522,7 +522,7 @@ def make_aggregation_ids(cols: list, path: str, filename: str):
         filename (int): filename of Level of aggregation.
     """
 
-    @save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS[filename], save_pq=False)
+    @save_parquet_decorator("silver", ANEEL_SILVER_CONTRACTS[filename])
     def make_aggregation_by_cols(cols: list, path: str) -> pd.DataFrame:
         conn = DBConnection("bronze")
         query = f"""

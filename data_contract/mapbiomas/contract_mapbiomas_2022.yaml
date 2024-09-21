@@ -1,8 +1,8 @@
-datalake:
+raw_data:
   contractName: contract_layers_mapbiomas.yaml
   tableName: brasil_coverage_2022
   schema: 
-  physicalPath: datalake/mapbiomas/
+  physicalPath: raw_data/mapbiomas/
   description: 
   queryYears: 
   ifExists: 

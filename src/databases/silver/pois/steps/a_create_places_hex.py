@@ -69,7 +69,7 @@ def calculate_stats(df_pois: pd.DataFrame) -> pd.DataFrame:
     return df_pois
 
 
-@save_parquet_decorator("silver", CONTRACT_SILVER["pois_hex"], save_pq=False)
+@save_parquet_decorator("silver", CONTRACT_SILVER["pois_hex"])
 def transform_pois(df_pois: pd.DataFrame) -> pd.DataFrame:
     """
     Transforms the pois data.

@@ -50,7 +50,7 @@ def get_dompp_per_state_2022(state, **kwargs):
     reader = Reader()
     filepath = os.path.join(
         CONTRACTS["dompp_2022"]["physicalPath"]
-        .replace("databases", "datalake")
+        .replace("databases", "raw_data")
         .replace("bronze/", ""),
         "".join([state, ".zip"]),
     )
@@ -118,7 +118,7 @@ def upload_censo_data(layer_key):
         for state in tqdm(STATES):
             filepath = os.path.join(
                 CONTRACTS[layer_key]["physicalPath"]
-                .replace("databases", "datalake")
+                .replace("databases", "raw_data")
                 .replace("bronze/", ""),
                 "".join([state, ".zip"]),
             )

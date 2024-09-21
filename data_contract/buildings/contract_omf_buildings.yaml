@@ -1,8 +1,8 @@
-datalake:
+raw_data:
   contractName: contract_omf_buildings.yaml
   tableName: omf
   schema: buildings
-  physicalPath: datalake/buildings/omf/
+  physicalPath: raw_data/buildings/omf/
   description: 
   queryYears: 
   ifExists: 

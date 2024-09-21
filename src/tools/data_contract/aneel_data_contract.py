@@ -24,18 +24,18 @@ def get_aneel_bronze_contracts():
     contract_company_id = get_contract(
         "aneel/contract_aneel_companies_id.yaml", "bronze"
     )
-    contract_company_id_datalake = get_contract(
-        "aneel/contract_aneel_companies_id.yaml", "datalake"
+    contract_company_id_raw_data = get_contract(
+        "aneel/contract_aneel_companies_id.yaml", "raw_data"
     )
     contract_aneel_bronze = get_contract(
         "aneel/contract_aneel_companies.yaml", "bronze"
     )
-    contract_aneel_datalake = get_contract(
-        "aneel/contract_aneel_companies.yaml", "datalake"
+    contract_aneel_raw_data = get_contract(
+        "aneel/contract_aneel_companies.yaml", "raw_data"
     )
     contracts = {
-        "datalake": contract_aneel_datalake,
-        "company_id_datalake": contract_company_id_datalake,
+        "raw_data": contract_aneel_raw_data,
+        "company_id_raw_data": contract_company_id_raw_data,
         "company_id": contract_company_id,
         "ponnot": contract_aneel_bronze[0],
         "ucbt": contract_aneel_bronze[1],

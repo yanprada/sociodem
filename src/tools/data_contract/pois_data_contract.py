@@ -22,10 +22,10 @@ def get_pois_bronze_contracts():
             The keys are the names of the companies and the values are the corresponding contracts.
     """
     contract_pois = get_contract("pois/contract_pois.yaml", "bronze")
-    contract_pois_dl = get_contract("pois/contract_pois.yaml", "datalake")
+    contract_pois_dl = get_contract("pois/contract_pois.yaml", "raw_data")
     contracts = {
         "pois": contract_pois,
-        "datalake": contract_pois_dl[0],
+        "raw_data": contract_pois_dl[0],
         "categories": contract_pois_dl[1],
     }
     return EasyDict(contracts)

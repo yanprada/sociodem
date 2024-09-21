@@ -1,8 +1,8 @@
-datalake:
+raw_data:
   - contractName: contract_pois.yaml
     tableName: pois
     schema: places
-    physicalPath: datalake/pois/files/
+    physicalPath: raw_data/pois/files/
     description: points of interest
     queryYears: 
     ifExists: 
@@ -21,7 +21,7 @@ datalake:
       - 
   - tableName: pois_categories
     schema: places
-    physicalPath: datalake/pois/categories/pois_categories.csv
+    physicalPath: raw_data/pois/categories/pois_categories.csv
     description: points of interest general categories classification
     queryYears: 
     ifExists: 

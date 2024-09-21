@@ -56,11 +56,11 @@ def main():
     Reads files from a specified bucket and prefix, filters
     the data based on a bounding box, and saves the filtered files.
     """
-    download_path = TRANSPORT_CONTRACTS["datalake"]["physicalPath"]
+    download_path = TRANSPORT_CONTRACTS["raw_data"]["physicalPath"]
     prefix = "release/2024-07-22.0/theme=transportation/"
     request = HttpRequesterOvertureMaps(prefix, download_path)
     for i, file in tqdm(enumerate(download_path), desc="Reading files"):
-        path = os.path.join(TRANSPORT_CONTRACTS["datalake"]["physicalPath"], file)
+        path = os.path.join(TRANSPORT_CONTRACTS["raw_data"]["physicalPath"], file)
         df = request.read_files_bbox_brazil(path)
         kwargs = {"filename": f"partition_{i}"}
         save_file(df, **kwargs)

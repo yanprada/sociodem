@@ -15,7 +15,7 @@ Estrutura Projeto
     │   ├── gold      <- The final, canonical data sets for modeling.
     │   └── feature_store            <- The original, immutable data dump.
     │
-    ├── datalake         <- A default Sphinx project; see sphinx-doc.org for details
+    ├── raw_data         <- A default Sphinx project; see sphinx-doc.org for details
     │
     ├── docs             <- A default Sphinx project; see sphinx-doc.org for details
     │

@@ -24,7 +24,7 @@ from src.tools.databases.data_connection.connection import DBConnection
 def save_parquet_decorator(
     medallon: str,
     contract: dict,
-    save_pq: bool = True,
+    save_pq: bool = False,
     save_db: bool = True,
 ) -> None:
     """

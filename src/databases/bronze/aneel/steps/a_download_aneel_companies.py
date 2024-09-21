@@ -30,7 +30,7 @@ def load_aneel_ids() -> pd.DataFrame:
     """
     reader = Reader()
     return (
-        reader.read_csv(CONTRACTS_BRONZE["company_id_datalake"]["physicalPath"])
+        reader.read_csv(CONTRACTS_BRONZE["company_id_raw_data"]["physicalPath"])
         .rename(columns={"id": "company_ids"})
         .drop_duplicates()
     )
@@ -48,7 +48,7 @@ def download_aneel_company_files(df_aneel_ids: pd.DataFrame) -> None:
     """
 
     aneel_request = HttpRequesterAneel()
-    path = os.path.join(CONTRACTS_BRONZE["datalake"]["physicalPath"])
+    path = os.path.join(CONTRACTS_BRONZE["raw_data"]["physicalPath"])
     aneel_request.request_from_page(
         df_aneel_ids["company_ids"], path, df_aneel_ids["title"]
     )

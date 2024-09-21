@@ -25,11 +25,11 @@ def get_transportation_bronze_contracts():
         "transportation/contract_transportation.yaml", "bronze"
     )
     contract_transportation_dl = get_contract(
-        "transportation/contract_transportation.yaml", "datalake"
+        "transportation/contract_transportation.yaml", "raw_data"
     )
     contracts = {
         "transportation": contract_transportation,
-        "datalake": contract_transportation_dl,
+        "raw_data": contract_transportation_dl,
     }
     return EasyDict(contracts)
 

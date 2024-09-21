@@ -22,7 +22,7 @@ BASE_PARAMS = {
     "data_name": "buildings",
     "config_path": os.path.abspath(__file__),
     "data_contracts": [
-        get_buildings_contracts("datalake"),
+        get_buildings_contracts("raw_data"),
         get_buildings_contracts("bronze"),
     ],
     "run_mode": "single_file" if DEBUG else "pipeline",

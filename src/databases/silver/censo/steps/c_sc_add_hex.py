@@ -50,9 +50,7 @@ def get_pct_dompp_hex_sc():
     return df
 
 
-@save_parquet_decorator(
-    "silver", CONTRACT_SCS_CENSO_SILVER["sectors_2022"], save_pq=False
-)
+@save_parquet_decorator("silver", CONTRACT_SCS_CENSO_SILVER["sectors_2022"])
 def add_hex_from_geom(
     df: gpd.GeoDataFrame, df_pct_sc_hex: pd.DataFrame, **kwargs
 ) -> gpd.GeoDataFrame:

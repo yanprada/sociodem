@@ -24,12 +24,12 @@ def get_mapbiomas_bronze_contracts():
     contract_mapbiomas_2022 = get_contract(
         "mapbiomas/contract_mapbiomas_2022.yaml", "bronze"
     )
-    datalake = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "datalake")
+    raw_data = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "raw_data")
     contracts = {
         "mapbiomas_2022": contract_mapbiomas_2022[0],
         "grouped_by_hex_mapbiomas_2022": contract_mapbiomas_2022[1],
         "unique_hex_ids": contract_mapbiomas_2022[2],
-        "datalake": datalake,
+        "raw_data": raw_data,
     }
     return EasyDict(contracts)
 
@@ -43,10 +43,10 @@ def get_mapbiomas_silver_contracts():
             The keys are the names of the companies and the values are the corresponding contracts.
     """
     contract_mun_2022 = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "silver")
-    datalake = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "datalake")
+    raw_data = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "raw_data")
     contracts = {
         "mapbiomas_2022": contract_mun_2022,
-        "datalake": datalake,
+        "raw_data": raw_data,
     }
     return EasyDict(contracts)
 

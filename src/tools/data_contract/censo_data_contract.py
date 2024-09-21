@@ -31,16 +31,16 @@ def get_censo_bronze_contracts():
         "censo/contract_sectors_censo_2022.yaml", "bronze"
     )
     contract_dompp_2022 = get_contract("censo/contract_dompp_censo_2022.yaml", "bronze")
-    contract_layer_2010 = get_contract("censo/contract_mun_censo_2010.yaml", "datalake")
-    contract_layer_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "datalake")
+    contract_layer_2010 = get_contract("censo/contract_mun_censo_2010.yaml", "raw_data")
+    contract_layer_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "raw_data")
     contracts = {
         "municipalities_2010": contract_mun_2010,
         "mun_2022": contract_mun_2022,
         "sectors_2010": contract_sector_2010,
         "sectors_2022": contract_sector_2022,
         "dompp_2022": contract_dompp_2022,
-        "datalake_2010": contract_layer_2010,
-        "datalake_2022": contract_layer_2022,
+        "raw_data_2010": contract_layer_2010,
+        "raw_data_2022": contract_layer_2022,
     }
     return EasyDict(contracts)
 

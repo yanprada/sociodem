@@ -45,7 +45,7 @@ def download_layers_censo_2010(censo_request: HttpRequesterCenso):
         STATES.keys(),
         ["setores_censitarios", "subdistritos", "distritos", "municipios"],
     )
-    path_to_save = CONTRACTS["datalake_2010"]["physicalPath"]
+    path_to_save = CONTRACTS["raw_data_2010"]["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
 
 
@@ -74,7 +74,7 @@ def download_layers_censo_2022(censo_request: HttpRequesterCenso):
         STATES.keys(),
         ["setores", "subdistritos", "distritos", "municipios"],
     )
-    path_to_save = CONTRACTS["datalake_2022"]["physicalPath"]
+    path_to_save = CONTRACTS["raw_data_2022"]["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
 
 
@@ -96,7 +96,7 @@ def download_dompp_censo_2022(censo_request: HttpRequesterCenso):
     """
     path_to_save = (
         CONTRACTS["dompp_2022"]["physicalPath"]
-        .replace("databases", "datalake")
+        .replace("databases", "raw_data")
         .replace("bronze/", "")
     )
     censo_request.request_dompp_from_page(STATES, path_to_save)

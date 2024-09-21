@@ -171,7 +171,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
         "conj": "CONJ",
     }
     path = os.path.join(
-        CONTRACTS_BRONZE["datalake"]["physicalPath"],
+        CONTRACTS_BRONZE["raw_data"]["physicalPath"],
         company_id,
     )
     assert layers_dict[database] in fiona.listlayers(
@@ -235,7 +235,7 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
             "conj": "CONJ",
         }
         reader = Reader()
-        path = os.path.join(CONTRACTS_BRONZE["datalake"]["physicalPath"], company_id)
+        path = os.path.join(CONTRACTS_BRONZE["raw_data"]["physicalPath"], company_id)
         layers = fiona.listlayers(path)
         assert (
             layers_dict[database] in layers
@@ -310,7 +310,7 @@ def split_file_sizes(df_aneel_ids) -> Tuple[List[str], List[str]]:
     for company_id in df_aneel_ids["company_ids"]:
         company_id = "".join([company_id, ".gdb.zip"])
         file_path = os.path.join(
-            CONTRACTS_BRONZE["datalake"]["physicalPath"],
+            CONTRACTS_BRONZE["raw_data"]["physicalPath"],
             company_id,
         )
         file_size = os.path.getsize(file_path)

@@ -1,8 +1,8 @@
-datalake:
+raw_data:
   contractName: contract_google_buildings.yaml
   tableName: google
   schema: buildings
-  physicalPath: datalake/buildings/google/
+  physicalPath: raw_data/buildings/google/
   description: 
   queryYears: 
   ifExists: 

@@ -25,7 +25,7 @@ def main():
     Downloads files from a specified bucket and prefix, and saves the
     downloaded files information in a JSON file.
     """
-    download_path = TRANSPORT_CONTRACTS["datalake"]["physicalPath"]
+    download_path = TRANSPORT_CONTRACTS["raw_data"]["physicalPath"]
     prefix = "release/2024-07-22.0/theme=transportation/"
     requester = HttpRequesterOvertureMaps(prefix, download_path)
     requester.download_files_omf()
