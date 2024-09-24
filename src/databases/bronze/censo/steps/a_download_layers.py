@@ -18,7 +18,7 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-CONTRACTS = execution_parameters["data_contracts"][0]
+CONTRACTS = execution_parameters["data_contracts"]["raw_data"]
 manager.update_status("running_step_1")
 
 
@@ -45,7 +45,7 @@ def download_layers_censo_2010(censo_request: HttpRequesterCenso):
         STATES.keys(),
         ["setores_censitarios", "subdistritos", "distritos", "municipios"],
     )
-    path_to_save = CONTRACTS["raw_data_2010"]["physicalPath"]
+    path_to_save = CONTRACTS["mun_2010"]["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
 
 
@@ -60,6 +60,7 @@ def download_info_censo_2022():
     censo_request = HttpRequesterCenso(2022)
     download_layers_censo_2022(censo_request)
     download_dompp_censo_2022(censo_request)
+    download_states_censo_2022(censo_request)
 
 
 def download_layers_censo_2022(censo_request: HttpRequesterCenso):
@@ -74,7 +75,7 @@ def download_layers_censo_2022(censo_request: HttpRequesterCenso):
         STATES.keys(),
         ["setores", "subdistritos", "distritos", "municipios"],
     )
-    path_to_save = CONTRACTS["raw_data_2022"]["physicalPath"]
+    path_to_save = CONTRACTS["mun_2022"]["physicalPath"]
     censo_request.request_layers_from_page(combinations, path_to_save)
 
 
@@ -94,12 +95,19 @@ def download_dompp_censo_2022(censo_request: HttpRequesterCenso):
     :param censo_request: An instance of the HttpRequesterCenso class.
     :type censo_request: HttpRequesterCenso
     """
-    path_to_save = (
-        CONTRACTS["dompp_2022"]["physicalPath"]
-        .replace("databases", "raw_data")
-        .replace("bronze/", "")
-    )
+    path_to_save = CONTRACTS["dompp_2022"]["physicalPath"]
     censo_request.request_dompp_from_page(STATES, path_to_save)
+
+
+def download_states_censo_2022(censo_request: HttpRequesterCenso):
+    """
+    Downloads the states for the Censo 2022 dataset.
+
+    Args:
+        censo_request (HttpRequesterCenso): An instance of the HttpRequesterCenso class.
+    """
+    path_to_save = "".join([CONTRACTS["mun_2022"]["physicalPath"], "estados/"])
+    censo_request.request_states_from_page(STATES, path_to_save)
 
 
 def main():
