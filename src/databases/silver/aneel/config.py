@@ -14,7 +14,6 @@ import os
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from src.tools.data_contract.validation_data_contract import (
     get_validation_contracts,
-    get_validation_partitions,
 )
 from config.run_mode import DEBUG
 
@@ -25,12 +24,11 @@ BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "aneel",
     "config_path": os.path.abspath(__file__),
-    "data_contracts": [
-        get_aneel_contracts("bronze"),
-        get_aneel_contracts("silver"),
-        get_validation_partitions(),
-        get_validation_contracts("silver", 0),
-    ],
+    "data_contracts": {
+        "bronze": get_aneel_contracts("bronze"),
+        "silver": get_aneel_contracts("silver"),
+        "validation": get_validation_contracts("silver", 0),
+    },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
 }

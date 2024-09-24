@@ -13,6 +13,35 @@ from easydict import EasyDict
 from src.tools.utils.data_contract import get_contract
 
 
+def get_censo_raw_contracts():
+    """
+    Retrieves the CENSO contracts for different companies.
+
+    Returns:
+        contracts (dict): A dictionary containing the ANEEL contracts for different companies.
+            The keys are the names of the companies and the values are the corresponding contracts.
+    """
+    contract_mun_2010 = get_contract("censo/contract_mun_censo_2010.yaml", "raw_data")
+    contract_mun_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "raw_data")
+    contract_sector_2010 = get_contract(
+        "censo/contract_sectors_censo_2010.yaml", "raw_data"
+    )
+    contract_sector_2022 = get_contract(
+        "censo/contract_sectors_censo_2022.yaml", "raw_data"
+    )
+    contract_dompp_2022 = get_contract(
+        "censo/contract_dompp_censo_2022.yaml", "raw_data"
+    )
+    contracts = {
+        "mun_2010": contract_mun_2010,
+        "mun_2022": contract_mun_2022,
+        "sectors_2010": contract_sector_2010,
+        "sectors_2022": contract_sector_2022,
+        "dompp_2022": contract_dompp_2022,
+    }
+    return EasyDict(contracts)
+
+
 def get_censo_bronze_contracts():
     """
     Retrieves the CENSO contracts for different companies.
@@ -31,16 +60,12 @@ def get_censo_bronze_contracts():
         "censo/contract_sectors_censo_2022.yaml", "bronze"
     )
     contract_dompp_2022 = get_contract("censo/contract_dompp_censo_2022.yaml", "bronze")
-    contract_layer_2010 = get_contract("censo/contract_mun_censo_2010.yaml", "raw_data")
-    contract_layer_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "raw_data")
     contracts = {
-        "municipalities_2010": contract_mun_2010,
+        "mun_2010": contract_mun_2010,
         "mun_2022": contract_mun_2022,
         "sectors_2010": contract_sector_2010,
         "sectors_2022": contract_sector_2022,
         "dompp_2022": contract_dompp_2022,
-        "raw_data_2010": contract_layer_2010,
-        "raw_data_2022": contract_layer_2022,
     }
     return EasyDict(contracts)
 
@@ -78,6 +103,8 @@ def get_censo_contracts(medallon: str):
         contracts (dict): A dictionary containing the ANEEL contracts for different companies.
             The keys are the names of the companies and the values are the corresponding contracts.
     """
+    if medallon == "raw_data":
+        return get_censo_raw_contracts()
     if medallon == "bronze":
         return get_censo_bronze_contracts()
     if medallon == "silver":
