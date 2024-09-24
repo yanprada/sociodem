@@ -4,16 +4,13 @@ Module to make requests to pages.
 
 import os
 from typing import Tuple, Dict, Union, Optional
-import boto3
+import duckdb as db
 from tqdm import tqdm
-from botocore import UNSIGNED
-from botocore.config import Config
 import requests
 import pandas as pd
 from retry import retry
 from src.tools.utils.common import write_log
-from src.tools.utils.reader import Reader
-from src.tools.utils.constants import BBOX_BRAZIL
+from src.tools.utils.constants import BBOX_BRAZIL, OVERTURE_RELEASE_VERSION
 
 tqdm.pandas()
 
@@ -123,6 +120,10 @@ class HttpRequesterCenso:
                 "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/"
                 "malhas_municipais/municipio_2022/UFs/{state}/{state}_Municipios_2022.zip"
             )
+            self.__url_state = (
+                "https://servicodados.ibge.gov.br/api/v3/malhas/estados/{state}"
+                "?formato=application/vnd.geo+json"
+            )
         else:
             raise ValueError("Year must be 2010 or 2022")
 
@@ -139,9 +140,17 @@ class HttpRequesterCenso:
         with open(zip_filename, "wb") as f:
             f.write(response.content)
 
-    def __save_file(self, response: requests.Response, filename: str) -> None:
+    def __save_file(
+        self, response: requests.Response, filename: str, as_zip=True
+    ) -> None:
         if response.status_code == 200:
-            self.__save_response_as_zip(response, filename)
+            if as_zip:
+                self.__save_response_as_zip(response, filename)
+            else:
+                filename = filename + ".geojson"
+                self.__make_dir(filename)
+                with open(filename, "wb") as f:
+                    f.write(response.content)
         else:
             raise requests.exceptions.HTTPError(
                 f"Error {response.status_code} in request"
@@ -202,6 +211,31 @@ class HttpRequesterCenso:
             timeout=10,
         )
 
+    @retry(tries=5, delay=1, backoff=2)
+    def request_states_from_page(
+        self, states: Dict[str, int], destination_path: str
+    ) -> None:
+        """
+        Requests states from a web page and saves the response to a file.
+
+        Args:
+            states (Dict[str, int]): A dictionary containing the names and codes of the states.
+            destination_path (str): The path where the files will be saved.
+        """
+        destination_dir = os.path.abspath(destination_path)
+        for state, _ in tqdm(states.items()):
+            filename = os.path.join(destination_dir, state)
+            if not os.path.exists(f"{filename}.geojson"):
+                write_log(f"Requesting {state}.")
+                response = requests.get(
+                    self.__url_state.format(state=state), timeout=10
+                )
+                self.__save_file(response, filename, as_zip=False)
+            else:
+                write_log(
+                    f"File {filename} already exists in destination.", level="warning"
+                )
+
     def request_layers_from_page(
         self, combinations: Tuple[str, str], destination_path: str
     ) -> None:
@@ -256,62 +290,6 @@ class HttpRequesterCenso:
             write_log("Dompp is not available for this year.", level="warning")
 
 
-class HttpRequesterBuildings:
-    """
-    Http request class to download Building data from OMF or Google
-    """
-
-    def __init__(self, source: str) -> None:
-        self.source = source
-        if self.source == "omf":
-            self.__url = (
-                "https://data.source.coop/cholmes/overture/"
-                "geoparquet-country-quad-hive/country_iso=BR/{filename}"
-            )
-        elif self.source == "google":
-            self.__url = (
-                "https://data.source.coop/vida/google-microsoft-open-buildings/"
-                "geoparquet/by_country_s2/country_iso=BRA/{filename}"
-            )
-        else:
-            raise ValueError("Source must be omf or google")
-
-    def __save_file(self, response: requests.Response, filename: str) -> None:
-        if response.status_code == 200:
-            with open(filename, "wb") as f:
-                f.write(response.content)
-        else:
-            raise requests.exceptions.HTTPError(
-                f"Error {response.status_code} in request"
-            )
-
-    def update(self):
-        """
-        This method is responsible for updating the data.
-        """
-
-    def request_from_page(self, filenames: list, destination_path: str):
-        """
-        Requests files from a page and saves them to the specified destination path.
-
-        Args:
-            filenames (list): A list of filenames to request from the page.
-            destination_path (str): The path where the files will be saved.
-        """
-        destination_dir = os.path.abspath(destination_path)
-        for filename in tqdm(filenames):
-            file_path = os.path.join(destination_dir, filename)
-            if not os.path.exists(file_path):
-                response = requests.get(
-                    self.__url.format(filename=filename), timeout=10
-                )
-                self.__save_file(response, file_path)
-            else:
-                write_log(
-                    f"File {file_path} already exists in destination.", level="warning"
-                )
-
-
 class HttpRequesterMapbiomas:
     """
     Http request class to download Mapbiomas tiff
@@ -363,57 +341,79 @@ class HttpRequesterOvertureMaps:
     Http request class to download Overture Maps data
     """
 
-    def __init__(self, prefix: str, download_path: str) -> None:
-        self.bucket = "overturemaps-us-west-2"
-        self.prefix = prefix
+    def __init__(
+        self, theme: str, download_path: str, lines_per_file: int = 1000000
+    ) -> None:
+        self.path = (
+            "s3://overturemaps-us-west-2/release/"
+            f"{OVERTURE_RELEASE_VERSION}/theme={theme}/type=*/*"
+        )
         self.download_path = download_path
+        self.db_con = db.connect()
+        self.db_con.install_extension("spatial")
+        self.db_con.load_extension("spatial")
+        self.db_con.install_extension("httpfs")
+        self.db_con.load_extension("httpfs")
+        self.db_con.sql("SET s3_region='us-west-2'")
+        self.lines_per_file = lines_per_file
         os.makedirs(download_path, exist_ok=True)
 
-    def download_files_omf(self):
+    def download_data(self, cols: list):
         """
-        Requests files from a page and saves them to the specified destination path.
-
-        """
-        s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-        continuation_token = None
-        while True:
-            if continuation_token:
-                response = s3.list_objects_v2(
-                    Bucket=self.bucket,
-                    Prefix=self.prefix,
-                    ContinuationToken=continuation_token,
-                )
-            else:
-                response = s3.list_objects_v2(Bucket=self.bucket, Prefix=self.prefix)
-            if "Contents" in response:
-                for obj in tqdm(response["Contents"], desc="Downloading files"):
-                    key = obj["Key"]
-                    file_name = key.split("/")[-1]
-                    file_path = os.path.join(self.download_path, file_name)
-                    s3.download_file(self.bucket, key, file_path)
-                    write_log(f"Downloaded {file_name}")
-            if response.get("IsTruncated"):  # More pages to fetch
-                continuation_token = response.get("NextContinuationToken")
-            else:
-                break
-
-    @staticmethod
-    def read_files_bbox_brazil(path: str) -> pd.DataFrame:
-        """
-        Reads the parquet files from the specified path and returns the data.
-
+        Downloads data from a database and saves it into Parquet files.
         Args:
-            path (str): The name of the parquet file.
-
-        Returns:
-            DataFrame: The data read from the parquet file.
+            cols (list): A list of column names to be selected from the database.
         """
-        reader = Reader()
-        df = reader.read_parquet(path)
-        df["in_brazil"] = df["bbox"].progress_apply(
-            lambda bb: bb["xmin"] > BBOX_BRAZIL["xmin"]
-            and bb["xmax"] < BBOX_BRAZIL["xmax"]
-            and bb["ymin"] > BBOX_BRAZIL["ymin"]
-            and bb["ymax"] < BBOX_BRAZIL["ymax"]
-        )
-        return df[df["in_brazil"]]
+        cols = ", ".join(cols)
+        offset = 0
+        file_count = 0
+
+        while True:
+            download_file_path = os.path.join(
+                self.download_path, f"{file_count}.parquet"
+            )
+            self.db_con.sql(
+                f"""
+                    COPY (
+                        SELECT
+                            {cols}
+                        FROM
+                            read_parquet('{self.path}', filename=true, hive_partitioning=1)
+                        WHERE
+                            bbox.xmin  > {BBOX_BRAZIL["xmin"]}
+                            AND bbox.xmax  < {BBOX_BRAZIL["xmax"]}
+                            AND bbox.ymin  > {BBOX_BRAZIL["ymin"]}
+                            AND bbox.ymax  < {BBOX_BRAZIL["ymax"]}
+                        LIMIT {self.lines_per_file}
+                        OFFSET {offset}
+                        ) TO '{download_file_path}'
+                        (FORMAT PARQUET);
+                """
+            )
+            if os.path.getsize(download_file_path) == 0:
+                os.remove(download_file_path)
+                break
+            offset += self.lines_per_file
+            file_count += 1
+
+        self.db_con.close()
+
+    def download_buildings_omf(self):
+        """
+        Requests buildings from a page and saves them to the specified destination path.
+        """
+        cols = [
+            "id",
+            "ST_AsText(ST_GeomFromWKB(geometry)) as geometry",
+            "subtype",
+            "JSON(names) as names",
+            "JSON(sources) as sources",
+            "class",
+            "level",
+            "has_parts",
+            "height",
+            "num_floors",
+            "min_height",
+            "min_floor",
+        ]
+        self.download_data(cols)
