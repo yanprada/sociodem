@@ -3,7 +3,7 @@ This script retrieves data from the Censo 2010 and
 Censo 2022 datasets and saves it as parquet files and to database.
 
 The script contains the following functions:
-- get_municipalities_2010: Retrieves the municipalities data from the Censo 2010 dataset.
+- get_mun_2010: Retrieves the municipalities data from the Censo 2010 dataset.
 - get_mun_2022: Retrieves the municipalities data from the Censo 2022 dataset.
 - get_sectors_2010: Retrieves the census sectors data from the Censo 2010 dataset.
 - main: The main function that executes the script.
@@ -26,12 +26,12 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-CONTRACTS = execution_parameters["data_contracts"][0]
-CONTRACT_PARTITIONS = execution_parameters["data_contracts"][1]
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
+CONTRACTS_RAW_DATA = execution_parameters["data_contracts"]["raw_data"]
 manager.update_status("running_step_2")
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACTS["dompp_2022"])
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["dompp_2022"])
 def get_dompp_per_state_2022(state, **kwargs):
     """
     Retrieves the DOMPP data for a specific state in 2022.
@@ -49,9 +49,7 @@ def get_dompp_per_state_2022(state, **kwargs):
     """
     reader = Reader()
     filepath = os.path.join(
-        CONTRACTS["dompp_2022"]["physicalPath"]
-        .replace("databases", "raw_data")
-        .replace("bronze/", ""),
+        CONTRACTS_RAW_DATA["dompp_2022"]["physicalPath"],
         "".join([state, ".zip"]),
     )
     with zipfile.ZipFile(filepath, "r") as zip_ref:
@@ -84,7 +82,7 @@ def upload_dompp_2022():
     If the data does not exist, it calls the `get_dompp_2022` function to retrieve it.
     """
     write_log("Processing dompp data...")
-    path = CONTRACTS["dompp_2022"]["physicalPath"]
+    path = CONTRACTS_BRONZE["dompp_2022"]["physicalPath"]
     if os.path.exists(path):
         data_wrong = check_data_consistency(path)
         if any(data_wrong.values()):
@@ -98,10 +96,10 @@ def upload_censo_data(layer_key):
     Uploads municipalities data for the year 2010.
 
     This function processes the municipalities data and checks if the data already exists.
-    If the data does not exist, it calls the `get_municipalities_2010` function to retrieve it.
+    If the data does not exist, it calls the `get_mun_2010` function to retrieve it.
     """
 
-    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS[layer_key])
+    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE[layer_key])
     def get_censo_data(layer_key, **kwargs):
         """
         Retrieves the data from the Censo dataset.
@@ -117,9 +115,7 @@ def upload_censo_data(layer_key):
         dfs = []
         for state in tqdm(STATES):
             filepath = os.path.join(
-                CONTRACTS[layer_key]["physicalPath"]
-                .replace("databases", "raw_data")
-                .replace("bronze/", ""),
+                CONTRACTS_RAW_DATA[layer_key]["physicalPath"],
                 "".join([state, ".zip"]),
             )
             df = reader.read_geofile(filepath)
@@ -129,7 +125,7 @@ def upload_censo_data(layer_key):
 
     write_log(f"Processing {layer_key} data...")
     kwargs = {"filename": layer_key}
-    path = CONTRACTS[layer_key]["physicalPath"]
+    path = CONTRACTS_BRONZE[layer_key]["physicalPath"]
     if os.path.exists(os.path.join(path, f"{layer_key}.parquet")):
         data_wrong = check_data_consistency(path)
         if any(data_wrong.values()):
@@ -145,7 +141,7 @@ def main():
     The main function that executes the script.
     """
     for layer_key in [
-        "municipalities_2010",
+        "mun_2010",
         "mun_2022",
         "sectors_2010",
         "sectors_2022",
