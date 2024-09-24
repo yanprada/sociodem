@@ -17,7 +17,7 @@ from src.tools.utils.reader import Reader
 from src.tools.utils.loader import Loader
 from src.tools.utils.h3 import add_h3_index_to_small_geom
 from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.buildings.config import EXECUTION_ID, BASE_PARAMS
+from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)

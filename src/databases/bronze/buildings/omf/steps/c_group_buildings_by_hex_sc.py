@@ -6,7 +6,7 @@ hex_col and value columns from an existing table.
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import write_log, get_db_path
 from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.buildings.config import EXECUTION_ID, BASE_PARAMS
+from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)

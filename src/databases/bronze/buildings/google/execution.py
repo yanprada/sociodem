@@ -2,10 +2,10 @@
 This module contains the pipeline for processing buildings data.
 """
 
-from src.databases.bronze.buildings.config import EXECUTION_ID, BASE_PARAMS
+from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
 from src.tools.utils.execution_manager import ExecutionManager
 
-from src.databases.bronze.buildings.steps import (
+from src.databases.bronze.buildings.omf.steps import (
     a_download_buildings,
     b_add_h3_and_sc_index,
     c_group_buildings_by_hex_sc,

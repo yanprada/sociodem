@@ -1,0 +1,39 @@
+"""
+This module provides functions to download data for buildings from different sources.
+
+The module includes the following functions:
+- download_data(source): Downloads data from a specified source.
+- main(): The main function that downloads data for buildings from both "omf" and "google" sources.
+"""
+
+from src.tools.databases.data_request.drivers.http_requester import (
+    HttpRequesterOvertureMaps,
+)
+from src.tools.utils.execution_manager import ExecutionManager
+from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
+from config.run_mode import DEBUG
+
+manager = ExecutionManager(BASE_PARAMS)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+BUILDING_CONTRACTS = execution_parameters["data_contracts"]["raw_data"]
+manager.update_status("running_step_1")
+
+
+def download_buildings_omf():
+    """
+    Downloads data for buildings from the "omf" source.
+    """
+    download_path = BUILDING_CONTRACTS["buildings_omf"]["physicalPath"]
+    theme = "buildings"
+    requester = HttpRequesterOvertureMaps(theme, download_path)
+    requester.download_buildings_omf()
+
+
+def main():
+    """
+    Downloads files from a specified bucket and prefix, and saves the
+    downloaded files information in a JSON file.
+    """
+    download_buildings_omf()
+    manager.update_status("finished_step_1")
+    manager.update_last_run()
