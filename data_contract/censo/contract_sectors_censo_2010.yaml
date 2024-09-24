@@ -1,3 +1,25 @@
+raw_data:
+  contractName: contract_sectors_censo_2010.yaml
+  tableName: sc_censo_2010
+  schema: layers
+  physicalPath: raw_data/censo/layers/2010/setores_censitarios/
+  description: Census sectors geometry layer from the 2010 Census
+  queryYears: 2010
+  ifExists: replace
+  columns:
+  - column:
+    isPrimaryKey: False
+    ForeignKey: 
+    businessName:
+    description:
+    logicalType:
+    physicalType:
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    -
+
 bronze:
   contractName: contract_sectors_censo_2010.yaml
   tableName: sc_censo_2010
@@ -7,133 +29,15 @@ bronze:
   queryYears: 2010
   ifExists: replace
   columns:
-  - column: cd_geocodi
+  - column:
     isPrimaryKey: False
     ForeignKey: 
-    businessName: Sectors code
-    description: 15 digits IBGE Sectors code
-    logicalType: int
-    physicalType: int
+    businessName:
+    description:
+    logicalType:
+    physicalType:
     isNullable: False
     isBlank: False
     translatedValues:
     sampleValues:
-    - 120020305000030
-    - 210080705000019
-  - column: tipo
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors type
-    description: Sectors type between urban and rural
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - URBANO
-    - RURAL
-  - column: cd_geocods
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors subdistric code
-    description: Sectors subdistric code
-    logicalType: int
-    physicalType: int
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - 12002030500
-    - 12008070500
-    - column: nm_subdist
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors subdistric name
-    description: Sectors subdistric
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - None
-    - None
-  - column: cd_geocodd
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors district code
-    description: Sectors district code
-    logicalType: int
-    physicalType: int
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - 120020305
-    - 120080705
-  - column: nm_distrit
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors district name
-    description: Sectors district name
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - CRUZEIRO DO SUL
-    - PORTO ACRE
-  - column: cd_geocodm
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors municipality 7 digit code
-    description: Sectors municipality 7 digit code
-    logicalType: int
-    physicalType: int
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - 1200203
-    - 1200807
-  - column: nm_municip
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors municipality name
-    description: Sectors municipality name
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - CRUZEIRO DO SUL
-    - PORTO ACRE
-  - column: nm_micro
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors microregion name
-    description: Sectors microregion name
-    logicalType: str
-    physicalType: str
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - CRUZEIRO DO SUL
-    - RIO BRANCO
-  - column: geometry
-    isPrimaryKey: False
-    ForeignKey: 
-    businessName: Sectors name
-    description: IBGE Sectors name
-    logicalType: geometry
-    physicalType: geom
-    isNullable: False
-    isBlank: False
-    translatedValues:
-    sampleValues:
-    - POLYGON ((-67.14117 -9.68337, -67.13951 -9.683, -67.139 -9.683 ))
-    - POLYGON ((-69.8 -10.507, -69.8 -10.506, -69.8 -10.506, -69.8 -10.505
+    -
