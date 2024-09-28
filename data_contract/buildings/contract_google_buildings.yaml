@@ -24,7 +24,7 @@ bronze:
   - contractName: contract_google_buildings.yaml
     tableName: google
     schema: buildings
-    physicalPath: databases/bronze/buildings/google/
+    physicalPath: /mnt/files/google_buildings_process/2016/
     description: 
     queryYears: 
     ifExists: append
@@ -43,7 +43,7 @@ bronze:
       - 
   - tableName: google_grouped_by_hex
     schema: buildings
-    physicalPath: databases/silver/buildings/google_grouped_by_hex/
+    physicalPath: /mnt/files/google_buildings_process/google_grouped_by_hex/2016/
     description: 
     queryYears: 
     ifExists: append
