@@ -2,7 +2,7 @@ raw_data:
   contractName: contract_google_buildings.yaml
   tableName: google
   schema: buildings
-  physicalPath: raw_data/buildings/google/
+  physicalPath: /mnt/files/google_buildings/2016/
   description: 
   queryYears: 
   ifExists: 
@@ -29,7 +29,7 @@ bronze:
     queryYears: 
     ifExists: append
     columns:
-    - column: hex_col
+    - column: 
       isPrimaryKey: 
       ForeignKey: 
       businessName: 

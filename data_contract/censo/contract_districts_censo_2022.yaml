@@ -1,8 +1,8 @@
 raw_data:
-  contractName: contract_mun_censo_2022.yaml
+  contractName: contract_districts_censo_2022.yaml
   tableName: 
   schema: 
-  physicalPath: raw_data/censo/layers/2022/municipios/
+  physicalPath: raw_data/censo/layers/2022/distritos/
   description: Municipality geometry layer from the 2022 Census
   queryYears: 2022
   ifExists: append
@@ -20,10 +20,10 @@ raw_data:
     sampleValues:
     -
 bronze:
-  contractName: contract_mun_censo_2022.yaml
-  tableName: mun_censo_2022
+  contractName: contract_districts_censo_2022.yaml
+  tableName: districts_censo_2022
   schema: layers
-  physicalPath: databases/bronze/censo/layers/2022/municipios/
+  physicalPath: databases/bronze/censo/layers/2022/distritos/
   description: Municipality geometry layer from the 2022 Census
   queryYears: 2022
   ifExists: append

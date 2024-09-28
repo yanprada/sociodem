@@ -1,8 +1,8 @@
 raw_data:
-  contractName: contract_mun_censo_2010.yaml
+  contractName: contract_districts_censo_2010.yaml
   tableName: 
   schema: 
-  physicalPath: raw_data/censo/layers/2010/municipios/
+  physicalPath: raw_data/censo/layers/2010/distritos/
   description: Municipality geometry layer from the 2010 Census
   queryYears: 2010
   ifExists: append
@@ -21,10 +21,10 @@ raw_data:
     -
 
 bronze:
-  contractName: contract_mun_censo_2010.yaml
-  tableName: mun_censo_2010
+  contractName: contract_districts_censo_2010.yaml
+  tableName: districts_censo_2010
   schema: layers
-  physicalPath: databases/bronze/censo/layers/2010/municipios/
+  physicalPath: databases/bronze/censo/layers/2010/distritos/
   description: Municipality geometry layer from the 2010 Census
   queryYears: 2010
   ifExists: replace
