@@ -13,12 +13,17 @@ Note: The script assumes the existence of certain contract files and directories
 
 import os
 import zipfile
+import time
+import mlflow
 import pandas as pd
+import geopandas as gpd
+from shapely.geometry import Point
 from tqdm import tqdm
+
 from src.tools.utils.reader import Reader
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.constants import STATES
-from src.tools.utils.common import write_log, check_data_consistency
+from src.tools.utils.constants import STATES, CRS_GLOBAL
+from src.tools.utils.common import write_log, get_ml_flow_data
 from src.tools.utils.execution_manager import ExecutionManager
 from src.databases.bronze.censo.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
@@ -29,6 +34,9 @@ execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
 CONTRACTS_RAW_DATA = execution_parameters["data_contracts"]["raw_data"]
 manager.update_status("running_step_2")
+
+EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
+mlflow.set_experiment(EXPERIMENT_ID)
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["dompp_2022"])
@@ -62,6 +70,12 @@ def get_dompp_per_state_2022(state, **kwargs):
                 .rename(columns={"size": "count"})
                 .astype({"cod_uf": "category", "cod_mun": "category"})
             )
+            if "latitude" in df.columns and "longitude" in df.columns:
+                df = gpd.GeoDataFrame(
+                    df,
+                    geometry=[Point(xy) for xy in zip(df["longitude"], df["latitude"])],
+                    crs=CRS_GLOBAL,
+                )
             return df
 
 
@@ -70,28 +84,34 @@ def get_dompp_2022():
     Retrieves the DOMPP data from the Censo 2022 dataset.
     """
     for state in tqdm(STATES):
-        kwargs = {"filename": state}
-        _ = get_dompp_per_state_2022(state, **kwargs)
+        with mlflow.start_run(run_name=state, nested=True):
+            df = get_dompp_per_state_2022(state)
+            add_mlflow_metrics(df)
 
 
-def upload_dompp_2022():
+def upload_dompp_2022(run_name_id: str):
     """
-    Uploads DOMPP data for the year 2022.
-
-    This function processes DOMPP data and checks if the data already exists.
-    If the data does not exist, it calls the `get_dompp_2022` function to retrieve it.
+    Uploads the DOMPP 2022 data if the specified run name ID is not present in the MLflow runs.
+    Args:
+        run_name_id (str): The run name ID to check in the MLflow runs.
     """
     write_log("Processing dompp data...")
-    path = CONTRACTS_BRONZE["dompp_2022"]["physicalPath"]
-    if os.path.exists(path):
-        data_wrong = check_data_consistency(path)
-        if any(data_wrong.values()):
-            get_dompp_2022()
-    else:
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_ID)
+    if run_name_id not in mlflow_runs_df["mlflow.runName"]:
         get_dompp_2022()
 
 
-def upload_censo_data(layer_key):
+def add_mlflow_metrics(df: pd.DataFrame):
+    """
+    Adds metrics to the mlflow run.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to add metrics to.
+    """
+    mlflow.log_metric("num_rows", df.shape[0])
+
+
+def upload_censo_data(layer_key: str, run_name_id: str):
     """
     Uploads municipalities data for the year 2010.
 
@@ -114,39 +134,84 @@ def upload_censo_data(layer_key):
         reader = Reader()
         dfs = []
         for state in tqdm(STATES):
-            filepath = os.path.join(
-                CONTRACTS_RAW_DATA[layer_key]["physicalPath"],
-                "".join([state, ".zip"]),
-            )
-            df = reader.read_geofile(filepath)
-            dfs.append(df)
+            with mlflow.start_run(run_name=state, nested=True):
+                filepath = os.path.join(
+                    CONTRACTS_RAW_DATA[layer_key]["physicalPath"],
+                    "".join([state, ".zip"]),
+                )
+                df = reader.read_geofile(filepath)
+                df = df.to_crs(CRS_GLOBAL)
+                add_mlflow_metrics(df)
+                dfs.append(df)
         dfs = pd.concat(dfs)
         return dfs
 
     write_log(f"Processing {layer_key} data...")
-    kwargs = {"filename": layer_key}
-    path = CONTRACTS_BRONZE[layer_key]["physicalPath"]
-    if os.path.exists(os.path.join(path, f"{layer_key}.parquet")):
-        data_wrong = check_data_consistency(path)
-        if any(data_wrong.values()):
-            _ = get_censo_data(layer_key, **kwargs)
-        write_log(f"{layer_key} data already exists.")
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_ID)
+    if run_name_id not in mlflow_runs_df["mlflow.runName"]:
+        _ = get_censo_data(layer_key)
     else:
+        write_log(f"{layer_key} data already exists.")
 
-        _ = get_censo_data(layer_key, **kwargs)
+
+@save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["states_2022"])
+def get_states_data():
+    """
+    Retrieves the geographical data for all states.
+    """
+    reader = Reader()
+    dfs = []
+    for state in tqdm(STATES):
+        filepath = os.path.join(
+            CONTRACTS_RAW_DATA["states_2022"]["physicalPath"],
+            "".join([state, ".geojson"]),
+        )
+        df = reader.read_geofile(filepath)
+        df = df.to_crs(CRS_GLOBAL)
+        dfs.append(df)
+    dfs = pd.concat(dfs)
+    return dfs
+
+
+def upload_states_2022(run_name_id: str):
+    """
+    Processes and uploads state data for the year 2022.
+    This function reads geographical data files for each state,
+    concatenates them into a single DataFrame,
+    and returns the combined DataFrame. It logs the processing
+    steps and uses a Reader object to read the geojson files.
+    """
+    write_log("Processing states data...")
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_ID)
+    if run_name_id not in mlflow_runs_df["mlflow.runName"]:
+        get_states_data()
 
 
 def main():
     """
     The main function that executes the script.
     """
+    run_date = time.strftime("%Y-%m")
     for layer_key in [
         "mun_2010",
         "mun_2022",
         "sectors_2010",
         "sectors_2022",
+        "districts_2010",
+        "districts_2022",
+        "subdistricts_2010",
+        "subdistricts_2022",
     ]:
-        upload_censo_data(layer_key)
-    upload_dompp_2022()
+        run_name_id = "-".join([layer_key, run_date])
+        with mlflow.start_run(run_name=run_name_id):
+            upload_censo_data(layer_key, run_name_id)
+
+    run_name_id = "-".join(["dompp", run_date])
+    with mlflow.start_run(run_name=run_name_id):
+        upload_dompp_2022(run_name_id)
+
+    run_name_id = "-".join(["states", run_date])
+    with mlflow.start_run(run_name=run_name_id):
+        upload_states_2022(run_name_id)
     manager.update_status("finished_step_2")
     manager.update_last_run()
