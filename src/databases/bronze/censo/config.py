@@ -15,7 +15,7 @@ from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from config.run_mode import DEBUG
 
 
-EXECUTION_ID = "bronze-censo-c2uXsXvZivkSLGh"
+EXECUTION_ID = "bronze-censo-3nydF90XEMs2mXE"
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "censo",
