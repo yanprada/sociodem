@@ -136,6 +136,7 @@ def process_file(file_path: str) -> pd.DataFrame:
     try:
         lats_lons, building_counts = process_image(file_path)
         if lats_lons is None or lats_lons.size == 0:
+            log_failed_file(file_path)
             return pd.DataFrame()
         return add_hexagons(lats_lons, building_counts)
     except Exception as e:
@@ -166,6 +167,7 @@ def process_and_save(file_path, batch_number, parent_run_id):
         with mlflow.start_run(run_id=parent_run_id):
             result = process_file(file_path)
             if result.empty:
+                log_failed_file(file_path)
                 return 0
             kwargs = {"filename": f"batch_{batch_number}_{os.path.basename(file_path)}"}
             save_batch_results(result, **kwargs)
@@ -223,24 +225,36 @@ def categorize_files_by_size(
         Tuple[List[str], List[str], List[str]]: Three lists containing
             small, medium, and large files respectively.
     """
+    nano_files = []
+    xsm_files = []
     small_files = []
     medium_files = []
     large_files = []
-
+    xl_files = []
     for file_path in file_paths:
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)  # Convert bytes to MB
-        if file_size_mb > 600:
-            large_files.append(file_path)
-        elif file_size_mb > 200:
-            medium_files.append(file_path)
-        else:
-            small_files.append(file_path)
 
-    return small_files, medium_files, large_files
+        if file_size_mb > 1000:
+            xl_files.append(file_path)
+        elif file_size_mb > 400:
+            large_files.append(file_path)
+        elif file_size_mb > 80:
+            medium_files.append(file_path)
+        elif file_size_mb > 40:
+            small_files.append(file_path)
+        elif file_size_mb > 20:
+            xsm_files.append(file_path)
+        else:
+            nano_files.append(file_path)
+
+    return nano_files, xsm_files, small_files, medium_files, large_files, xl_files
 
 
 def process_files_in_parallel(
-    file_paths: List[str], n_workers: int, parent_run: mlflow.entities.Run
+    file_paths: List[str],
+    n_workers: int,
+    parent_run: mlflow.entities.Run,
+    memory_limit: str,
 ):
     """
     Processes a list of files in parallel using Dask.
@@ -248,6 +262,7 @@ def process_files_in_parallel(
         file_paths (List[str]): List of file paths to be processed.
         n_workers (int): Number of worker processes to use.
         parent_run (mlflow.entities.Run): The parent run object containing run information.
+        memory_limit (str): Memory limit for each worker process.
     Returns:
         int: Total number of processed rows.
     """
@@ -255,7 +270,7 @@ def process_files_in_parallel(
     with LocalCluster(
         n_workers=n_workers,
         threads_per_worker=1,
-        memory_limit="auto",
+        memory_limit=memory_limit,
         processes=True,
     ) as cluster, Client(cluster):
         ddf = dd.from_pandas(
@@ -284,30 +299,53 @@ def main():
     """
     parallel = True
     run_time = time.strftime("%Y-%m-%d %H:%M:%S")
-    state = "MG"
+    state = "SP"
     if parallel:
         with mlflow.start_run(run_name=f"{state}_{run_time}") as parent_run:
             path = os.path.join(
                 BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"], state
             )
             files = get_remaining_files(path)
-            small_files, medium_files, large_files = categorize_files_by_size(files)
-            n_workers = 12
-            total_processed_small = process_files_in_parallel(
-                small_files, n_workers, parent_run
+            nano_files, xsm_files, small_files, medium_files, large_files, xl_files = (
+                categorize_files_by_size(files)
             )
-            n_workers = 6
-            total_processed_medium = process_files_in_parallel(
-                medium_files, n_workers, parent_run
-            )
-            n_workers = 2
-            total_processed_large = process_files_in_parallel(
-                large_files, n_workers, parent_run
-            )
-            mlflow.log_metric(
-                "total_processed_rows",
-                total_processed_small + total_processed_medium + total_processed_large,
-            )
+            if len(nano_files) > 0:
+                write_log(f"Processing nano files: {len(nano_files)}")
+                n_workers = 20
+                _ = process_files_in_parallel(
+                    nano_files, n_workers, parent_run, memory_limit="5GB"
+                )
+            if len(xsm_files) > 0:
+                write_log(f"Processing extra small files: {len(xsm_files)}")
+                n_workers = 15
+                _ = process_files_in_parallel(
+                    xsm_files, n_workers, parent_run, memory_limit="10GB"
+                )
+            if len(small_files) > 0:
+                write_log(f"Processing small files: {len(small_files)}")
+                n_workers = 10
+                _ = process_files_in_parallel(
+                    small_files, n_workers, parent_run, memory_limit="11GB"
+                )
+            if len(medium_files) > 0:
+                write_log(f"Processing medium files: {len(medium_files)}")
+                n_workers = 7
+                _ = process_files_in_parallel(
+                    medium_files, n_workers, parent_run, memory_limit="25GB"
+                )
+            if len(large_files) > 0:
+                write_log(f"Processing large files: {len(large_files)}")
+                n_workers = 3
+                _ = process_files_in_parallel(
+                    large_files, n_workers, parent_run, memory_limit="55GB"
+                )
+            if len(xl_files) > 0:
+                write_log(f"Processing extra large files: {len(xl_files)}")
+                n_workers = 1
+                _ = process_files_in_parallel(
+                    xl_files, n_workers, parent_run, memory_limit="62GB"
+                )
+
     else:
         path = os.path.join(
             BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"], state
