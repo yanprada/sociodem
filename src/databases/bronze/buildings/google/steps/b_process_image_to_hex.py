@@ -35,9 +35,9 @@ from src.databases.bronze.buildings.google.config import EXECUTION_ID, BASE_PARA
 from config.run_mode import DEBUG
 
 
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_2")
+MANAGER = ExecutionManager(BASE_PARAMS)
+execution_parameters = MANAGER.get_execution_details(EXECUTION_ID, DEBUG)
+
 
 BUILDING_CONTRACTS_RAW = execution_parameters["data_contracts"]["raw_data"]
 BUILDING_CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
@@ -49,7 +49,7 @@ LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "failed_files.log")
 logging.basicConfig(filename=LOG_FILE_PATH, level=logging.ERROR)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
-STATE = "SP"
+STATE = "RS"
 YEAR = BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"].split("/")[-2]
 
 
@@ -142,7 +142,8 @@ def process_and_save(file_path, batch_number):
         if result.empty:
             log_failed_file(file_path)
             return 0, 0
-        result["year"] = int(file_path.split("_")[3])
+        result["year"] = int(YEAR)
+        result["state"] = STATE
         kwargs = {"filename": f"batch_{batch_number}_{os.path.basename(file_path)}"}
         save_batch_results(result, **kwargs)
         result_len = len(result)
@@ -226,6 +227,7 @@ def categorize_files_by_size(
 
 
 def process_files_in_parallel(
+    name: str,
     file_paths: List[str],
     n_workers: int,
     memory_limit: str,
@@ -233,47 +235,72 @@ def process_files_in_parallel(
     """
     Processes a list of files in parallel using Dask.
     Args:
+        name (str): Name of the file group.
         file_paths (List[str]): List of file paths to be processed.
         n_workers (int): Number of worker processes to use.
         memory_limit (str): Memory limit for each worker process.
     Returns:
         int: Total number of processed rows.
     """
+    with mlflow.start_run(run_name=name, nested=True):
+        with LocalCluster(
+            n_workers=n_workers,
+            threads_per_worker=1,
+            memory_limit=memory_limit,
+            processes=True,
+        ) as cluster, Client(cluster):
+            ddf = dd.from_pandas(
+                pd.DataFrame({"file_path": file_paths}), npartitions=n_workers
+            )
+            futures = ddf.apply(
+                lambda row: process_and_save(
+                    row["file_path"],
+                    row.name // (len(file_paths) // n_workers),
+                ),
+                axis=1,
+                meta=[("processed_rows", "int64"), ("building_count", "int64")],
+            ).persist()
 
-    with LocalCluster(
-        n_workers=n_workers,
-        threads_per_worker=1,
-        memory_limit=memory_limit,
-        processes=True,
-    ) as cluster, Client(cluster):
-        ddf = dd.from_pandas(
-            pd.DataFrame({"file_path": file_paths}), npartitions=n_workers
-        )
-        futures = ddf.apply(
-            lambda row: process_and_save(
-                row["file_path"],
-                row.name // (len(file_paths) // n_workers),
-            ),
-            axis=1,
-            meta=("processed_rows", "int64"),
-        ).persist()
+            progress(futures)
+            futures_dict = futures.compute()
+    log_mlflow_metrics(futures_dict)
+    return futures_dict
 
-        progress(futures)
 
-        results = futures.compute()
-        results_len = results["processed_rows"]
-        results_dompp = results["building_count"]
-        total_processed = results_len.sum()
-        total_dompp = results_dompp.sum()
-    return total_processed, total_dompp
+def log_mlflow_metrics(results):
+    """
+    Logs various metrics to MLflow based on the provided results.
+    Parameters:
+    results (list of tuples): A list where each tuple contains two elements:
+        - The first element is used to calculate 'results_len' metrics.
+        - The second element is used to calculate 'dompp_sum' metrics.
+    Metrics Logged:
+    - results_len: Sum of the first elements in the results tuples.
+    - results_len_median: Median of the first elements in the results tuples.
+    - results_len_mean: Mean of the first elements in the results tuples.
+    - dompp_sum: Sum of the second elements in the results tuples.
+    - dompp_sum_median: Median of the second elements in the results tuples.
+    - dompp_sum_mean: Mean of the second elements in the results tuples.
+    """
+
+    mlflow.log_metric("results_len", np.sum(r_tuple[0] for r_tuple in results))
+    mlflow.log_metric(
+        "results_len_median", np.median([r_tuple[0] for r_tuple in results])
+    )
+    mlflow.log_metric("results_len_mean", np.mean([r_tuple[0] for r_tuple in results]))
+    mlflow.log_metric("dompp_sum", np.sum(r_tuple[1] for r_tuple in results))
+    mlflow.log_metric(
+        "dompp_sum_median", np.median([r_tuple[1] for r_tuple in results])
+    )
+    mlflow.log_metric("dompp_sum_mean", np.mean([r_tuple[1] for r_tuple in results]))
 
 
 def main():
     """
     Main function to process image files into hex format using Dask for parallelization.
     """
-    col_sum = 0
-    dompp_sum = 0
+    MANAGER.update_status("running_step_2")
+    results_total = pd.Series()
     with mlflow.start_run(run_name=f"{STATE}_{YEAR}_{RUN_TIME}"):
         path = os.path.join(
             BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"], STATE
@@ -282,27 +309,25 @@ def main():
         nano_files, xsm_files, small_files, medium_files, large_files, xl_files = (
             categorize_files_by_size(files)
         )
-        for file_group, n_workers, memory_limit in [
-            (xl_files, 10, "10GB"),
-            (large_files, 20, "9GB"),
-            (medium_files, 30, "8GB"),
-            (small_files, 40, "7GB"),
-            (xsm_files, 50, "6GB"),
-            (nano_files, 60, "5GB"),
+        for name, file_group, n_workers, memory_limit in [
+            ("xlarge", xl_files, 8, "6GB"),
+            ("large", large_files, 15, "5GB"),
+            ("medium", medium_files, 18, "5GB"),
+            ("small", small_files, 22, "5GB"),
+            ("xsmall", xsm_files, 22, "5GB"),
+            ("nano", nano_files, 22, "5GB"),
         ]:
             if file_group:
-                write_log(
-                    f"Processing {file_group} {len(file_group)} files with {n_workers} workers"
-                )
                 n_workers = min(n_workers, len(file_group))
-                col_sum_batch, dompp_sum_batch = process_files_in_parallel(
-                    file_group, n_workers, memory_limit
+                write_log(
+                    f"Processing {name} {len(file_group)} files with {n_workers} workers"
                 )
-                col_sum += col_sum_batch
-                dompp_sum += dompp_sum_batch
-            mlflow.log_metric("total_rows", col_sum)
-            mlflow.log_metric("total_dompp", dompp_sum)
-    manager.update_status("finished_step_2")
+                results = process_files_in_parallel(
+                    name, file_group, n_workers, memory_limit
+                )
+                results_total = pd.concat([results_total, results], ignore_index=True)
+        log_mlflow_metrics(results_total)
+    MANAGER.update_status("finished_step_2")
 
 
 if __name__ == "__main__":
