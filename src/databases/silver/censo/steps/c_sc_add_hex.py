@@ -33,8 +33,8 @@ execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 
 manager.update_status("running_step_3")
 
-CONTRACT_SCS_CENSO_BRONZE = execution_parameters["data_contracts"][0]
-CONTRACT_SCS_CENSO_SILVER = execution_parameters["data_contracts"][1]
+CONTRACT_SCS_CENSO_BRONZE = execution_parameters["data_contracts"]["censo_bronze"]
+CONTRACT_SCS_CENSO_SILVER = execution_parameters["data_contracts"]["censo_silver"]
 
 EXPERIMENT_NAME = "_".join([execution_parameters["mlflow_experiment"], "step_3"])
 mlflow.set_experiment(EXPERIMENT_NAME)

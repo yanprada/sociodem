@@ -16,16 +16,16 @@ from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from config.run_mode import DEBUG
 
 
-EXECUTION_ID = None
+EXECUTION_ID = "silver-censo-ijYLCfPxzqDLbA7"
 
 BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "censo",
     "config_path": os.path.abspath(__file__),
-    "data_contracts": [
-        get_censo_contracts("bronze"),
-        get_censo_contracts("silver"),
-    ],
+    "data_contracts": {
+        "censo_bronze": get_censo_contracts("bronze"),
+        "censo_silver": get_censo_contracts("silver"),
+    },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
 }

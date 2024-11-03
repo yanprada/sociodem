@@ -48,8 +48,8 @@ execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_1")
 
 
-CONTRACT_CENSO_BRONZE = execution_parameters["data_contracts"][0]
-CONTRACT_CENSO_SILVER = execution_parameters["data_contracts"][1]
+CONTRACT_CENSO_BRONZE = execution_parameters["data_contracts"]["censo_bronze"]
+CONTRACT_CENSO_SILVER = execution_parameters["data_contracts"]["censo_silver"]
 
 EXPERIMENT_NAME = "_".join([execution_parameters["mlflow_experiment"], "step_1"])
 mlflow.set_experiment(EXPERIMENT_NAME)
@@ -105,7 +105,7 @@ def group_by_hex_sc(df: gpd.GeoDataFrame) -> pd.DataFrame:
         DataFrame: The DataFrame grouped by hexagon ID and species code.
     """
     df = pd.DataFrame(df.drop(columns=["geometry"]))
-    return df.groupby(["hex_id", "cd_setor", "cod_especie"], as_index=False).agg(
+    return df.groupby(["hex_col", "cd_setor", "cod_especie"], as_index=False).agg(
         num_points=("cod_especie", "size"),
         dompp_total=("count", "sum"),
         max_points=("count", "max"),
@@ -124,7 +124,7 @@ def pivot_table(df: pd.DataFrame) -> pd.DataFrame:
     """
     df["cod_especie"] = df["cod_especie"].apply(DOMPP_CLASSES.__getitem__)
     df = df.pivot_table(
-        index=["hex_id", "cd_setor"],
+        index=["hex_col", "cd_setor"],
         columns="cod_especie",
         values=["num_points", "dompp_total", "max_points"],
         fill_value=0,

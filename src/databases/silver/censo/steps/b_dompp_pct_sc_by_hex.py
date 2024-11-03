@@ -15,7 +15,7 @@ execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_2")
 
 
-CONTRACT_CENSO_SILVER = execution_parameters["data_contracts"][1]
+CONTRACT_CENSO_SILVER = execution_parameters["data_contracts"]["censo_silver"]
 
 
 def create_pct_dompp_hex_sc() -> None:
@@ -29,7 +29,7 @@ def create_pct_dompp_hex_sc() -> None:
     query = f"""
     WITH dompp_data AS (
         SELECT 
-            hex_id,
+            hex_col,
             cd_setor,
             dompp_total_domicilio_coletivo,
             dompp_total_domicilio_particular,
@@ -57,7 +57,7 @@ def create_pct_dompp_hex_sc() -> None:
     ),
     merged_data AS (
         SELECT 
-            dompp_data.hex_id,
+            dompp_data.hex_col,
             dompp_data.cd_setor,
             COALESCE(dompp_data.dompp_total_domicilio_coletivo / NULLIF(grouped_data.total_domicilio_coletivo, 0), 0) AS pct_dompp_total_domicilio_coletivo,
             COALESCE(dompp_data.dompp_total_domicilio_particular / NULLIF(grouped_data.total_domicilio_particular, 0), 0) AS pct_dompp_total_domicilio_particular,
