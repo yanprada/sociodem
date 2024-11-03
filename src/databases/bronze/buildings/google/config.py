@@ -16,7 +16,7 @@ from src.tools.data_contract.buildings_data_contract import get_buildings_contra
 from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from config.run_mode import DEBUG
 
-EXECUTION_ID = None
+EXECUTION_ID = "bronze-buildings-7hSzfif4tP51Hxw"
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "buildings",
