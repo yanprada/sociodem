@@ -15,6 +15,7 @@ Usage:
 
 import os
 import gc
+import glob
 import multiprocessing
 import concurrent.futures
 from typing import List, Tuple
@@ -32,7 +33,7 @@ from src.tools.utils.reader import Reader
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import (
     check_file_exists_in_db,
-    check_file_exists_in_disk,
+    get_ml_flow_data,
     write_log,
     get_db_path,
 )
@@ -44,7 +45,7 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_2")
 
-CONTRACTS_BRONZE = execution_parameters["data_contracts"][0]
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
 
 
 EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
@@ -105,7 +106,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
     """
 
     @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE[database])
-    def read_aneel_in_chunks(layer_src, start, chunk_size, **kwargs):
+    def read_aneel_in_chunks(layer_src, start, chunk_size, company_id, **kwargs):
         """
         Read a chunk of features from a layer source into a GeoDataFrame.
 
@@ -113,6 +114,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
             layer_src (Layer): The source layer containing the features.
             start (int): The starting index of the chunk.
             chunk_size (int): The size of the chunk to be saved.
+            company_id (str): The ID of the company.
             **kwargs: Additional keyword arguments to be passed to the reader.
 
         Returns:
@@ -135,7 +137,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
                 properties, geometry=geometries, crs=layer_src.crs
             )
         df = df.drop_duplicates()
-        return columns_engineering(df, database)
+        return columns_engineering(df, database, company_id)
 
     def parallel_process():
         with fiona.Env():
@@ -153,6 +155,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
                             layer_src,
                             start,
                             chunk_size,
+                            company_id,
                             **task_kwargs,
                         )
                         tasks.append(future)
@@ -174,9 +177,14 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
         CONTRACTS_BRONZE["raw_data"]["physicalPath"],
         company_id,
     )
-    assert layers_dict[database] in fiona.listlayers(
-        path
-    ), f"{layers_dict[database]} not found in the file {path}"
+    layers = fiona.listlayers(path)
+    if layers_dict[database] not in layers:
+        layers_dict = {
+            "ramlig": "RAM_LIG",
+            "ucbt": "UC_BT_tab",
+            "ponnot": "PON_NOT",
+            "conj": "CONJ",
+        }
     parallel_process()
 
 
@@ -196,13 +204,16 @@ def add_missing_columns(df: pd.DataFrame, saved_columns: List[str]) -> pd.DataFr
     return df[saved_columns]
 
 
-def columns_engineering(df: gpd.GeoDataFrame, database: str) -> gpd.GeoDataFrame:
+def columns_engineering(
+    df: gpd.GeoDataFrame, database: str, company_id: str
+) -> gpd.GeoDataFrame:
     """
     Function to engineer columns in a GeoDataFrame.
 
     Args:
         df (gpd.GeoDataFrame): The input GeoDataFrame.
         database (str): The name of the database.
+        company_id (str): The ID of the company.
 
     Returns:
         gpd.GeoDataFrame: The GeoDataFrame with engineered columns.
@@ -210,6 +221,7 @@ def columns_engineering(df: gpd.GeoDataFrame, database: str) -> gpd.GeoDataFrame
     conn = DBConnection("bronze")
     contract = CONTRACTS_BRONZE[database]
     path = get_db_path(contract)
+    df["year"] = company_id.split(" - ")[1].split("-")[0]
     if check_file_exists_in_db(conn, path):
         cols = conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
         df = add_missing_columns(df, cols)
@@ -237,9 +249,13 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
         reader = Reader()
         path = os.path.join(CONTRACTS_BRONZE["raw_data"]["physicalPath"], company_id)
         layers = fiona.listlayers(path)
-        assert (
-            layers_dict[database] in layers
-        ), f"{layers_dict[database]} not found in the file {path}"
+        if layers_dict[database] not in layers:
+            layers_dict = {
+                "ramlig": "RAM_LIG",
+                "ucbt": "UC_BT_tab",
+                "ponnot": "PON_NOT",
+                "conj": "CONJ",
+            }
         df = reader.read_geofile(
             file_path=path,
             driver="FileGDB",
@@ -249,7 +265,7 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
         del reader
         del path
         gc.collect()
-        return columns_engineering(df, database)
+        return columns_engineering(df, database, company_id)
 
     with mlflow.start_run(run_name=company_id, nested=True):
         df = read_aneel(company_id, **kwargs)
@@ -267,35 +283,36 @@ def read_file(database: str, company_id: str, is_large_file: bool = False) -> No
                                         large or not. Defaults to False.
     """
     file_name = company_id.split(".")[0]
-    file_path = CONTRACTS_BRONZE[database]["physicalPath"]
-    exist_file = check_file_exists_in_disk(file_name, file_path)
-    if not exist_file:
-        with mlflow.start_run(run_name=str(database)):
-            manager.update_mlflow_runs(str(database))
-            kwargs = {"filename": file_name}
-            if is_large_file:
-                read_aneel_wraper_large_file(database, company_id, **kwargs)
-            else:
-                read_aneel_wraper(database, company_id, **kwargs)
+    with mlflow.start_run(run_name=str(database)):
+        manager.update_mlflow_runs(str(database))
+        kwargs = {"filename": file_name}
+        if is_large_file:
+            read_aneel_wraper_large_file(database, company_id, **kwargs)
+        else:
+            read_aneel_wraper(database, company_id, **kwargs)
 
 
-def read_aneel_company_files(company_id: str, is_large_file: bool = False) -> None:
+def read_aneel_company_files(
+    company_id: str, df_processed: pd.DataFrame, is_large_file: bool = False
+) -> None:
     """
     Reads ANEEL company files.
 
     This function reads the downloaded ANEEL company files.
     """
     for database in ["ponnot", "ramlig", "ucbt", "conj"]:
-        write_log(f"Reading {database} file")
-        read_file(database, company_id, is_large_file)
+        exist_file = all(
+            (company_id in df_processed["mlflow.runName"].values)
+            & (df_processed["database"] == database)
+        )
+        if not exist_file:
+            write_log(f"Reading {database} file {company_id}")
+            read_file(database, company_id, is_large_file)
 
 
-def split_file_sizes(df_aneel_ids) -> Tuple[List[str], List[str]]:
+def split_file_sizes() -> Tuple[List[str], List[str]]:
     """
     Splits the file sizes into two lists based on their sizes.
-
-    Args:
-        df_aneel_ids (DataFrame): The DataFrame containing the file ids.
 
     Returns:
         tuple: A tuple containing two lists - large_files and small_files.
@@ -307,8 +324,19 @@ def split_file_sizes(df_aneel_ids) -> Tuple[List[str], List[str]]:
     medium_files = []
     small_files = []
     split_size = 800 * 1024 * 1024
+    df_aneel_ids = pd.DataFrame(
+        {
+            "company_ids": [
+                os.path.basename(f)
+                for f in glob.glob(
+                    os.path.join(
+                        CONTRACTS_BRONZE["raw_data"]["physicalPath"], "*.gdb.zip"
+                    )
+                )
+            ]
+        }
+    )
     for company_id in df_aneel_ids["company_ids"]:
-        company_id = "".join([company_id, ".gdb.zip"])
         file_path = os.path.join(
             CONTRACTS_BRONZE["raw_data"]["physicalPath"],
             company_id,
@@ -325,55 +353,60 @@ def split_file_sizes(df_aneel_ids) -> Tuple[List[str], List[str]]:
     return extra_large_files, large_files, medium_files, small_files
 
 
-def process_small_files(small_files: list) -> None:
+def process_small_files(small_files: list, df_processed: pd.DataFrame) -> None:
     """
     Process small files using multiprocessing.
 
     Args:
         small_files (list): A list of small file paths to be processed.
+        df_processed (pd.DataFrame): The DataFrame containing processed files.
     """
     write_log("Processing small files")
     num_cores = multiprocessing.cpu_count()
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_cores) as executor:
         futures = [
-            executor.submit(read_aneel_company_files, company_id)
+            executor.submit(read_aneel_company_files, company_id, df_processed)
             for company_id in tqdm(small_files, desc="Processing small files")
         ]
         concurrent.futures.wait(futures)
 
 
-def proccess_medium_files(medium_files: list) -> None:
+def proccess_medium_files(medium_files: list, df_processed: pd.DataFrame) -> None:
     """
     Process medium files using concurrent.futures.ProcessPoolExecutor.
 
     Args:
         medium_files (list): A list of medium files to be processed.
+        df_processed (pd.DataFrame): The DataFrame containing processed files.
     """
     write_log("Processing medium files")
     num_cores = min(3, multiprocessing.cpu_count())
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_cores) as executor:
         futures = [
-            executor.submit(read_aneel_company_files, company_id)
+            executor.submit(read_aneel_company_files, company_id, df_processed)
             for company_id in tqdm(medium_files, desc="Processing medium files")
         ]
         concurrent.futures.wait(futures)
 
 
-def process_large_files(large_files) -> None:
+def process_large_files(large_files, df_processed: pd.DataFrame) -> None:
     """
     Process a list of large files.
 
     Args:
         large_files (list): A list of file ids.
+        df_processed (pd.DataFrame): The DataFrame containing processed files.
     """
     for company_id in tqdm(large_files, desc="Processing large files"):
         write_log(
             f"Reading large file: {company_id}",
         )
-        read_aneel_company_files(company_id)
+        read_aneel_company_files(company_id, df_processed)
 
 
-def process_extra_large_files(extra_large_files: list) -> None:
+def process_extra_large_files(
+    extra_large_files: list, df_processed: pd.DataFrame
+) -> None:
     """
     Process a list of extra large files.
 
@@ -382,12 +415,13 @@ def process_extra_large_files(extra_large_files: list) -> None:
 
     Args:
         extra_large_files (list): A list of extra large file ids.
+        df_processed (pd.DataFrame): The DataFrame containing processed files.
     """
     for company_id in tqdm(extra_large_files, desc="Processing extra large files"):
         write_log(
             f"Reading extra large file: {company_id}",
         )
-        read_aneel_company_files(company_id, is_large_file=True)
+        read_aneel_company_files(company_id, df_processed, is_large_file=True)
 
 
 @lru_cache(maxsize=10)
@@ -447,20 +481,28 @@ def create_primary_key():
         conn.create_pk(schema, table_name, pk_key)
 
 
-def process_files_aneel(df_aneel_ids: pd.DataFrame):
+def get_df_processed():
+    """
+    Get the processed data from MLflow.
+    """
+    df_processed = get_ml_flow_data(EXPERIMENT_NAME)
+    df_processed = df_processed[
+        (df_processed["status"] == "FINISHED")
+        & (~df_processed["mlflow.runName"].isin(["ponnot", "ucbt", "conj", "ramlig"]))
+    ]
+    return df_processed
+
+
+def process_files_aneel():
     """
     Process the files in the ANEEL dataset based on their sizes.
-
-    Args:
-        df_aneel_ids (pd.DataFrame): The DataFrame containing ANEEL dataset IDs.
     """
-    extra_large_files, large_files, medium_files, small_files = split_file_sizes(
-        df_aneel_ids
-    )
-    process_small_files(small_files)
-    proccess_medium_files(medium_files)
-    process_large_files(large_files)
-    process_extra_large_files(extra_large_files)
+    df_processed = get_df_processed()
+    extra_large_files, large_files, medium_files, small_files = split_file_sizes()
+    process_small_files(small_files, df_processed)
+    proccess_medium_files(medium_files, df_processed)
+    process_large_files(large_files, df_processed)
+    process_extra_large_files(extra_large_files, df_processed)
 
 
 def main():
@@ -472,9 +514,8 @@ def main():
     It utilizes concurrent.futures.ProcessPoolExecutor to parallelize the
     file reading process.
     """
-    df_aneel_ids = load_aneel_ids()
-    process_files_aneel(df_aneel_ids)
-    update_ponnot_id_in_ucbt_table()
-    create_primary_key()
+    process_files_aneel()
+    # update_ponnot_id_in_ucbt_table()
+    # create_primary_key()
     manager.update_status("finished_step_2")
     manager.update_last_run()
