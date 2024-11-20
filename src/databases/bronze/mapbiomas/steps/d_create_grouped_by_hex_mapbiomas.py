@@ -26,8 +26,8 @@ def create_grouped_by_hex_mapbiomas(conn: DBConnection) -> None:
     Args:
         conn (DBConnection): The database connection object.
     """
-    contract_mapbiomas = CONTRACTS["mapbiomas_2022"]
-    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas_2022"]
+    contract_mapbiomas = CONTRACTS["mapbiomas"]
+    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas"]
     old_path = get_db_path(contract_mapbiomas)
     new_path = get_db_path(contract_mapbiomas_hex)
     query = f"""
@@ -45,7 +45,7 @@ def create_unique_hex_ids_mapbiomas(conn: DBConnection) -> None:
     Args:
         conn (DBConnection): The database connection object.
     """
-    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas_2022"]
+    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas"]
     contract_mapbiomas_unique_hex = CONTRACTS["unique_hex_ids"]
     old_path = get_db_path(contract_mapbiomas_hex)
     new_path = get_db_path(contract_mapbiomas_unique_hex)

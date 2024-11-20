@@ -28,7 +28,7 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_2")
 
-CONTRACTS = execution_parameters["data_contracts"][0]
+CONTRACTS = execution_parameters["data_contracts"]["mapbiomas_bronze"]
 
 
 def process_block(
@@ -59,18 +59,19 @@ def process_block(
         return pd.DataFrame({"lng": x_coords, "lat": y_coords, "value": values})
 
 
-@save_parquet_decorator("bronze", CONTRACTS["mapbiomas_2022"], save_db=False)
-def save_mapbiomas(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+@save_parquet_decorator("bronze", CONTRACTS["mapbiomas"])
+def save_mapbiomas(df: pd.DataFrame, year: int) -> pd.DataFrame:
     """
     Save the MapBiomas dataframe to a file or database.
 
     Args:
         df (pd.DataFrame): The MapBiomas dataframe to be saved.
-        **kwargs: Additional keyword arguments for saving options.
+        year (int): The MapBiomas year being processed.
 
     Returns:
         pd.DataFrame: The saved MapBiomas dataframe.
     """
+    df["year"] = year
     return df
 
 
@@ -91,21 +92,21 @@ def generate_windows(height: int, width: int, block_size: int):
             yield rasterio.windows.Window(j, i, block_size, block_size)
 
 
-def save_partitions(all_dfs: List[pd.DataFrame], partition: int) -> int:
+def save_partitions(all_dfs: List[pd.DataFrame], partition: int, year: int) -> int:
     """
     Save the partitions of dataframes into separate files.
 
     Args:
         all_dfs (List[pd.DataFrame]): A list of dataframes to be concatenated and saved.
         partition (int): The current partition number.
+        year (int) : The Mapbiomas year being processed.
 
     Returns:
         int: The updated partition number.
 
     """
     df = pd.concat(all_dfs, ignore_index=True)
-    kwargs = {"filename": f"mapbiomas_2022_{partition}"}
-    df = save_mapbiomas(df, **kwargs)
+    df = save_mapbiomas(df, year)
     del df
     gc.collect()
     partition += 1
@@ -113,17 +114,21 @@ def save_partitions(all_dfs: List[pd.DataFrame], partition: int) -> int:
 
 
 def process_batch(
-    file_path: str, block_size: int, batch: int, batch_size: int, partition: int
+    file_path: str,
+    size_list: List[int],
+    batch: int,
+    partition: int,
+    year: int,
 ) -> int:
     """
     Process a batch of raster blocks and transform them into dataframes.
 
     Args:
         file_path (str): The path to the raster file.
-        block_size (int): The size of each block.
+        size_list (List[int]): A list containing the block size and batch size.
         batch (int): The index of the current batch.
-        batch_size (int): The number of blocks to process in each batch.
         partition (int): The current partition number.
+        year (int) : The Mapbiomas year being processed.
 
     Returns:
         int: The updated partition number.
@@ -146,18 +151,17 @@ def process_batch(
 
     Example:
         >>> file_path = "/path/to/raster/file.tif"
-        >>> block_size = 256
+        >>> size_list = [256, 10]
         >>> batch = 0
-        >>> batch_size = 10
         >>> partition = 1
-        >>> new_partition = process_batch(file_path, block_size, batch, batch_size, partition)
+        >>> year = 2022
+        >>> new_partition = process_batch(file_path, size_list, batch, partition, year)
     """
     all_dfs = []
-
     with rasterio.open(file_path) as src:
         transform = src.transform
-        windows = list(generate_windows(src.height, src.width, block_size))[
-            batch : batch + batch_size
+        windows = list(generate_windows(src.height, src.width, size_list[0]))[
+            batch : batch + size_list[1]
         ]
         with ProcessPoolExecutor() as executor:
             future_to_window = {
@@ -181,13 +185,13 @@ def process_batch(
                         continue
                     all_dfs.append(block_df.query("value != 0"))
                     if sum(len(df) for df in all_dfs) > 1e5:
-                        partition = save_partitions(all_dfs, partition)
+                        partition = save_partitions(all_dfs, partition, year)
                         all_dfs = []
                 except Exception as e:
                     print(f"Error processing window: {e}")
 
     if all_dfs:
-        partition = save_partitions(all_dfs, partition)
+        partition = save_partitions(all_dfs, partition, year)
     return partition
 
 
@@ -199,7 +203,7 @@ def main() -> None:
     retrieves the transform information,
     and then calls the process_batch function to process the file in batches.
     """
-    for year in range(2018, 2023):
+    for year in range(2016, 2023):
         filename = "".join([CONTRACTS["raw_data"]["tableName"], ".tif"]).replace(
             "2022", str(year)
         )
@@ -216,7 +220,7 @@ def main() -> None:
             range(0, len(windows), batch_size), desc="Processing Batches"
         ):
             partition = process_batch(
-                file_path, block_size, batch, batch_size, partition
+                file_path, [block_size, batch_size], batch, partition, year
             )
             gc.collect()
     manager.update_status("finished_step_2")

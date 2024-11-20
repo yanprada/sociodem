@@ -34,7 +34,7 @@ EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_ID)
 
 
-@save_parquet_decorator("bronze", CONTRACTS["mapbiomas_2022"])
+@save_parquet_decorator("bronze", CONTRACTS["mapbiomas"])
 def load_data(partition: int, folder_path: str) -> pd.DataFrame:
     """
     Load data from a specific partition.
@@ -46,7 +46,7 @@ def load_data(partition: int, folder_path: str) -> pd.DataFrame:
     Returns:
         pandas.DataFrame: The loaded data grouped by "hex_col", "value", and "size".
     """
-    path = os.path.join(folder_path, f"mapbiomas_2022_{partition}.parquet")
+    path = os.path.join(folder_path, f"mapbiomas_{partition}.parquet")
     reader = Reader()
     df = reader.read_parquet(path)
     df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
@@ -113,7 +113,7 @@ def main() -> None:
     date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
     manager.update_mlflow_runs(date)
     with mlflow.start_run(run_name=str(date)):
-        folder_path = CONTRACTS["mapbiomas_2022"]["physicalPath"]
+        folder_path = CONTRACTS["mapbiomas"]["physicalPath"]
         num_files = count_files(folder_path)
         start = 0
         batch = 100

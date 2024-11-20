@@ -18,7 +18,7 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_1")
 
-CONTRACTS = execution_parameters["data_contracts"][0]
+CONTRACTS = execution_parameters["data_contracts"]["mapbiomas_bronze"]
 
 
 def main() -> None:
@@ -29,7 +29,7 @@ def main() -> None:
     """
     requester = HttpRequesterMapbiomas()
     requester.request_from_page(
-        range(2018, 2023), CONTRACTS["mapbiomas_2022"]["physicalPath"]
+        range(2016, 2023), CONTRACTS["mapbiomas"]["physicalPath"]
     )
     manager.update_status("finished_step_1")
     manager.update_last_run()
