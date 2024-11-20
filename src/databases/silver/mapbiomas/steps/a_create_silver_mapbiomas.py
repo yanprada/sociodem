@@ -36,7 +36,7 @@ CONTRACT_SILVER = execution_parameters["data_contracts"][1]
 CONTRACT_PARTITIONS = execution_parameters["data_contracts"][2]
 
 
-@save_parquet_decorator("silver", CONTRACT_SILVER["mapbiomas_2022"])
+@save_parquet_decorator("silver", CONTRACT_SILVER["mapbiomas"])
 def save_mapbiomas_partition(df: pd.DataFrame, **kwargs):
     """
     Saves the MapBiomas partition DataFrame.
@@ -136,7 +136,7 @@ def load_mapbiomas(conn: DBConnection, condition: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The loaded data from the bronze database.
     """
-    contract_mapbiomas = CONTRACT_BRONZE["grouped_by_hex_mapbiomas_2022"]
+    contract_mapbiomas = CONTRACT_BRONZE["grouped_by_hex_mapbiomas"]
     path = get_db_path(contract_mapbiomas)
     query = f"SELECT * FROM {path} {condition}"
     return conn.query_database(query)
