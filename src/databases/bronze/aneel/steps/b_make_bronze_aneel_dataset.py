@@ -18,6 +18,7 @@ import gc
 import glob
 import multiprocessing
 import concurrent.futures
+from collections import defaultdict
 from typing import List, Tuple
 from functools import lru_cache
 from tqdm import tqdm
@@ -52,31 +53,6 @@ EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 
-@lru_cache(maxsize=10)
-def load_aneel_ids() -> pd.DataFrame:
-    """Loads ANEEL IDs from a CSV file and returns them as a pandas DataFrame.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing ANEEL IDs.
-
-    Examples:
-        >>> load_aneel_ids()
-           id
-        0   18729481353
-        1   29873689872
-        2   39048776183
-    """
-    conn = DBConnection("bronze")
-    contract = CONTRACTS_BRONZE["company_id"]
-    path = get_db_path(contract)
-    df = conn.query_database(
-        f"""
-            SELECT * FROM {path} 
-        """
-    )
-    return df
-
-
 def add_to_mlflow(df: gpd.GeoDataFrame, database: str, company_id: str) -> None:
     """
     Logs the parameters and metrics to MLflow for the given GeoDataFrame.
@@ -90,9 +66,13 @@ def add_to_mlflow(df: gpd.GeoDataFrame, database: str, company_id: str) -> None:
     mlflow.log_param("company", df.dist.unique()[0])
     mlflow.log_metric("num_rows", len(df))
     if database == "ucbt":
-        mlflow.log_metric("energy", df.filter(regex="ene_").sum().sum())
+        mlflow.log_metric("sum_energy", df.filter(regex="ene_").sum().sum())
+        mlflow.log_metric("mean_energy", df.filter(regex="ene_").sum(axis=1).mean())
+        mlflow.log_metric("std_energy", df.filter(regex="ene_").sum(axis=1).std())
     else:
-        mlflow.log_metric("energy", 0)
+        mlflow.log_metric("sum_energy", 0)
+        mlflow.log_metric("mean_energy", 0)
+        mlflow.log_metric("std_energy", 0)
 
 
 def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
@@ -163,7 +143,7 @@ def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
                     for future in tqdm(
                         concurrent.futures.as_completed(tasks), total=len(tasks)
                     ):
-                        with mlflow.start_run(run_name=company_id, nested=True):
+                        with mlflow.start_run(run_name=company_id):
                             df = future.result()
                             add_to_mlflow(df, database, company_id)
 
@@ -218,10 +198,35 @@ def columns_engineering(
     Returns:
         gpd.GeoDataFrame: The GeoDataFrame with engineered columns.
     """
+    exclude_cols = [
+        "ceq",
+        "uni_tr_d",
+        "ctmt",
+        "uni_tr_s",
+        "car_inst",
+        "liv",
+        "fic",
+        "semred",
+        "descr",
+        "cod_id",
+        "odi",
+        "cm",
+        "tuc",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+    ]
+    df = df.drop(columns=exclude_cols, errors="ignore")
     conn = DBConnection("bronze")
     contract = CONTRACTS_BRONZE[database]
     path = get_db_path(contract)
     df["year"] = company_id.split(" - ")[1].split("-")[0]
+    df["company_file"] = company_id
+    if "conj" in df.columns:
+        df["conj"] = df["conj"].fillna("0").astype(int)
     if check_file_exists_in_db(conn, path):
         cols = conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
         df = add_missing_columns(df, cols)
@@ -267,7 +272,7 @@ def read_aneel_wraper(database: str, company_id: str, **kwargs):
         gc.collect()
         return columns_engineering(df, database, company_id)
 
-    with mlflow.start_run(run_name=company_id, nested=True):
+    with mlflow.start_run(run_name=company_id):
         df = read_aneel(company_id, **kwargs)
         add_to_mlflow(df, database, company_id)
 
@@ -283,13 +288,12 @@ def read_file(database: str, company_id: str, is_large_file: bool = False) -> No
                                         large or not. Defaults to False.
     """
     file_name = company_id.split(".")[0]
-    with mlflow.start_run(run_name=str(database)):
-        manager.update_mlflow_runs(str(database))
-        kwargs = {"filename": file_name}
-        if is_large_file:
-            read_aneel_wraper_large_file(database, company_id, **kwargs)
-        else:
-            read_aneel_wraper(database, company_id, **kwargs)
+    manager.update_mlflow_runs(str(database))
+    kwargs = {"filename": file_name}
+    if is_large_file:
+        read_aneel_wraper_large_file(database, company_id, **kwargs)
+    else:
+        read_aneel_wraper(database, company_id, **kwargs)
 
 
 def read_aneel_company_files(
@@ -301,28 +305,77 @@ def read_aneel_company_files(
     This function reads the downloaded ANEEL company files.
     """
     for database in ["ponnot", "ramlig", "ucbt", "conj"]:
-        exist_file = all(
-            (company_id in df_processed["mlflow.runName"].values)
-            & (df_processed["database"] == database)
+        exist_file = (
+            df_processed[
+                (df_processed["mlflow.runName"] == company_id)
+                & (df_processed["database"] == database)
+            ].shape[0]
+            > 0
         )
         if not exist_file:
             write_log(f"Reading {database} file {company_id}")
             read_file(database, company_id, is_large_file)
 
 
-def split_file_sizes() -> Tuple[List[str], List[str]]:
+def flat_list(files_dict: dict) -> List[str]:
     """
-    Splits the file sizes into two lists based on their sizes.
+    Flattens a list of lists.
+
+    Args:
+        files_dict (dict): A dictionary containing lists of files.
 
     Returns:
-        tuple: A tuple containing two lists - large_files and small_files.
-               large_files: List of file ids with sizes greater than 800MB.
-               small_files: List of file ids with sizes less than 800KB.
+        list: The flattened list.
     """
-    extra_large_files = []
-    large_files = []
-    medium_files = []
-    small_files = []
+    temp_files = []
+    if not files_dict:
+        temp_files.append([])
+    for _, files in files_dict.items():
+        temp_files.extend(files)
+    return temp_files
+
+
+def flat_lists(
+    extra_large_files: List[str],
+    large_files: List[str],
+    medium_files: List[str],
+    small_files: List[str],
+) -> Tuple[List[str], List[str], List[str], List[str]]:
+    """
+    Flattens a list of lists.
+
+    Args:
+        extra_large_files (list): A list of extra large files.
+        large_files (list): A list of large files.
+        medium_files (list): A list of medium files.
+        small_files (list): A list of small
+
+    Returns:
+        list: The flattened list.
+    """
+    extra_large_files = flat_list(extra_large_files)
+    large_files = flat_list(large_files)
+    medium_files = flat_list(medium_files)
+    small_files = flat_list(small_files)
+    return extra_large_files, large_files, medium_files, small_files
+
+
+def split_file_sizes() -> Tuple[List[str], List[str], List[str], List[str]]:
+    """
+    Splits the file sizes into four lists based on their sizes.
+
+    Returns:
+        tuple: A tuple containing four lists - extra_large_files, large_files,
+               medium_files, and small_files.
+               extra_large_files: List of file ids with sizes greater than or equal to 1.76GB.
+               large_files: List of file ids with sizes between 800MB and 1.76GB.
+               medium_files: List of file ids with sizes between 100MB and 800MB.
+               small_files: List of file ids with sizes less than 100MB.
+    """
+    extra_large_files = defaultdict(list)
+    large_files = defaultdict(list)
+    medium_files = defaultdict(list)
+    small_files = defaultdict(list)
     split_size = 800 * 1024 * 1024
     df_aneel_ids = pd.DataFrame(
         {
@@ -337,20 +390,23 @@ def split_file_sizes() -> Tuple[List[str], List[str]]:
         }
     )
     for company_id in df_aneel_ids["company_ids"]:
+        if " - " not in company_id:
+            continue
+        year = company_id.split(" - ")[1].split("-")[0]
         file_path = os.path.join(
             CONTRACTS_BRONZE["raw_data"]["physicalPath"],
             company_id,
         )
         file_size = os.path.getsize(file_path)
-        if file_size >= 2.2 * split_size:
-            extra_large_files.append(company_id)
+        if file_size >= 1.6 * split_size:
+            extra_large_files[year].append(company_id)
         elif file_size >= split_size:
-            large_files.append(company_id)
+            large_files[year].append(company_id)
         elif (split_size / 8) <= file_size < split_size:
-            medium_files.append(company_id)
+            medium_files[year].append(company_id)
         else:
-            small_files.append(company_id)
-    return extra_large_files, large_files, medium_files, small_files
+            small_files[year].append(company_id)
+    return flat_lists(extra_large_files, large_files, medium_files, small_files)
 
 
 def process_small_files(small_files: list, df_processed: pd.DataFrame) -> None:
@@ -438,54 +494,13 @@ def get_cols_in_db(table_name) -> List[str]:
     return conn.query_database(f"SELECT * FROM {schema}.{table} LIMIT 1").columns
 
 
-def update_ponnot_id_in_ucbt_table():
-    """
-    Retrieves data from the bronze database and performs some transformations.
-    Updates the 'pn_con' column in the 'ucbt' table by joining it with the 'ramlig' table.
-    """
-    write_log("Updating 'pn_con' column in 'ucbt' table")
-    conn = DBConnection("bronze")
-    schema_ucbt = CONTRACTS_BRONZE["ucbt"]["schema"]
-    table_ucbt = CONTRACTS_BRONZE["ucbt"]["tableName"]
-    schema_ramlig = CONTRACTS_BRONZE["ramlig"]["schema"]
-    table_ramlig = CONTRACTS_BRONZE["ramlig"]["tableName"]
-    df = conn.query_database(
-        f""" 
-        SELECT * 
-        FROM {schema_ucbt}.{table_ucbt} u 
-        LEFT JOIN {schema_ramlig}.{table_ramlig} r 
-        ON u.ramal = r.cod_id 
-        WHERE u.pn_con = ' ' 
-        AND r.pn_con_1 != ' ' 
-        AND u.dist = r.dist
-        AND u.conj = r.conj
-        """
-    )
-    saved_columns_ramlig = get_cols_in_db("ramlig")
-    df["pn_con"] = df["pn_con_1"]  # update pn_con column with ramlig pn_con value
-    df = df.iloc[:, : -len(saved_columns_ramlig)]
-    match_cols = [col for col in df.columns if col != "pn_con"]
-    conn.update_table(df, match_cols, (schema_ucbt, table_ucbt))
-
-
-def create_primary_key():
-    """
-    Creates a primary key on the ID column of ucbt table.
-    """
-    conn = DBConnection("bronze")
-    schema = CONTRACTS_BRONZE["ucbt"]["schema"]
-    table_name = CONTRACTS_BRONZE["ucbt"]["tableName"]
-    pk_key = "row_id"
-    df = conn.query_database(f"SELECT * FROM {schema}.{table_name} LIMIT 1")
-    if pk_key not in df.columns:
-        conn.create_pk(schema, table_name, pk_key)
-
-
 def get_df_processed():
     """
     Get the processed data from MLflow.
     """
     df_processed = get_ml_flow_data(EXPERIMENT_NAME)
+    if df_processed.empty:
+        return pd.DataFrame({"mlflow.runName": [], "database": []})
     df_processed = df_processed[
         (df_processed["status"] == "FINISHED")
         & (~df_processed["mlflow.runName"].isin(["ponnot", "ucbt", "conj", "ramlig"]))
@@ -515,7 +530,5 @@ def main():
     file reading process.
     """
     process_files_aneel()
-    # update_ponnot_id_in_ucbt_table()
-    # create_primary_key()
     manager.update_status("finished_step_2")
     manager.update_last_run()
