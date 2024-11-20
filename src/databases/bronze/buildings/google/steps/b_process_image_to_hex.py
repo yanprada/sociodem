@@ -49,8 +49,8 @@ LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "failed_files.log")
 logging.basicConfig(filename=LOG_FILE_PATH, level=logging.ERROR)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
-STATE = "RS"
 YEAR = BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"].split("/")[-2]
+STATE = "RN"
 
 
 def log_failed_file(file_path: str) -> None:
@@ -295,6 +295,31 @@ def log_mlflow_metrics(results):
     mlflow.log_metric("dompp_sum_mean", np.mean([r_tuple[1] for r_tuple in results]))
 
 
+def move_files_location():
+    """
+    Updates the folder structure for building contracts by renaming and moving
+    the existing folder and creating a new folder at the old path.
+    The function performs the following steps:
+    1. Retrieves the current path of the building contracts folder.
+    2. Constructs a new path by replacing the year in the old path and appending the state.
+    3. If the old path exists, renames and moves the folder to the new path.
+    4. Creates a new folder at the old path.
+    5. Logs the actions performed.
+    Note: The function assumes that `BUILDING_CONTRACTS_RAW`, `STATE`, `os`, and `write_log`
+    are defined elsewhere in the code.
+    Raises:
+        OSError: If an error occurs while renaming or creating directories.
+    """
+    old_path = BUILDING_CONTRACTS_BRONZE["buildings_google"]["physicalPath"]
+    new_path = old_path.replace("2016", "process/2016")
+    new_path = os.path.join(new_path, STATE)
+    if os.path.exists(old_path):
+        os.rename(old_path, new_path)
+        write_log(f"Renamed and moved folder from {old_path} to {new_path}")
+    os.makedirs(old_path, exist_ok=True)
+    write_log(f"Created new folder at {old_path}")
+
+
 def main():
     """
     Main function to process image files into hex format using Dask for parallelization.
@@ -327,6 +352,9 @@ def main():
                 )
                 results_total = pd.concat([results_total, results], ignore_index=True)
         log_mlflow_metrics(results_total)
+
+    # Rename the folder 2016 to the state and move to another path
+    move_files_location()
     MANAGER.update_status("finished_step_2")
 
 
