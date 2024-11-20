@@ -39,8 +39,11 @@ def get_aneel_bronze_contracts():
         "company_id": contract_company_id,
         "ponnot": contract_aneel_bronze[0],
         "ucbt": contract_aneel_bronze[1],
-        "ramlig": contract_aneel_bronze[2],
-        "conj": contract_aneel_bronze[3],
+        "ucbt_agg": contract_aneel_bronze[2],
+        "ucbt_no_join": contract_aneel_bronze[3],
+        "ramlig": contract_aneel_bronze[4],
+        "conj": contract_aneel_bronze[5],
+        "aneel_join": contract_aneel_bronze[6],
     }
     return EasyDict(contracts)
 
