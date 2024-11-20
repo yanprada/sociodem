@@ -46,7 +46,7 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_2")
 
-CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["aneel_bronze"]
 
 
 EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
