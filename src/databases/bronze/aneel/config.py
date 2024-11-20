@@ -14,13 +14,13 @@ import os
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from config.run_mode import DEBUG
 
-EXECUTION_ID = "bronze-aneel-Vox6ftgR5iN7T9F"
+EXECUTION_ID = "bronze-aneel-NtfyqPzbmQweZrk"
 
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "aneel",
     "config_path": os.path.abspath(__file__),
-    "data_contracts": {"bronze": get_aneel_contracts("bronze")},
+    "data_contracts": {"aneel_bronze": get_aneel_contracts("bronze")},
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
 }

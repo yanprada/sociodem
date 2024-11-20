@@ -18,15 +18,15 @@ from src.tools.data_contract.validation_data_contract import (
 from config.run_mode import DEBUG
 
 
-EXECUTION_ID = None
+EXECUTION_ID = "silver-aneel-Xyej7oFhvhBWTR2"
 
 BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "aneel",
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
-        "bronze": get_aneel_contracts("bronze"),
-        "silver": get_aneel_contracts("silver"),
+        "aneel_bronze": get_aneel_contracts("bronze"),
+        "aneel_silver": get_aneel_contracts("silver"),
         "validation": get_validation_contracts("silver", 0),
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
