@@ -1,6 +1,6 @@
 raw_data:
   contractName: contract_layers_mapbiomas.yaml
-  tableName: brasil_coverage_2022
+  tableName: brasil_coverage
   schema: 
   physicalPath: raw_data/mapbiomas/
   description: 
@@ -21,11 +21,11 @@ raw_data:
     - 
 bronze:
   - contractName: contract_layers_mapbiomas.yaml
-    tableName: brasil_coverage_2022
+    tableName: brasil_coverage
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/
     description: 
-    queryYears: 2022
+    queryYears: [1985 ,2023]
     ifExists: append
     columns:
     - column: 
@@ -40,11 +40,11 @@ bronze:
       translatedValues:
       sampleValues:
       - 
-  - tableName: grouped_by_hex_brasil_coverage_2022
+  - tableName: grouped_by_hex_brasil_coverage
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/
     description: 
-    queryYears: 2022
+    queryYears: [1985 ,2023]
     ifExists: append
     columns:
     - column: 
@@ -59,11 +59,11 @@ bronze:
       translatedValues:
       sampleValues:
       -
-  - tableName: unique_hex_brasil_coverage_2022
+  - tableName: unique_hex_brasil_coverage
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/unique_hex_ids/
     description: 
-    queryYears: 2022
+    queryYears: [1985 ,2023]
     ifExists: append
     columns:
     - column: 
@@ -80,11 +80,11 @@ bronze:
       - 
 silver:
   contractName: contract_layers_mapbiomas.yaml
-  tableName: brasil_coverage_2022
+  tableName: brasil_coverage
   schema: land_use
   physicalPath: databases/silver/mapbiomas/land_use/
   description: 
-  queryYears: 2022
+  queryYears: [1985 ,2023]
   ifExists: append
   columns:
   - column: hex_col
