@@ -522,6 +522,24 @@ class DBConnection(DBConnectionHandler):
         if len(not_null_columns) > 0:
             self.__add_not_null_to_table(schema_name, table_name, not_null_columns)
 
+    def execute_query(self, query: str) -> Union[list, None]:
+        """
+        Executes a given SQL query using the database connection.
+        Args:
+            query (str): The SQL query to be executed.
+        Returns:
+            list: A list of rows returned by the query if it returns rows, otherwise None.
+        """
+        try:
+            with self._DBConnectionHandler__engine.begin() as conn:
+                result = conn.execute(text(query))
+                if result.returns_rows:
+                    return result.fetchall()
+                return None
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
+
     def drop_index(self, schema: str, table_name: str):
         """
         Drops an index from the database.
@@ -546,7 +564,7 @@ class DBConnection(DBConnectionHandler):
             columns (list): A list of column names on which the index should be created.
         """
         query = f"""
-                    CREATE INDEX IF NOT EXISTS {table_name}_idx
+                    CREATE INDEX IF NOT EXISTS {table_name}_idx_{"_".join(columns)}
                     ON {schema}.{table_name} 
                     ({", ".join(columns)})
                     """
