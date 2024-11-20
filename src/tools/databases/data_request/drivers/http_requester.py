@@ -298,7 +298,7 @@ class HttpRequesterMapbiomas:
     def __init__(self) -> None:
         self.__url = (
             "https://storage.googleapis.com/mapbiomas-public/initiatives/brasil/"
-            "collection_8/lclu/coverage/brasil_coverage_{year}.tif"
+            "collection_9/lclu/coverage/brasil_coverage_{year}.tif"
         )
 
     def __save_file(self, response: requests.Response, filename: str) -> None:
