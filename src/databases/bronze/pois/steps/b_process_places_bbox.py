@@ -30,7 +30,7 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_2")
 
-POIS_CONTRACTS = execution_parameters["data_contracts"][0]
+POIS_CONTRACTS = execution_parameters["data_contracts"]["pois_bronze"]
 
 
 @save_parquet_decorator("bronze", POIS_CONTRACTS["pois"], save_db=False)

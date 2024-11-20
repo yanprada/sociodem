@@ -23,7 +23,10 @@ BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "pois",
     "config_path": os.path.abspath(__file__),
-    "data_contracts": [get_pois_contracts("bronze"), get_censo_contracts("bronze")],
+    "data_contracts": {
+        "pois_bronze": get_pois_contracts("bronze"),
+        "censo_bronze": get_censo_contracts("bronze"),
+    },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
 }
