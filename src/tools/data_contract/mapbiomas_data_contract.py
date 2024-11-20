@@ -21,14 +21,12 @@ def get_mapbiomas_bronze_contracts():
         contracts (dict): A dictionary containing the ANEEL contracts for different companies.
             The keys are the names of the companies and the values are the corresponding contracts.
     """
-    contract_mapbiomas_2022 = get_contract(
-        "mapbiomas/contract_mapbiomas_2022.yaml", "bronze"
-    )
-    raw_data = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "raw_data")
+    contract_mapbiomas = get_contract("mapbiomas/contract_mapbiomas.yaml", "bronze")
+    raw_data = get_contract("mapbiomas/contract_mapbiomas.yaml", "raw_data")
     contracts = {
-        "mapbiomas_2022": contract_mapbiomas_2022[0],
-        "grouped_by_hex_mapbiomas_2022": contract_mapbiomas_2022[1],
-        "unique_hex_ids": contract_mapbiomas_2022[2],
+        "mapbiomas": contract_mapbiomas[0],
+        "grouped_by_hex_mapbiomas": contract_mapbiomas[1],
+        "unique_hex_ids": contract_mapbiomas[2],
         "raw_data": raw_data,
     }
     return EasyDict(contracts)
@@ -42,10 +40,10 @@ def get_mapbiomas_silver_contracts():
         contracts (dict): A dictionary containing the ANEEL contracts for different companies.
             The keys are the names of the companies and the values are the corresponding contracts.
     """
-    contract_mun_2022 = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "silver")
-    raw_data = get_contract("mapbiomas/contract_mapbiomas_2022.yaml", "raw_data")
+    contract_mapbiomas = get_contract("mapbiomas/contract_mapbiomas.yaml", "silver")
+    raw_data = get_contract("mapbiomas/contract_mapbiomas.yaml", "raw_data")
     contracts = {
-        "mapbiomas_2022": contract_mun_2022,
+        "mapbiomas": contract_mapbiomas,
         "raw_data": raw_data,
     }
     return EasyDict(contracts)
