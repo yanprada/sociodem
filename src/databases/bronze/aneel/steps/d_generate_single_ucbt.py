@@ -85,19 +85,7 @@ def group_ucbt(conn: DBConnection, path_ucbt: str, path_ucbt_agg: str) -> None:
                 AVG(ene_09) as ene_09_mean,
                 AVG(ene_10) as ene_10_mean,
                 AVG(ene_11) as ene_11_mean,
-                AVG(ene_12) as ene_12_mean,
-                STDDEV(ene_01) as ene_01_std,
-                STDDEV(ene_02) as ene_02_std,
-                STDDEV(ene_03) as ene_03_std,
-                STDDEV(ene_04) as ene_04_std,
-                STDDEV(ene_05) as ene_05_std,
-                STDDEV(ene_06) as ene_06_std,
-                STDDEV(ene_07) as ene_07_std,
-                STDDEV(ene_08) as ene_08_std,
-                STDDEV(ene_09) as ene_09_std,
-                STDDEV(ene_10) as ene_10_std,
-                STDDEV(ene_11) as ene_11_std,
-                STDDEV(ene_12) as ene_12_std
+                AVG(ene_12) as ene_12_mean
             FROM {path_ucbt}
             GROUP BY
                 year,
@@ -119,7 +107,9 @@ def create_indexes(conn: DBConnection) -> None:
     """
     schema = ANEEL_BRONZE_CONTRACTS["ucbt"]["schema"]
     table_name = ANEEL_BRONZE_CONTRACTS["ucbt"]["tableName"]
-    conn.create_index(schema, table_name, ["year", "dist", "mun", "conj", "clas_sub"])
+    conn.create_index(
+        schema, table_name, ["year", "dist", "mun", "conj", "clas_sub", "pn_con"]
+    )
     conn.create_index(schema, table_name, ["year"])
 
 
