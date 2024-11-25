@@ -147,6 +147,42 @@ bronze:
       isBlank: 
       translatedValues:
       sampleValues:
+  - tableName: ucbt_clear
+    schema: infrastructure
+    physicalPath: databases/bronze/aneel/ucbt_clear/
+    description: Energy infrastructure consumption for energy companies that has a ponnot
+    queryYears: [2017, 2023]
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+  - tableName: ponnot_clean
+    schema: infrastructure
+    physicalPath: databases/bronze/aneel/ponnot_clean/
+    description: Energy infrastructure consumption for energy companies that has a ponnot
+    queryYears: [2017, 2023]
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
 silver:
   - contractName: contract_aneel_companies.yaml
     tableName: aneel
