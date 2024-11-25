@@ -230,6 +230,7 @@ def columns_engineering(
     if check_file_exists_in_db(conn, path):
         cols = conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
         df = add_missing_columns(df, cols)
+    df = df.drop_duplicates()
     return df
 
 
