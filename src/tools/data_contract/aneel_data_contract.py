@@ -44,6 +44,8 @@ def get_aneel_bronze_contracts():
         "ramlig": contract_aneel_bronze[4],
         "conj": contract_aneel_bronze[5],
         "aneel_join": contract_aneel_bronze[6],
+        "ucbt_clean": contract_aneel_bronze[7],
+        "ponnot_clean": contract_aneel_bronze[8],
     }
     return EasyDict(contracts)
 
