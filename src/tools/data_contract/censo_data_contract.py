@@ -127,7 +127,8 @@ def get_censo_silver_contracts():
         "dompp_2022": contract_dompp_2022[0],
         "dompp_pct_2022": contract_dompp_2022[1],
         "mun_2022": contract_mun_2022,
-        "sectors_2022": contract_sector_2022,
+        "sectors_2022": contract_sector_2022[1],
+        "sectors_2022_hex": contract_sector_2022[0],
     }
     return EasyDict(contracts)
 
