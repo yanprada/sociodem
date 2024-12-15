@@ -42,23 +42,43 @@ bronze:
     sampleValues:
     - 
 silver:
-  contractName: contract_sectors_censo_2022.yaml
-  tableName: hex_to_sc
-  schema: layers
-  physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
-  description: Census sectors geometry layer from the 2022 Census
-  queryYears: 2022
-  ifExists: replace
-  columns:
-  - column: 
-    isPrimaryKey: 
-    ForeignKey: 
-    businessName: 
-    description: 
-    logicalType: 
-    physicalType: 
-    isNullable: 
-    isBlank: 
-    translatedValues:
-    sampleValues:
-    - 
+  - contractName: contract_sectors_censo_2022.yaml
+    tableName: hex_participation_sc_censo_2022
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
+    description: Hexagon participation in dompp census sector
+    queryYears: 2022
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+  - contractName: contract_sectors_censo_2022.yaml
+    tableName: sc_censo_2022
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
+    description: Census sectors geometry layer from the 2022 Census
+    queryYears: 2022
+    ifExists: replace
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
