@@ -28,7 +28,8 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_2")
 
-CONTRACTS = execution_parameters["data_contracts"]["mapbiomas_bronze"]
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["mapbiomas_bronze"]
+CONTRACTS_RAW = execution_parameters["data_contracts"]["mapbiomas_raw"]
 
 
 def process_block(
@@ -57,22 +58,6 @@ def process_block(
         x_coords, y_coords = rasterio.transform.xy(transform, indices[0], indices[1])
         values = block.flatten()
         return pd.DataFrame({"lng": x_coords, "lat": y_coords, "value": values})
-
-
-@save_parquet_decorator("bronze", CONTRACTS["mapbiomas"])
-def save_mapbiomas(df: pd.DataFrame, year: int) -> pd.DataFrame:
-    """
-    Save the MapBiomas dataframe to a file or database.
-
-    Args:
-        df (pd.DataFrame): The MapBiomas dataframe to be saved.
-        year (int): The MapBiomas year being processed.
-
-    Returns:
-        pd.DataFrame: The saved MapBiomas dataframe.
-    """
-    df["year"] = year
-    return df
 
 
 def generate_windows(height: int, width: int, block_size: int):
@@ -105,8 +90,18 @@ def save_partitions(all_dfs: List[pd.DataFrame], partition: int, year: int) -> i
         int: The updated partition number.
 
     """
+    contract = CONTRACTS_BRONZE["mapbiomas"].copy()
+    contract["tableName"] = contract["tableName"].format(year=year)
+    contract["physicalPath"] = contract["physicalPath"].format(year=year)
+
+    @save_parquet_decorator("bronze", contract, save_db=True, save_pq=True)
+    def save_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+        return df
+
     df = pd.concat(all_dfs, ignore_index=True)
-    df = save_mapbiomas(df, year)
+    df["year"] = year
+    kwargs = {"filename": f"brasil_coverage_{year}_{partition}"}
+    df = save_data(df, **kwargs)
     del df
     gc.collect()
     partition += 1
@@ -203,16 +198,14 @@ def main() -> None:
     retrieves the transform information,
     and then calls the process_batch function to process the file in batches.
     """
-    for year in range(2016, 2023):
-        filename = "".join([CONTRACTS["raw_data"]["tableName"], ".tif"]).replace(
-            "2022", str(year)
+    year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
+    for year in tqdm(range(year_init, year_end + 1), desc="Processing Years"):
+        filename = "".join([CONTRACTS_RAW["raw_data"]["tableName"], ".tif"]).format(
+            year=year
         )
-        file_path = os.path.join(
-            CONTRACTS["raw_data"]["physicalPath"], filename
-        ).replace("2022", str(year))
+        file_path = os.path.join(CONTRACTS_RAW["raw_data"]["physicalPath"], filename)
         block_size = 2048
         batch_size = 100  # Limit to a small number for quick profiling
-
         with rasterio.open(file_path) as src:
             windows = list(generate_windows(src.height, src.width, block_size))
         partition = 0

@@ -18,7 +18,8 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_1")
 
-CONTRACTS = execution_parameters["data_contracts"]["mapbiomas_bronze"]
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["mapbiomas_bronze"]
+CONTRACTS_RAW = execution_parameters["data_contracts"]["mapbiomas_raw"]
 
 
 def main() -> None:
@@ -27,9 +28,10 @@ def main() -> None:
     It initializes an instance of HttpRequesterMapbiomas and makes a request to download data
     for the specified range of years using the contract defined in CONTRACT.
     """
+    year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
     requester = HttpRequesterMapbiomas()
     requester.request_from_page(
-        range(2016, 2023), CONTRACTS["mapbiomas"]["physicalPath"]
+        range(year_init, year_end), CONTRACTS_RAW["raw_data"]["physicalPath"]
     )
     manager.update_status("finished_step_1")
     manager.update_last_run()
