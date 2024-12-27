@@ -189,7 +189,7 @@ def save_as_dask(
     """
     filename = filename.replace(".parquet", "/")
     n_particoes = total_size // limit_partition + 1
-    add_partition_size_to_yaml(filename, n_particoes)
+    # add_partition_size_to_yaml(filename, n_particoes)
     for col in df_data.filter(like="geom").columns:
         if df_data[col].dtype != "O":
             df_data[col] = df_data[col].apply(str)
