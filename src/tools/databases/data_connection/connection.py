@@ -7,7 +7,7 @@ and managing a database connection using SQLAlchemy.
 
 import warnings
 
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 from decouple import config
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -175,10 +175,19 @@ class DBConnectionHandler:
     This class provides methods for creating a database engine and managing a session.
     """
 
-    def __init__(self, database: str) -> None:
+    def __init__(
+        self,
+        database: str,
+        pool_size: int,
+        max_overflow: int,
+        pool_timeout: int,
+    ) -> None:
         self.__connection_string = (
             f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@localhost:5432/{database}"
         )
+        self.pool_size = pool_size
+        self.max_overflow = max_overflow
+        self.pool_timeout = pool_timeout
         self.__engine = self.__create_database_engine()
         self.session = None
 
@@ -212,7 +221,12 @@ class DBConnectionHandler:
         Returns:
             sqlalchemy.engine.Engine: The created database engine.
         """
-        engine = create_engine(self.__connection_string)
+        engine = create_engine(
+            self.__connection_string,
+            pool_size=self.pool_size,
+            max_overflow=self.max_overflow,
+            pool_timeout=self.pool_timeout,
+        )
         return engine
 
     def get_engine(self):
@@ -240,6 +254,9 @@ class DBConnection(DBConnectionHandler):
 
     Attributes:
         __engine (sqlalchemy.engine.Engine): The database engine.
+        pool_size (int): The size of the connection pool.
+        max_overflow (int): The maximum overflow size of the connection pool.
+        pool_timeout (int): The timeout for the connection pool.
 
     Methods:
         __create_schema: Create a schema in the database.
@@ -250,6 +267,15 @@ class DBConnection(DBConnectionHandler):
         add_table: Adds a table to the database.
         query_database: Executes a query on the database and returns the result as a DataFrame.
     """
+
+    def __init__(
+        self,
+        database: str,
+        pool_size: Optional[int] = 10,
+        max_overflow: Optional[int] = 20,
+        pool_timeout: Optional[int] = 60,
+    ) -> None:
+        super().__init__(database, pool_size, max_overflow, pool_timeout)
 
     def __create_schema(
         self, conn: sqlalchemy.engine.Connection, schema_name: str
