@@ -14,12 +14,15 @@ import os
 from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
 from config.run_mode import DEBUG
 
-EXECUTION_ID = "bronze-mapbiomas-xt05OqrcPRV6RDS"
+EXECUTION_ID = "bronze-mapbiomas-G7jJVhlhymC1oWf"
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "mapbiomas",
     "config_path": os.path.abspath(__file__),
-    "data_contracts": {"mapbiomas_bronze": get_mapbiomas_contracts("bronze")},
+    "data_contracts": {
+        "mapbiomas_raw": get_mapbiomas_contracts("raw"),
+        "mapbiomas_bronze": get_mapbiomas_contracts("bronze"),
+    },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
 }
