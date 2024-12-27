@@ -31,15 +31,16 @@ def create_pct_dompp_hex_sc() -> None:
         SELECT 
             hex_col,
             cd_setor,
-            dompp_total_domicilio_coletivo,
-            dompp_total_domicilio_particular,
-            dompp_total_edificio_em_construcao,
-            dompp_total_estabelecimento_agropecuario,
-            dompp_total_estabelecimento_ensino,
-            dompp_total_estabelecimento_religioso,
-            dompp_total_estabelecimento_saude,
-            dompp_total_outros_estabelecimentos
+            SUM(dompp_total_domicilio_coletivo) as dompp_total_domicilio_coletivo,
+            SUM(dompp_total_domicilio_particular) as dompp_total_domicilio_particular,
+            SUM(dompp_total_edificio_em_construcao) as dompp_total_edificio_em_construcao,
+            SUM(dompp_total_estabelecimento_agropecuario) as dompp_total_estabelecimento_agropecuario,
+            SUM(dompp_total_estabelecimento_ensino) as dompp_total_estabelecimento_ensino,
+            SUM(dompp_total_estabelecimento_religioso) as dompp_total_estabelecimento_religioso,
+            SUM(dompp_total_estabelecimento_saude) as dompp_total_estabelecimento_saude,
+            SUM(dompp_total_outros_estabelecimentos) as dompp_total_outros_estabelecimentos
         FROM {path}
+        GROUP BY hex_col, cd_setor
     ),
     grouped_data AS (
         SELECT 
