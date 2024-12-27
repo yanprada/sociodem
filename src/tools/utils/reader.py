@@ -4,7 +4,7 @@ This module provides a class that provides methods to read different file format
 It includes methods to read Parquet files, CSV files, Excel files, and shapefiles.
 """
 
-from typing import Optional
+from typing import Optional, Union
 import dask.dataframe as dd
 import pandas as pd
 import geopandas as gpd
@@ -12,6 +12,8 @@ from dask.diagnostics import ProgressBar
 import unidecode
 from sqlalchemy import text
 from tqdm import tqdm
+
+from src.tools.utils.constants import CRS_GLOBAL
 
 
 class Reader:
@@ -43,12 +45,15 @@ class Reader:
         )
         return df
 
-    def read_parquet(self, file_path: str, **kwargs):
+    def read_parquet(
+        self, file_path: str, geo_file: Optional[Union[None, bool]] = None, **kwargs
+    ):
         """
         Reads a Parquet file and returns a pandas DataFrame.
 
         Parameters:
         - file_path (str): The path to the Parquet file.
+        - geo_file (bool): Whether the file is a geospatial file or not.
         - **kwargs: Additional keyword arguments to be passed to the `pd.read_parquet` function.
 
         Returns:
@@ -59,6 +64,13 @@ class Reader:
         else:
             read_function = pd.read_parquet
         df = self.__read(read_function, file_path, **kwargs)
+        if geo_file:
+            if "geometry" in df.columns:
+                df = gpd.GeoDataFrame(df, crs=CRS_GLOBAL)
+            else:
+                geo_columns = [col for col in df.columns if "geo" in col]
+                if geo_columns:
+                    df = gpd.GeoDataFrame(df, geometry=geo_columns[0], crs=CRS_GLOBAL)
         return df
 
     def read_geoparquet(self, file_path: str, **kwargs):

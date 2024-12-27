@@ -48,7 +48,7 @@ def load_data(partition: int, folder_path: str) -> pd.DataFrame:
     """
     path = os.path.join(folder_path, f"mapbiomas_{partition}.parquet")
     reader = Reader()
-    df = reader.read_parquet(path)
+    df = reader.read_parquet(path, geo=True)
     df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
     return df.groupby(["hex_col", "value"], as_index=False).size()
 
