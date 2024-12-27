@@ -63,10 +63,12 @@ def add_hex_from_geom(
     - gpd.GeoDataFrame: The modified GeoDataFrame with the hex index column added.
     """
     df = add_h3_index_to_large_geom(df, "cd_setor")
+    mask_setor = df_pct_sc_hex["cd_setor"].isin(df["cd_setor"])
+    temp_pct_sc_hex = df_pct_sc_hex[mask_setor].rename(columns={"hex_id": "hex_col"})
     df = df.merge(
-        df_pct_sc_hex.rename(columns={"hex_id": "hex_col"}),
+        temp_pct_sc_hex,
         on=["hex_col", "cd_setor"],
-        how="left",
+        how="outer",
     ).fillna(0)
     return df
 
