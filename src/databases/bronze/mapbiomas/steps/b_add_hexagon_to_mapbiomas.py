@@ -13,23 +13,47 @@ import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import gc
 from typing import List
+import h3
+import mlflow
 import rasterio
 import rasterio.windows
+import geopandas as gpd
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+
+from src.tools.utils.constants import CRS_GLOBAL, HEX_RESOLUTION
 
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.execution_manager import ExecutionManager
 from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
+
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 manager.update_status("running_step_2")
+EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
+mlflow.set_experiment(EXPERIMENT_ID)
 
 CONTRACTS_BRONZE = execution_parameters["data_contracts"]["mapbiomas_bronze"]
 CONTRACTS_RAW = execution_parameters["data_contracts"]["mapbiomas_raw"]
+
+
+def df_to_gdf(df: pd.DataFrame) -> gpd.GeoDataFrame:
+    """
+    Convert a pandas DataFrame with latitude and longitude columns to a GeoDataFrame
+    and transform it to a global CRS (EPSG:4326).
+
+    Args:
+        df (pd.DataFrame): The input DataFrame with 'lat' and 'lng' columns.
+
+    Returns:
+        gpd.GeoDataFrame: A GeoDataFrame with Point geometries in global CRS.
+    """
+    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lng, df.lat))
+    gdf.set_crs({"init": CRS_GLOBAL}, inplace=True)
+    return gdf
 
 
 def process_block(
@@ -100,8 +124,12 @@ def save_partitions(all_dfs: List[pd.DataFrame], partition: int, year: int) -> i
 
     df = pd.concat(all_dfs, ignore_index=True)
     df["year"] = year
+    df = df_to_gdf(df)
+    df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
+    df = df.groupby(["hex_col", "value"], as_index=False).size()
     kwargs = {"filename": f"brasil_coverage_{year}_{partition}"}
     df = save_data(df, **kwargs)
+    add_to_mlflow(df, partition)
     del df
     gc.collect()
     partition += 1
@@ -158,7 +186,7 @@ def process_batch(
         windows = list(generate_windows(src.height, src.width, size_list[0]))[
             batch : batch + size_list[1]
         ]
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             future_to_window = {
                 executor.submit(process_block, window, transform, file_path): window
                 for window in windows
@@ -190,6 +218,22 @@ def process_batch(
     return partition
 
 
+def add_to_mlflow(df: pd.DataFrame, partition: int) -> pd.DataFrame:
+    """
+    Process a partition of data.
+
+    Args:
+        df (pd.DataFrame): The data to be processed.
+        partition (int): The partition number.
+    """
+    temp = df.groupby(["hex_col"])["size"].sum()
+    with mlflow.start_run(run_name=str(partition), nested=True):
+        mlflow.log_metric("num_hex", df["hex_col"].nunique())
+        mlflow.log_metric("num_points", df["size"].sum())
+        mlflow.log_metric("mean_points_per_hex", temp.mean())
+        mlflow.log_metric("std_point_per_hex", temp.std())
+
+
 def main() -> None:
     """
     Main function that processes a raster file and calls the process_batch function.
@@ -198,24 +242,29 @@ def main() -> None:
     retrieves the transform information,
     and then calls the process_batch function to process the file in batches.
     """
-    year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
-    for year in tqdm(range(year_init, year_end + 1), desc="Processing Years"):
-        filename = "".join([CONTRACTS_RAW["raw_data"]["tableName"], ".tif"]).format(
-            year=year
-        )
-        file_path = os.path.join(CONTRACTS_RAW["raw_data"]["physicalPath"], filename)
-        block_size = 2048
-        batch_size = 100  # Limit to a small number for quick profiling
-        with rasterio.open(file_path) as src:
-            windows = list(generate_windows(src.height, src.width, block_size))
-        partition = 0
-        for batch in tqdm(
-            range(0, len(windows), batch_size), desc="Processing Batches"
-        ):
-            partition = process_batch(
-                file_path, [block_size, batch_size], batch, partition, year
+    date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
+    manager.update_mlflow_runs(date)
+    with mlflow.start_run(run_name=str(date)):
+        year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
+        for year in tqdm(range(year_init, year_end + 1), desc="Processing Years"):
+            filename = "".join([CONTRACTS_RAW["raw_data"]["tableName"], ".tif"]).format(
+                year=year
             )
-            gc.collect()
+            file_path = os.path.join(
+                CONTRACTS_RAW["raw_data"]["physicalPath"], filename
+            )
+            block_size = 2048
+            batch_size = 100  # Limit to a small number for quick profiling
+            with rasterio.open(file_path) as src:
+                windows = list(generate_windows(src.height, src.width, block_size))
+            partition = 0
+            for batch in tqdm(
+                range(0, len(windows), batch_size), desc="Processing Batches"
+            ):
+                partition = process_batch(
+                    file_path, [block_size, batch_size], batch, partition, year
+                )
+                gc.collect()
     manager.update_status("finished_step_2")
     manager.update_last_run()
 
