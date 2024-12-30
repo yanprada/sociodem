@@ -1,9 +1,9 @@
 """
-This script creates a new table in the 'silver' database by aggregating data 
+This script creates a new table in the 'bronze' database by aggregating data 
 from the 'bronze' database.
 It calculates the total size for each combination of 'hex_col' and 'value' 
 columns in the 'bronze' table,
-and stores the result in the 'silver' table.
+and stores the result in the 'bronze' table.
 """
 
 from src.tools.databases.data_connection.connection import DBConnection
@@ -15,7 +15,7 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-CONTRACTS = execution_parameters["data_contracts"][0]
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["mapbiomas_bronze"]
 manager.update_status("running_step_4")
 
 
@@ -26,8 +26,8 @@ def create_grouped_by_hex_mapbiomas(conn: DBConnection) -> None:
     Args:
         conn (DBConnection): The database connection object.
     """
-    contract_mapbiomas = CONTRACTS["mapbiomas"]
-    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas"]
+    contract_mapbiomas = CONTRACTS_BRONZE["mapbiomas"]
+    contract_mapbiomas_hex = CONTRACTS_BRONZE["grouped_by_hex_mapbiomas"]
     old_path = get_db_path(contract_mapbiomas)
     new_path = get_db_path(contract_mapbiomas_hex)
     query = f"""
@@ -45,8 +45,8 @@ def create_unique_hex_ids_mapbiomas(conn: DBConnection) -> None:
     Args:
         conn (DBConnection): The database connection object.
     """
-    contract_mapbiomas_hex = CONTRACTS["grouped_by_hex_mapbiomas"]
-    contract_mapbiomas_unique_hex = CONTRACTS["unique_hex_ids"]
+    contract_mapbiomas_hex = CONTRACTS_BRONZE["grouped_by_hex_mapbiomas"]
+    contract_mapbiomas_unique_hex = CONTRACTS_BRONZE["unique_hex_ids"]
     old_path = get_db_path(contract_mapbiomas_hex)
     new_path = get_db_path(contract_mapbiomas_unique_hex)
     query = f"""
@@ -62,11 +62,11 @@ def create_unique_hex_ids_mapbiomas(conn: DBConnection) -> None:
 
 def main() -> None:
     """
-    This function creates a new table in the 'silver' database by aggregating data
+    This function creates a new table in the 'bronze' database by aggregating data
     from the 'bronze' database.
     It calculates the total size for each combination of 'hex_col' and 'value' columns
     in the 'bronze' table,
-    and stores the result in the 'silver' table.
+    and stores the result in the 'bronze' table.
     """
     conn = DBConnection("bronze")
     create_grouped_by_hex_mapbiomas(conn)
