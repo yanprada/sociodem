@@ -95,10 +95,9 @@ class ExecutionManager:
             write_log(f"MLflow experiment name: {experiment_name}")
 
     def __create_status(self, overwrite: bool):
-        status = "pending"
-        self.execution_details["status"] = status
+        self.execution_details["status"] = []
         if overwrite:
-            write_log(f"Status: {status}")
+            write_log("Status created!")
 
     def __create_data_contracts(self, overwrite: bool):
         self.execution_details["data_contracts"] = self.data_contracts
@@ -155,9 +154,8 @@ class ExecutionManager:
             execution_id = self.execution_id
 
         write_log(f"Execution ID {execution_id} started.")
-        for i, func_step in enumerate(self.params["execution_details"]["steps"]):
+        for _, func_step in enumerate(self.params["execution_details"]["steps"]):
             if func_step["run"]:
-                self.update_status(f"running_step_{i}")
                 func_step["function"]()
 
     def get_execution_details(self, execution_id: str = None, overwrite: bool = False):
@@ -188,19 +186,23 @@ class ExecutionManager:
                 line = f"{'EXECUTION_ID'} = '{self.execution_id}'\n"
             print(line, end="")
 
-    def update_status(self, status: str):
+    def update_status(self, execution_parameters: dict, status: str):
         """
         Update the status of the execution.
         Args:
+            execution_parameters (dict): The parameters of the execution.
             status (str): The new status of the execution.
         """
-
-        self.execution_details["status"] = status
+        date = datetime.now().strftime("%d-%m-%Y %H:%M")
+        self.execution_details["status"] = execution_parameters["status"].append(
+            (date, status)
+        )
+        status_self = self.execution_details["status"]
         self.collection.update_one(
             {"execution_id": self.execution_id},
-            {"$set": {"status": status}},
+            {"$set": {"status": status_self}},
         )
-        write_log(f"Execution ID {self.execution_id} updated to {status}")
+        write_log(f"Execution ID {self.execution_id} updated to {status_self}")
 
     def update_mlflow_runs(self, run_name: str):
         """
