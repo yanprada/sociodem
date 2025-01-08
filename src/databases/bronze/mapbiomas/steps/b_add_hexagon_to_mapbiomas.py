@@ -32,7 +32,8 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_2")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_ID)
 
@@ -244,9 +245,9 @@ def main() -> None:
     """
     date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
     manager.update_mlflow_runs(date)
-    with mlflow.start_run(run_name=str(date)):
-        year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
-        for year in tqdm(range(year_init, year_end + 1), desc="Processing Years"):
+    year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
+    for year in tqdm(range(year_init, year_end + 1), desc="Processing Years"):
+        with mlflow.start_run(run_name=str(year)):
             filename = "".join([CONTRACTS_RAW["raw_data"]["tableName"], ".tif"]).format(
                 year=year
             )
@@ -265,7 +266,6 @@ def main() -> None:
                     file_path, [block_size, batch_size], batch, partition, year
                 )
                 gc.collect()
-    manager.update_status("finished_step_2")
     manager.update_last_run()
 
 

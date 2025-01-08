@@ -6,6 +6,8 @@ columns in the 'bronze' table,
 and stores the result in the 'bronze' table.
 """
 
+import os
+
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path
 
@@ -15,8 +17,11 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
+
 CONTRACTS_BRONZE = execution_parameters["data_contracts"]["mapbiomas_bronze"]
-manager.update_status("running_step_4")
 
 
 def create_grouped_by_hex_mapbiomas(conn: DBConnection) -> None:
@@ -71,7 +76,6 @@ def main() -> None:
     conn = DBConnection("bronze")
     create_grouped_by_hex_mapbiomas(conn)
     create_unique_hex_ids_mapbiomas(conn)
-    manager.update_status("finished_step_4")
     manager.update_last_run()
 
 
