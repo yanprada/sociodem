@@ -95,7 +95,7 @@ class ExecutionManager:
             write_log(f"MLflow experiment name: {experiment_name}")
 
     def __create_status(self, overwrite: bool):
-        self.execution_details["status"] = []
+        self.execution_details["status"] = {}
         if overwrite:
             write_log("Status created!")
 
@@ -105,7 +105,7 @@ class ExecutionManager:
             write_log("Data contracts added to execution details")
 
     def __create_steps(self, overwrite: bool):
-        self.execution_details["steps"] = self.execution_details.get("steps", [])
+        self.execution_details["steps"] = self.execution_details.get("steps", {})
         num_steps = len(self.execution_details["steps"])
         if overwrite:
             write_log(f"{num_steps} steps added to execution details")
@@ -186,6 +186,21 @@ class ExecutionManager:
                 line = f"{'EXECUTION_ID'} = '{self.execution_id}'\n"
             print(line, end="")
 
+    def add_status_to_step(self, status: str):
+        """
+        Add the status to the step of the execution.
+        Args:
+            status (str): The new status of the execution
+        """
+        date = datetime.now().strftime("%d-%m-%Y %H:%M")
+        self.execution_details["steps"][status] = date
+        steps = self.execution_details["steps"]
+        self.collection.update_one(
+            {"execution_id": self.execution_id},
+            {"$set": {"steps": steps}},
+        )
+        write_log(f"Execution ID {self.execution_id} updated step to {steps}")
+
     def update_status(self, execution_parameters: dict, status: str):
         """
         Update the status of the execution.
@@ -193,16 +208,15 @@ class ExecutionManager:
             execution_parameters (dict): The parameters of the execution.
             status (str): The new status of the execution.
         """
-        date = datetime.now().strftime("%d-%m-%Y %H:%M")
-        self.execution_details["status"] = execution_parameters["status"].append(
-            (date, status)
-        )
-        status_self = self.execution_details["status"]
+        self.add_status_to_step(status)
+        status = "_".join(["running", status])
+        execution_parameters["status"] = status
+        self.execution_details["status"] = status
         self.collection.update_one(
             {"execution_id": self.execution_id},
-            {"$set": {"status": status_self}},
+            {"$set": {"status": status}},
         )
-        write_log(f"Execution ID {self.execution_id} updated to {status_self}")
+        write_log(f"Execution ID {self.execution_id} updated to {status}")
 
     def update_mlflow_runs(self, run_name: str):
         """
@@ -212,7 +226,7 @@ class ExecutionManager:
         """
 
         self.execution_details["mlflow_runs"][
-            self.execution_details["status"].replace("running_", "")
+            self.execution_details["status"][-1][-1]
         ] = run_name
         self.collection.update_one(
             {"execution_id": self.execution_id},
