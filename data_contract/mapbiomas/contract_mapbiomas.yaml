@@ -4,7 +4,7 @@ raw_data:
   schema: 
   physicalPath: raw_data/mapbiomas/
   description: 
-  queryYears: [2016 ,2023]
+  queryYears: [2016 ,2024]
   ifExists: 
   columns:
   - column: 
@@ -25,7 +25,7 @@ bronze:
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/{year}/
     description: 
-    queryYears: [2016 ,2023]
+    queryYears: [2016 ,2024]
     ifExists: append
     columns:
     - column: 
@@ -44,7 +44,7 @@ bronze:
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/
     description: 
-    queryYears: [2016 ,2023]
+    queryYears: [2016 ,2024]
     ifExists: append
     columns:
     - column: 
@@ -63,7 +63,7 @@ bronze:
     schema: land_use
     physicalPath: databases/bronze/mapbiomas/unique_hex_ids/
     description: 
-    queryYears: [2016 ,2023]
+    queryYears: [2016 ,2024]
     ifExists: append
     columns:
     - column: 
@@ -84,7 +84,7 @@ silver:
   schema: land_use
   physicalPath: databases/silver/mapbiomas/land_use/
   description: 
-  queryYears: [2016 ,2023]
+  queryYears: [2016 ,2024]
   ifExists: append
   columns:
   - column: hex_col

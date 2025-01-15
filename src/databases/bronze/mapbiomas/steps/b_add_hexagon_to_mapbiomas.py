@@ -246,7 +246,7 @@ def main() -> None:
     date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
     manager.update_mlflow_runs(date)
     year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
-    for year in tqdm(range(year_init, year_end + 1), desc="Processing Years"):
+    for year in tqdm(range(year_init, year_end), desc="Processing Years"):
         with mlflow.start_run(run_name=str(year)):
             filename = "".join([CONTRACTS_RAW["raw_data"]["tableName"], ".tif"]).format(
                 year=year
