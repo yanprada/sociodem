@@ -35,13 +35,14 @@ from src.databases.bronze.buildings.google.config import EXECUTION_ID, BASE_PARA
 from config.run_mode import DEBUG
 
 
-MANAGER = ExecutionManager(BASE_PARAMS)
-execution_parameters = MANAGER.get_execution_details(EXECUTION_ID, DEBUG)
+manager = ExecutionManager(BASE_PARAMS)
+EXECUTION_PARAMETER = manager.get_execution_details(EXECUTION_ID, DEBUG)
 
+MODULE_NAME = os.path.basename(__file__).replace(".py", "")
 
-BUILDING_CONTRACTS_RAW = execution_parameters["data_contracts"]["raw_data"]
-BUILDING_CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
-EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
+BUILDING_CONTRACTS_RAW = EXECUTION_PARAMETER["data_contracts"]["raw_data"]
+BUILDING_CONTRACTS_BRONZE = EXECUTION_PARAMETER["data_contracts"]["bronze"]
+EXPERIMENT_ID = EXECUTION_PARAMETER["mlflow_experiment"]
 
 mlflow.set_experiment(EXPERIMENT_ID)
 
@@ -49,8 +50,8 @@ LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "failed_files.log")
 logging.basicConfig(filename=LOG_FILE_PATH, level=logging.ERROR)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
-YEAR = BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"].split("/")[-2]
-STATE = "RN"
+YEAR = 2023
+STATE = "TO"
 
 
 def log_failed_file(file_path: str) -> None:
@@ -122,14 +123,19 @@ def add_hexagons(lats_lons, building_counts):
     return gdf
 
 
-@save_parquet_decorator(
-    "bronze", BUILDING_CONTRACTS_BRONZE["buildings_google"], save_db=True, save_pq=True
-)
-def save_batch_results(batch_df, **kwargs):
+def save_results(batch_df, **kwargs):
     """
-    Saves the batch results and logs metrics to MLflow.
+    Saves the batch results
     """
-    return batch_df
+    contract = BUILDING_CONTRACTS_BRONZE["buildings_google"]
+    contract["physicalPath"] = contract["physicalPath"].format(year=YEAR)
+    contract["tableName"] = contract["tableName"].format(year=YEAR)
+
+    @save_parquet_decorator("bronze", contract, save_db=True, save_pq=True)
+    def save_batch_results(batch_df, **kwargs):
+        return batch_df
+
+    save_batch_results(batch_df, **kwargs)
 
 
 def process_and_save(file_path, batch_number):
@@ -145,7 +151,7 @@ def process_and_save(file_path, batch_number):
         result["year"] = int(YEAR)
         result["state"] = STATE
         kwargs = {"filename": f"batch_{batch_number}_{os.path.basename(file_path)}"}
-        save_batch_results(result, **kwargs)
+        save_results(result, **kwargs)
         result_len = len(result)
         result_dompp = result["building_count"].sum()
         del result
@@ -173,7 +179,9 @@ def get_remaining_files(path: str) -> List[str]:
     processed_files = [
         os.path.join(path, os.path.splitext(file)[0].split("_", 2)[-1])
         for file in os.listdir(
-            BUILDING_CONTRACTS_BRONZE["buildings_google"]["physicalPath"]
+            BUILDING_CONTRACTS_BRONZE["buildings_google"]["physicalPath"].format(
+                year=YEAR
+            )
         )
         if file.endswith(".parquet")
     ]
@@ -310,8 +318,10 @@ def move_files_location():
     Raises:
         OSError: If an error occurs while renaming or creating directories.
     """
-    old_path = BUILDING_CONTRACTS_BRONZE["buildings_google"]["physicalPath"]
-    new_path = old_path.replace("2016", "process/2016")
+    old_path = BUILDING_CONTRACTS_BRONZE["buildings_google"]["physicalPath"].format(
+        year=YEAR
+    )
+    new_path = old_path.replace(str(YEAR), f"process/{YEAR}")
     new_path = os.path.join(new_path, STATE)
     if os.path.exists(old_path):
         os.rename(old_path, new_path)
@@ -324,12 +334,12 @@ def main():
     """
     Main function to process image files into hex format using Dask for parallelization.
     """
-    MANAGER.update_status("running_step_2")
+    manager.update_status(EXECUTION_PARAMETER, MODULE_NAME)
     results_total = pd.Series()
     with mlflow.start_run(run_name=f"{STATE}_{YEAR}_{RUN_TIME}"):
         path = os.path.join(
             BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"], STATE
-        )
+        ).format(year=YEAR)
         files = get_remaining_files(path)
         nano_files, xsm_files, small_files, medium_files, large_files, xl_files = (
             categorize_files_by_size(files)
@@ -353,9 +363,8 @@ def main():
                 results_total = pd.concat([results_total, results], ignore_index=True)
         log_mlflow_metrics(results_total)
 
-    # Rename the folder 2016 to the state and move to another path
+    # Rename the folder to the state and move to another path
     move_files_location()
-    MANAGER.update_status("finished_step_2")
 
 
 if __name__ == "__main__":

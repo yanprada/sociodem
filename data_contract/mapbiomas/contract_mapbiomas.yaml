@@ -1,10 +1,10 @@
 raw_data:
   contractName: contract_layers_mapbiomas.yaml
-  tableName: brasil_coverage
+  tableName: brasil_coverage_{year}
   schema: 
   physicalPath: raw_data/mapbiomas/
   description: 
-  queryYears: 
+  queryYears: [2016 ,2024]
   ifExists: 
   columns:
   - column: 
@@ -21,11 +21,11 @@ raw_data:
     - 
 bronze:
   - contractName: contract_layers_mapbiomas.yaml
-    tableName: brasil_coverage
+    tableName: brasil_coverage_{year}
     schema: land_use
-    physicalPath: databases/bronze/mapbiomas/
+    physicalPath: databases/bronze/mapbiomas/{year}/
     description: 
-    queryYears: [1985 ,2023]
+    queryYears: [2016 ,2024]
     ifExists: append
     columns:
     - column: 
@@ -40,11 +40,11 @@ bronze:
       translatedValues:
       sampleValues:
       - 
-  - tableName: grouped_by_hex_brasil_coverage
+  - tableName: grouped_by_hex_brasil_coverage_{year}
     schema: land_use
-    physicalPath: databases/bronze/mapbiomas/
+    physicalPath: databases/bronze/mapbiomas/grouped_by_hex_ids/{year}/
     description: 
-    queryYears: [1985 ,2023]
+    queryYears: [2016 ,2024]
     ifExists: append
     columns:
     - column: 
@@ -59,32 +59,14 @@ bronze:
       translatedValues:
       sampleValues:
       -
-  - tableName: unique_hex_brasil_coverage
-    schema: land_use
-    physicalPath: databases/bronze/mapbiomas/unique_hex_ids/
-    description: 
-    queryYears: [1985 ,2023]
-    ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-      - 
+
 silver:
   contractName: contract_layers_mapbiomas.yaml
   tableName: brasil_coverage
   schema: land_use
   physicalPath: databases/silver/mapbiomas/land_use/
   description: 
-  queryYears: [1985 ,2023]
+  queryYears: [2016 ,2024]
   ifExists: append
   columns:
   - column: hex_col
