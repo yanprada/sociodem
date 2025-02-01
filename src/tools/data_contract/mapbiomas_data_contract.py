@@ -40,7 +40,6 @@ def get_mapbiomas_bronze_contracts():
     contracts = {
         "mapbiomas": contract_mapbiomas[0],
         "grouped_by_hex_mapbiomas": contract_mapbiomas[1],
-        "unique_hex_ids": contract_mapbiomas[2],
     }
     return EasyDict(contracts)
 
