@@ -14,7 +14,7 @@ import os
 from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
 from config.run_mode import DEBUG
 
-EXECUTION_ID = "bronze-mapbiomas-4PxthI8ePWsEChc"
+EXECUTION_ID = "bronze-mapbiomas-nezY66KEh4bQ68C"
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "mapbiomas",
