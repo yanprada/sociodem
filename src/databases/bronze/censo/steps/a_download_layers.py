@@ -5,6 +5,7 @@ which serve as entry points for downloading layers for the years 2010 and 2022, 
 The functions use the `HttpRequesterCenso` class to make HTTP requests and retrieve the data.
 """
 
+import os
 from itertools import product
 
 
@@ -19,7 +20,8 @@ from config.run_mode import DEBUG
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 CONTRACTS = execution_parameters["data_contracts"]["raw_data"]
-manager.update_status("running_step_1")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
 
 def download_info_censo_2010():
@@ -117,5 +119,4 @@ def main():
     """
     download_info_censo_2010()
     download_info_censo_2022()
-    manager.update_status("finished_step_1")
     manager.update_last_run()

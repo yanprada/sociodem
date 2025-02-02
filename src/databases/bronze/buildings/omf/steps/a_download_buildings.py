@@ -6,6 +6,8 @@ The module includes the following functions:
 - main(): The main function that downloads data for buildings from both "omf" and "google" sources.
 """
 
+import os
+
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterOvertureMaps,
 )
@@ -16,7 +18,10 @@ from config.run_mode import DEBUG
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 BUILDING_CONTRACTS = execution_parameters["data_contracts"]["raw_data"]
-manager.update_status("running_step_1")
+
+
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
 
 def download_buildings_omf():
@@ -35,5 +40,4 @@ def main():
     downloaded files information in a JSON file.
     """
     download_buildings_omf()
-    manager.update_status("finished_step_1")
     manager.update_last_run()

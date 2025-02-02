@@ -276,6 +276,24 @@ def get_db_path(contract: dict) -> str:
     return ".".join([contract["schema"], contract["tableName"]])
 
 
+def get_column_name(contract: dict, column_name: str) -> str:
+    """
+    Get the column name based on the contract.
+
+    Args:
+        contract (dict): The contract containing the schema and table name.
+        column_name (str): The column name.
+
+    Returns:
+        str: The column name.
+    """
+    column_list = contract["columns"]
+    for column in column_list:
+        if column["column"] == column_name:
+            return column["column_name_raw"]
+    raise ValueError(f"Column {column_name} not found in contract")
+
+
 def generate_random_string(length):
     """
     Generates a random string of specified length.

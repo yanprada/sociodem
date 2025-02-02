@@ -417,3 +417,23 @@ class HttpRequesterOvertureMaps:
             "min_floor",
         ]
         self.download_data(cols)
+
+    def download_places_omf(self):
+        """
+        Requests places from a page and saves them to the specified destination path.
+        """
+        cols = [
+            "id",
+            "ST_AsText(ST_GeomFromWKB(geometry)) as geometry",
+            "subtype",
+            "JSON(names) as names",
+            "JSON(sources) as sources",
+            "class",
+            "level",
+            "has_parts",
+            "height",
+            "num_floors",
+            "min_height",
+            "min_floor",
+        ]
+        self.download_data(cols)

@@ -16,8 +16,9 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_1")
-CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
+CONTRACTS_BRONZE = execution_parameters["data_contracts"]["aneel_bronze"]
 
 
 @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["company_id"])
@@ -68,5 +69,4 @@ def main():
     """
     df = load_aneel_ids()
     download_aneel_company_files(df)
-    manager.update_status("finished_step_1")
     manager.update_last_run()

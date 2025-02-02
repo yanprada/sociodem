@@ -32,7 +32,8 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 BUILDING_CONTRACTS = execution_parameters["data_contracts"]["raw_data"]
 STATE_CONTRACTS = execution_parameters["data_contracts"]["state_censo"]
-manager.update_status("running_step_1")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
 
 @save_parquet_decorator(
@@ -80,5 +81,4 @@ def main():
     for file in tqdm(files, desc="Processing files"):
         kwargs = {"filename": file.replace(".geojson", "").replace(path, "")}
         _ = save_states_geom(reader, file, **kwargs)
-    manager.update_status("finished_step_1")
     manager.update_last_run()

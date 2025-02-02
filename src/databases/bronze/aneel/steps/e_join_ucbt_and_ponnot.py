@@ -21,6 +21,7 @@ The script consists of the following functions:
 - main: The main function that executes the join_ucbt_and_ponnot operation.
 """
 
+import os
 from typing import List
 from functools import lru_cache
 from tqdm import tqdm
@@ -36,7 +37,8 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_1")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
 
 ANEEL_BRONZE_CONTRACTS = execution_parameters["data_contracts"]["aneel_bronze"]
@@ -611,5 +613,4 @@ def main() -> None:
                 continue
             mun_batch = ",".join([f"'{mun}'" for mun in mun_batch["mun"].to_list()])
             join_batches(conn, mun_batch, year)
-    manager.update_status("finished_step_1")
     manager.update_last_run()

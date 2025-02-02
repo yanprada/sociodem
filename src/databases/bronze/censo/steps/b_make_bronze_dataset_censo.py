@@ -33,7 +33,9 @@ manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
 CONTRACTS_RAW_DATA = execution_parameters["data_contracts"]["raw_data"]
-manager.update_status("running_step_2")
+
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
 EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_ID)
@@ -213,5 +215,4 @@ def main():
     run_name_id = "-".join(["states", run_date])
     with mlflow.start_run(run_name=run_name_id):
         upload_states_2022(run_name_id)
-    manager.update_status("finished_step_2")
     manager.update_last_run()
