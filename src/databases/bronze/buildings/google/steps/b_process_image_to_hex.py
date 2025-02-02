@@ -36,13 +36,13 @@ from config.run_mode import DEBUG
 
 
 manager = ExecutionManager(BASE_PARAMS)
-EXECUTION_PARAMETER = manager.get_execution_details(EXECUTION_ID, DEBUG)
+execution_parameter = manager.get_execution_details(EXECUTION_ID, DEBUG)
 
-MODULE_NAME = os.path.basename(__file__).replace(".py", "")
+module_name = os.path.basename(__file__).replace(".py", "")
 
-BUILDING_CONTRACTS_RAW = EXECUTION_PARAMETER["data_contracts"]["raw_data"]
-BUILDING_CONTRACTS_BRONZE = EXECUTION_PARAMETER["data_contracts"]["bronze"]
-EXPERIMENT_ID = EXECUTION_PARAMETER["mlflow_experiment"]
+BUILDING_CONTRACTS_RAW = execution_parameter["data_contracts"]["raw_data"]
+BUILDING_CONTRACTS_BRONZE = execution_parameter["data_contracts"]["bronze"]
+EXPERIMENT_ID = execution_parameter["mlflow_experiment"]
 
 mlflow.set_experiment(EXPERIMENT_ID)
 
@@ -334,7 +334,7 @@ def main():
     """
     Main function to process image files into hex format using Dask for parallelization.
     """
-    manager.update_status(EXECUTION_PARAMETER, MODULE_NAME)
+    manager.update_status(execution_parameter, module_name)
     results_total = pd.Series()
     with mlflow.start_run(run_name=f"{STATE}_{YEAR}_{RUN_TIME}"):
         path = os.path.join(

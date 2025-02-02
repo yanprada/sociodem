@@ -3,17 +3,22 @@ This module contains functions to create grouped tables based on
 hex_col and value columns from an existing table.
 """
 
+import os
+
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import write_log, get_db_path
 from src.tools.utils.execution_manager import ExecutionManager
 from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
+
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 
-CONTRACT_BRONZE = execution_parameters["data_contracts"][1]
-manager.update_status("running_step_3")
+CONTRACT_BRONZE = execution_parameters["data_contracts"]["bronze"]
+
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
 
 def create_grouped_by_hex_google_buildings(source: str, query: str) -> None:
@@ -116,5 +121,4 @@ def main():
     create_grouped_google()
     create_grouped_omf()
     create_joined_table()
-    manager.update_status("finished_step_3")
     manager.update_last_run()
