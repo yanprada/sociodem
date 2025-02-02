@@ -50,8 +50,8 @@ LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "failed_files.log")
 logging.basicConfig(filename=LOG_FILE_PATH, level=logging.ERROR)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
-YEAR = 2023
-STATE = "TO"
+YEAR = 2017
+STATE = "AC"
 
 
 def log_failed_file(file_path: str) -> None:
