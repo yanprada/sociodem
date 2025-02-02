@@ -35,9 +35,10 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_3")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
-TRANSPORT_CONTRACTS = execution_parameters["data_contracts"][0]
+TRANSPORT_CONTRACTS = execution_parameters["data_contracts"]["transportation_bronze"]
 
 
 def read_files(file: str) -> pd.DataFrame:
@@ -410,3 +411,4 @@ def main():
     df_brazil_geom_geom = get_brazil_geom()
     pois_cat_map = get_pois_categories_map()
     process_files(files, df_brazil_geom_geom, pois_cat_map)
+    manager.update_last_run()

@@ -4,6 +4,8 @@ a given prefix.
 
 """
 
+import os
+
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterOvertureMaps,
 )
@@ -15,9 +17,10 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_1")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
-TRANSPORT_CONTRACTS = execution_parameters["data_contracts"][0]
+TRANSPORT_CONTRACTS = execution_parameters["data_contracts"]["transportation_bronze"]
 
 
 def main():
@@ -26,8 +29,7 @@ def main():
     downloaded files information in a JSON file.
     """
     download_path = TRANSPORT_CONTRACTS["raw_data"]["physicalPath"]
-    prefix = "release/2024-07-22.0/theme=transportation/"
+    prefix = "transportation"
     requester = HttpRequesterOvertureMaps(prefix, download_path)
     requester.download_files_omf()
-    manager.update_status("finished_step_1")
     manager.update_last_run()

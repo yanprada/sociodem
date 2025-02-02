@@ -30,9 +30,10 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_2")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
-TRANSPORT_CONTRACTS = execution_parameters["data_contracts"][0]
+TRANSPORT_CONTRACTS = execution_parameters["data_contracts"]["transportation_bronze"]
 
 
 @save_parquet_decorator("bronze", TRANSPORT_CONTRACTS["pois"], save_db=False)
@@ -66,5 +67,4 @@ def main():
         save_file(df, **kwargs)
         del df
         gc.collect()
-    manager.update_status("finished_step_2")
     manager.update_last_run()
