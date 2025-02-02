@@ -44,7 +44,8 @@ from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_2")
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(execution_parameters, module_name)
 
 CONTRACTS_BRONZE = execution_parameters["data_contracts"]["aneel_bronze"]
 
@@ -531,5 +532,4 @@ def main():
     file reading process.
     """
     process_files_aneel()
-    manager.update_status("finished_step_2")
     manager.update_last_run()

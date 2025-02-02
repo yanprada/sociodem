@@ -14,7 +14,7 @@ import os
 from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from config.run_mode import DEBUG
 
-EXECUTION_ID = "bronze-aneel-M8vwCrw780mDmZp"
+EXECUTION_ID = "bronze-aneel-gkaRj9ybAWyIln6"
 
 BASE_PARAMS = {
     "medallon": "bronze",
