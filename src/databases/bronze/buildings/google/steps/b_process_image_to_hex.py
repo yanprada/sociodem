@@ -13,7 +13,6 @@ Steps:
 import os
 import time
 import gc
-import logging
 from typing import List, Tuple
 import rasterio
 import numpy as np
@@ -46,18 +45,9 @@ EXPERIMENT_ID = execution_parameter["mlflow_experiment"]
 
 mlflow.set_experiment(EXPERIMENT_ID)
 
-LOG_FILE_PATH = os.path.join(os.path.dirname(__file__), "failed_files.log")
-logging.basicConfig(filename=LOG_FILE_PATH, level=logging.ERROR)
-
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
-YEAR = 2023
-STATE = "TO"
-
-
-def log_failed_file(file_path: str) -> None:
-    """Log a file as failed."""
-    with open(LOG_FILE_PATH, "a", encoding="utf-8") as log_file:
-        log_file.write(f"{file_path}\n")
+YEAR = 2017
+STATE = "SE"
 
 
 def process_image(file_path: str) -> gpd.GeoDataFrame:
@@ -146,7 +136,6 @@ def process_and_save(file_path, batch_number):
 
         result = process_image(file_path)
         if result.empty:
-            log_failed_file(file_path)
             return 0, 0
         result["year"] = int(YEAR)
         result["state"] = STATE
@@ -159,7 +148,6 @@ def process_and_save(file_path, batch_number):
         return result_len, result_dompp
     except Exception as e:
         write_log(f"An error occurred processing {file_path}: {e}")
-        log_failed_file(file_path)
         return 0, 0
 
 
@@ -186,14 +174,6 @@ def get_remaining_files(path: str) -> List[str]:
         if file.endswith(".parquet")
     ]
     return [file for file in files if file not in processed_files]
-
-
-def get_failed_files():
-    """Reads failed file paths from the log file."""
-    if os.path.exists(LOG_FILE_PATH):
-        with open(LOG_FILE_PATH, "r", encoding="utf-8") as f:
-            return set(line.strip() for line in f.readlines())
-    return set()
 
 
 def categorize_files_by_size(
