@@ -22,7 +22,7 @@ from tqdm import tqdm
 
 from src.tools.utils.reader import Reader
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.constants import STATES, CRS_GLOBAL
+from src.tools.utils.constants import STATES, CRS_GLOBAL, CRS_IBGE
 from src.tools.utils.common import write_log, get_ml_flow_data
 from src.tools.utils.execution_manager import ExecutionManager
 from src.databases.bronze.censo.config import EXECUTION_ID, BASE_PARAMS
@@ -76,8 +76,8 @@ def get_dompp_per_state_2022(state, **kwargs):
                 df = gpd.GeoDataFrame(
                     df,
                     geometry=[Point(xy) for xy in zip(df["longitude"], df["latitude"])],
-                    crs=CRS_GLOBAL,
-                )
+                    crs=CRS_IBGE,
+                ).to_crs(CRS_GLOBAL)
             return df
 
 
