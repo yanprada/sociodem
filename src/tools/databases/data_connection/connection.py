@@ -397,14 +397,6 @@ class DBConnection(DBConnectionHandler):
                         )
                     )
 
-    # def __save_in_parallel(self, partitions, names):
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         futures = [
-    #             executor.submit(self._save_small_table, partition, names, "append")
-    #             for partition in tqdm(partitions)
-    #         ]
-    #         concurrent.futures.wait(futures)
-
     def __save_in_sequence(self, partitions, names):
         for partition in tqdm(partitions, desc="Saving partitions of the dataframe"):
             self._save_small_table(partition, names, "append")
