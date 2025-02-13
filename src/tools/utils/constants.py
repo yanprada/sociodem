@@ -8,7 +8,7 @@ This module contains constants used in the sociodem project.
 HEX_RESOLUTION = 10
 CRS_IBGE = "EPSG:4674"
 CRS_GLOBAL = "EPSG:4326"
-OVERTURE_RELEASE_VERSION = "2024-09-18.0"
+OVERTURE_RELEASE_VERSION = "2025-01-22.0"
 BBOX_BRAZIL = {
     "xmin": -73.9403379576,
     "ymin": -34.2093068356,
