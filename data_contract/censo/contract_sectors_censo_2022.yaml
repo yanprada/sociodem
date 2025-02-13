@@ -46,7 +46,7 @@ silver:
     tableName: hex_participation_sc_censo_2022
     schema: layers
     physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
-    description: Hexagon participation in dompp census sector
+    description: Hexagon participation in dompp census sector, for all hexagons in Brazil
     queryYears: 2022
     ifExists: append
     columns:
