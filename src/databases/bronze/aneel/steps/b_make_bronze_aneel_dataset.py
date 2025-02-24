@@ -65,6 +65,7 @@ def add_to_mlflow(df: gpd.GeoDataFrame, database: str, company_id: str) -> None:
     """
     mlflow.log_param("database", database)
     mlflow.log_param("company", df.dist.unique()[0])
+    mlflow.log_param("year", df.dist.unique()[0])
     mlflow.log_metric("num_rows", len(df))
     if database == "ucbt":
         mlflow.log_metric("sum_energy", df.filter(regex="ene_").sum().sum())

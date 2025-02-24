@@ -54,7 +54,7 @@ def group_ucbt(conn: DBConnection, path_ucbt: str, path_ucbt_agg: str) -> None:
         path_ucbt_agg (str): The name of the materialized view to create.
     """
     query = f"""
-            CREATE MATERIALIZED VIEW {path_ucbt_agg} AS
+            CREATE TABLE {path_ucbt_agg} AS
             SELECT
                 year,
                 dist,
