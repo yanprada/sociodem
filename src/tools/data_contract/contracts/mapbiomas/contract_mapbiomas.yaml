@@ -1,0 +1,84 @@
+raw_data:
+  contractName: contract_layers_mapbiomas.yaml
+  tableName: brasil_coverage_{year}
+  schema: 
+  physicalPath: raw_data/mapbiomas/
+  description: 
+  queryYears: [2016 ,2024]
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
+bronze:
+  - contractName: contract_layers_mapbiomas.yaml
+    tableName: brasil_coverage_{year}
+    schema: land_use
+    physicalPath: databases/bronze/mapbiomas/{year}/
+    description: 
+    queryYears: [2016 ,2024]
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+  - tableName: grouped_by_hex_brasil_coverage_{year}
+    schema: land_use
+    physicalPath: databases/bronze/mapbiomas/grouped_by_hex_ids/{year}/
+    description: 
+    queryYears: [2016 ,2024]
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      -
+
+silver:
+  contractName: contract_layers_mapbiomas.yaml
+  tableName: brasil_coverage
+  schema: land_use
+  physicalPath: databases/silver/mapbiomas/land_use/
+  description: 
+  queryYears: [2016 ,2024]
+  ifExists: append
+  columns:
+  - column: hex_col
+    isPrimaryKey: True
+    ForeignKey: 
+    businessName: Hexagonal code identifier
+    description: Hexagonal code id
+    logicalType: 
+    physicalType: 
+    isNullable: False
+    isBlank: False
+    translatedValues:
+    sampleValues:
+    - 
+  
