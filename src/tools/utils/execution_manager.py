@@ -17,6 +17,7 @@ from datetime import datetime
 
 from src.tools.utils.common import generate_random_string, write_log
 from src.tools.databases.data_connection.connection import MongoDBConnection
+from src.tools.data_contract.data_contract_class import DataContract
 
 
 class ExecutionManager:
@@ -63,13 +64,28 @@ class ExecutionManager:
     def __init__(self, params: dict):
         self.params = params
         self.execution_details = params.get("execution_details", None)
-        self.data_contracts = params.get("data_contracts", None)
+        self.data_contracts = self.__load_contracts()
         self.run_mode = params.get("run_mode", None)
         self.conn = MongoDBConnection(
             f"executions_{self.params['medallon']}", self.params["data_name"]
         )
         self.collection = self.conn.get_collection()
         self.execution_id = None
+
+    def __load_contracts(self):
+        dc = DataContract()
+        contract = {}
+        subcontracts = {}
+        for k, v in self.params.get("data_contracts", None).items():
+            contract_result = dc.get_contract(v[0], v[1], v[2])
+            if isinstance(contract_result, list):
+                for subc in contract_result:
+                    table_name = subc["tableName"]
+                    subcontracts[table_name] = subc
+                contract[k] = subcontracts
+            else:
+                contract[k] = contract_result
+        return contract
 
     def __create_execution_id(self, overwrite: bool):
         execution_id_str = generate_random_string(15)
@@ -158,24 +174,17 @@ class ExecutionManager:
             if func_step["run"]:
                 func_step["function"]()
 
-    def get_execution_details(self, execution_id: str = None, overwrite: bool = False):
+    def initialize_execution(self, execution_id: str = None, overwrite: bool = False):
         """
-        Retrieves the execution details based on the provided execution ID.
-        Args:
-            execution_id (optional): The execution ID to retrieve details for.
-                If not provided, the method uses the default execution ID.
-            overwrite (bool): Overwrite the execution ID in the config file.
-        Returns:
-            dict: A dictionary containing the execution details.
+        Initializes the execution process.
+        This method updates the status to "initialized" and writes a log message indicating
+        that the execution with the given ID has been initialized.
         """
         if execution_id is None and self.execution_id is None:
             self.create_execution(overwrite)
-            if not overwrite:
-                return self.execution_details
         query = {"execution_id": execution_id if execution_id else self.execution_id}
         self.execution_details = self.collection.find_one(query)
         self.execution_id = self.execution_details["execution_id"]
-        return self.execution_details
 
     def overwrite_execution_id(self):
         """
@@ -201,16 +210,14 @@ class ExecutionManager:
         )
         write_log(f"Execution ID {self.execution_id} updated step to {steps}")
 
-    def update_status(self, execution_parameters: dict, status: str):
+    def update_status(self, status: str):
         """
         Update the status of the execution.
         Args:
-            execution_parameters (dict): The parameters of the execution.
             status (str): The new status of the execution.
         """
         self.add_status_to_step(status)
         status = "_".join(["running", status])
-        execution_parameters["status"] = status
         self.execution_details["status"] = status
         self.collection.update_one(
             {"execution_id": self.execution_id},
