@@ -29,19 +29,15 @@ from pyproj import Transformer
 from src.tools.utils.constants import HEX_RESOLUTION, CRS_GLOBAL
 from src.tools.utils.common import write_log
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.buildings.google.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
-
-
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameter = manager.get_execution_details(EXECUTION_ID, DEBUG)
+from src.databases.bronze.buildings.google.config import (
+    MANAGER,
+    BUILDING_CONTRACTS_BRONZE,
+    BUILDING_CONTRACTS_RAW,
+    EXPERIMENT_ID,
+)
 
 module_name = os.path.basename(__file__).replace(".py", "")
-
-BUILDING_CONTRACTS_RAW = execution_parameter["data_contracts"]["raw_data"]
-BUILDING_CONTRACTS_BRONZE = execution_parameter["data_contracts"]["bronze"]
-EXPERIMENT_ID = execution_parameter["mlflow_experiment"]
+MANAGER.update_status(module_name)
 
 mlflow.set_experiment(EXPERIMENT_ID)
 
@@ -113,19 +109,12 @@ def add_hexagons(lats_lons, building_counts):
     return gdf
 
 
+@save_parquet_decorator(medallon="bronze")
 def save_results(batch_df, **kwargs):
     """
     Saves the batch results
     """
-    contract = BUILDING_CONTRACTS_BRONZE["buildings_google"]
-    contract["physicalPath"] = contract["physicalPath"].format(year=YEAR)
-    contract["tableName"] = contract["tableName"].format(year=YEAR)
-
-    @save_parquet_decorator("bronze", contract, save_db=True, save_pq=True)
-    def save_batch_results(batch_df, **kwargs):
-        return batch_df
-
-    save_batch_results(batch_df, **kwargs)
+    return batch_df
 
 
 def process_and_save(file_path, batch_number):
@@ -139,7 +128,13 @@ def process_and_save(file_path, batch_number):
             return 0, 0
         result["year"] = int(YEAR)
         result["state"] = STATE
-        kwargs = {"filename": f"batch_{batch_number}_{os.path.basename(file_path)}"}
+        contract = BUILDING_CONTRACTS_BRONZE["buildings_google"]
+        contract["physicalPath"] = contract["physicalPath"].format(year=YEAR)
+        contract["tableName"] = contract["tableName"].format(year=YEAR)
+        kwargs = {
+            "filename": f"batch_{batch_number}_{os.path.basename(file_path)}",
+            "contract": contract,
+        }
         save_results(result, **kwargs)
         result_len = len(result)
         result_dompp = result["building_count"].sum()
@@ -314,7 +309,6 @@ def main():
     """
     Main function to process image files into hex format using Dask for parallelization.
     """
-    manager.update_status(execution_parameter, module_name)
     results_total = pd.Series()
     with mlflow.start_run(run_name=f"{STATE}_{YEAR}_{RUN_TIME}"):
         path = os.path.join(
