@@ -7,21 +7,19 @@ and filter the DataFrame by the year 2023.
 import os
 import pandas as pd
 
-from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.reader import Reader
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.aneel.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+from src.databases.bronze.aneel.config import (
+    MANAGER,
+    CONTRACT_RAW_IDS,
+    CONTRACT_RAW_ENERGY,
+)
 
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
-CONTRACTS_BRONZE = execution_parameters["data_contracts"]["aneel_bronze"]
+MANAGER.update_status(module_name)
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["company_id"])
 def load_aneel_ids() -> pd.DataFrame:
     """
     Loads ANEEL IDs from a CSV file and returns them as a pandas DataFrame.
@@ -31,7 +29,7 @@ def load_aneel_ids() -> pd.DataFrame:
     """
     reader = Reader()
     return (
-        reader.read_csv(CONTRACTS_BRONZE["company_id_raw_data"]["physicalPath"])
+        reader.read_csv(CONTRACT_RAW_IDS["aneel_companies_id"]["physicalPath"])
         .rename(columns={"id": "company_ids"})
         .drop_duplicates()
     )
@@ -49,7 +47,7 @@ def download_aneel_company_files(df_aneel_ids: pd.DataFrame) -> None:
     """
 
     aneel_request = HttpRequesterAneel()
-    path = os.path.join(CONTRACTS_BRONZE["raw_data"]["physicalPath"])
+    path = os.path.join(CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"])
     aneel_request.request_from_page(
         df_aneel_ids["company_ids"], path, df_aneel_ids["title"]
     )
@@ -69,4 +67,4 @@ def main():
     """
     df = load_aneel_ids()
     download_aneel_company_files(df)
-    manager.update_last_run()
+    MANAGER.update_last_run()

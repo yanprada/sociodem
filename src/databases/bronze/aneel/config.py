@@ -11,8 +11,9 @@ Attributes:
 
 import os
 
-from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
 from config.run_mode import DEBUG
+
+from src.tools.utils.execution_manager import ExecutionManager
 
 EXECUTION_ID = "bronze-aneel-gkaRj9ybAWyIln6"
 
@@ -20,7 +21,20 @@ BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "aneel",
     "config_path": os.path.abspath(__file__),
-    "data_contracts": {"aneel_bronze": get_aneel_contracts("bronze")},
+    "data_contracts": {
+        "aneel_bronze": ["bronze", "aneel", "energy"],
+        "aneel_raw": ["raw_data", "aneel", "energy"],
+        "aneel_company_ids": ["raw_data", "aneel", "company_ids"],
+    },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
 }
+
+MANAGER = ExecutionManager(BASE_PARAMS)
+MANAGER.initialize_execution(EXECUTION_ID, DEBUG)
+
+CONTRACTS_BRONZE = MANAGER.execution_details["data_contracts"]["aneel_bronze"]
+CONTRACT_RAW_ENERGY = MANAGER.execution_details["data_contracts"]["aneel_raw"]
+CONTRACT_RAW_IDS = MANAGER.execution_details["data_contracts"]["aneel_company_ids"]
+
+EXPERIMENT_NAME = MANAGER.execution_details["mlflow_experiment"]
