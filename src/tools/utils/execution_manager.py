@@ -75,16 +75,17 @@ class ExecutionManager:
     def __load_contracts(self):
         dc = DataContract()
         contract = {}
-        subcontracts = {}
         for k, v in self.params.get("data_contracts", None).items():
+            subcontracts = {}
             contract_result = dc.get_contract(v[0], v[1], v[2])
             if isinstance(contract_result, list):
                 for subc in contract_result:
                     table_name = subc["tableName"]
                     subcontracts[table_name] = subc
-                contract[k] = subcontracts
             else:
-                contract[k] = contract_result
+                table_name = contract_result["tableName"]
+                subcontracts[table_name] = contract_result
+            contract[k] = subcontracts
         return contract
 
     def __create_execution_id(self, overwrite: bool):
