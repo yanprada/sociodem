@@ -15,7 +15,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManager
 
-EXECUTION_ID = "bronze-aneel-gkaRj9ybAWyIln6"
+EXECUTION_ID = "bronze-aneel-qStOVo6wDOk3obC"
 
 BASE_PARAMS = {
     "medallon": "bronze",
@@ -33,7 +33,7 @@ BASE_PARAMS = {
 MANAGER = ExecutionManager(BASE_PARAMS)
 MANAGER.initialize_execution(EXECUTION_ID, DEBUG)
 
-CONTRACTS_BRONZE = MANAGER.execution_details["data_contracts"]["aneel_bronze"]
+CONTRACT_BRONZE_ENERGY = MANAGER.execution_details["data_contracts"]["aneel_bronze"]
 CONTRACT_RAW_ENERGY = MANAGER.execution_details["data_contracts"]["aneel_raw"]
 CONTRACT_RAW_IDS = MANAGER.execution_details["data_contracts"]["aneel_company_ids"]
 
