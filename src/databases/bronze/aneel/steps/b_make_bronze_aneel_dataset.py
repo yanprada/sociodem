@@ -14,7 +14,7 @@ import glob
 import multiprocessing
 import concurrent.futures
 from collections import defaultdict
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 from functools import lru_cache
 from tqdm import tqdm
 import fiona
@@ -22,7 +22,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import shape
+
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.reader import Reader
@@ -34,11 +34,12 @@ from src.tools.utils.common import (
     get_db_path,
 )
 from src.tools.utils.constants import CRS_GLOBAL
-from src.databases.bronze.aneel.config import MANAGER, CONTRACTS_BRONZE, EXPERIMENT_NAME
-
-module_name = os.path.basename(__file__).replace(".py", "")
-MANAGER.update_status(module_name)
-
+from src.databases.bronze.aneel.config import (
+    MANAGER,
+    CONTRACT_BRONZE_ENERGY,
+    CONTRACT_RAW_ENERGY,
+    EXPERIMENT_NAME,
+)
 
 mlflow.set_experiment(EXPERIMENT_NAME)
 
@@ -70,62 +71,102 @@ def add_to_mlflow(df: gpd.GeoDataFrame, database: str, company_id: str) -> None:
         mlflow.log_metric("std_energy", 0)
 
 
-def read_aneel_in_chunks(layer_src: str, start: int, chunk_size: int):
+def read_aneel_in_chunks(
+    layer_src_path: str,
+    layer_name: str,
+    start: int,
+    chunk_size: int,
+    is_ponnot: bool,
+    queue: multiprocessing.Queue,
+):
     """
-    Read a chunk of features from a layer source into a GeoDataFrame.
-
-    Args:
-        layer_src (str): The source layer containing the features.
-        start (int): The starting index of the chunk.
-        chunk_size (int): The size of the chunk.
-
-    Returns:
-        GeoDataFrame: The GeoDataFrame containing the saved features.
+    Read a chunk of features from a layer source and put the result in a queue.
     """
     reader = Reader()
-    features = []
-    for feature in layer_src[start : start + chunk_size]:
-        features.append(feature)
-    geometries = [
-        shape(feature["geometry"])
-        for feature in features
-        if feature["geometry"] is not None
-    ]
-    properties = [feature["properties"] for feature in features]
-    if geometries == []:
-        df = reader.read_geopandas(properties)
-    else:
-        df = reader.read_geopandas(properties, geometry=geometries, crs=layer_src.crs)
-    return df
+    with fiona.open(layer_src_path, layer=layer_name) as layer_src:
+        features = list(layer_src[start : start + chunk_size])
+        if is_ponnot:
+            df = reader.read_geopandas(features, as_feature=True, crs=layer_src.crs)
+        else:
+            df = reader.read_geopandas(features, as_feature=True)
+        queue.put(df)
 
 
-def read_in_parallel(layers_dict, path, database: str):
+def worker(
+    queue_in: multiprocessing.Queue,
+    queue_out: multiprocessing.Queue,
+    layer_src_path: str,
+    layer_name: str,
+    is_ponnot: bool,
+):
     """
-    Wrapper function to read ANEEL data from a specific database and company.
+    Worker function to process data in chunks from a source layer and put the
+    results into an output queue.
+    Args:
+        queue_in (multiprocessing.Queue): Input queue containing tuples of
+                                        (start, chunk_size) for data processing.
+        queue_out (multiprocessing.Queue): Output queue to store the processed data.
+        layer_src_path (str): Path to the source layer file.
+        layer_name (str): Name of the layer to be processed.
+        is_ponnot (bool): Flag indicating whether the data is of type 'ponnot'.
+    The function continuously reads from the input queue, processes the data in chunks,
+    and puts the results into the output queue.
+    It stops processing when it encounters a None value in the input queue.
+    """
+    while True:
+        item = queue_in.get()
+        if item is None:
+            break
+        start, chunk_size = item
+        read_aneel_in_chunks(
+            layer_src_path, layer_name, start, chunk_size, is_ponnot, queue_out
+        )
 
+
+def read_in_parallel(layers_dict: Dict[str], path: str, database: str) -> pd.DataFrame:
+    """
+    Wrapper function to read ANEEL data from a specific database and company in parallel.
     Args:
         layers_dict (dict): A dictionary mapping database keys to layer names.
         path (str): The path to the company's data directory.
         database (str): The name of the database.
+    Returns:
+        pd.DataFrame: The DataFrame containing the processed data.
     """
-    with fiona.Env():
-        with fiona.open(path, layer=layers_dict[database]) as layer_src:
-            chunk_size = int(5e4)
-            num_features = len(layer_src)
-            tasks = []
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                for start in tqdm(range(0, num_features, chunk_size)):
-                    future = executor.submit(
-                        read_aneel_in_chunks, layer_src, start, chunk_size
-                    )
-                    tasks.append(future)
-                dfs = []
-                for future in tqdm(
-                    concurrent.futures.as_completed(tasks), total=len(tasks)
-                ):
-                    df = future.result()
-                    dfs.append(df)
-    df = pd.concat(dfs)
+    chunk_size = int(5e4)
+    is_ponnot = database == "ponnot"
+    layer_name = layers_dict[database]
+
+    queue_in = multiprocessing.Queue()
+    queue_out = multiprocessing.Queue()
+    processes = []
+
+    with fiona.open(path, layer=layer_name) as layer_src:
+        feature_count = len(layer_src)
+
+    num_workers = multiprocessing.cpu_count()
+    for _ in range(num_workers):
+        p = multiprocessing.Process(
+            target=worker, args=(queue_in, queue_out, path, layer_name, is_ponnot)
+        )
+        p.start()
+        processes.append(p)
+
+    for start in range(0, feature_count, chunk_size):
+        queue_in.put((start, chunk_size))
+
+    for _ in range(num_workers):
+        queue_in.put(None)
+
+    dfs = []
+    for _ in tqdm(range(0, feature_count, chunk_size)):
+        df = queue_out.get()
+        dfs.append(df)
+
+    for p in processes:
+        p.join()
+
+    df = pd.concat(dfs, ignore_index=True)
     return df
 
 
@@ -202,15 +243,9 @@ def columns_engineering(
     if "conj" in df.columns:
         df["conj"] = df["conj"].fillna("0").astype(int)
 
-    # transform crs to global
-    if (
-        isinstance(df, gpd.GeoDataFrame)
-        and "geometry" in df.columns
-        and not df["geometry"].isnull().all()
-    ):
+    if database == "ponnot":
         df = df.set_geometry("geometry")
         df = df.to_crs(CRS_GLOBAL)
-    if database == "ponnot":
         df = df.drop_duplicates()
     if database == "ucbt":
         df = df.drop(columns=["cod_id", "geometry"], errors="ignore")
@@ -265,7 +300,7 @@ def get_layers_and_path(company_id: str, database: str) -> Tuple[dict, str]:
         "ponnot": "PONNOT",
         "conj": "CONJ",
     }
-    path = os.path.join(CONTRACTS_BRONZE["raw_data"]["physicalPath"], company_id)
+    path = os.path.join(CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"], company_id)
     layers = fiona.listlayers(path)
     if layers_dict[database] not in layers:
         layers_dict = {
@@ -291,14 +326,11 @@ def read_and_process_file(
     """
     file_name = company_id.split(".")[0]
     MANAGER.update_mlflow_runs(str(database))
-    kwargs = {"filename": file_name, "contract": CONTRACTS_BRONZE[database]}
+    kwargs = {"filename": file_name, "contract": CONTRACT_BRONZE_ENERGY[database]}
     with mlflow.start_run(run_name=company_id):
         layers_dict, path = get_layers_and_path(company_id, database)
         if is_large_file:
             df = read_in_parallel(layers_dict, path, database)
-            # import ipdb
-
-            # ipdb.set_trace()
         else:
             df = read_single_file(layers_dict, path, database)
         df = columns_engineering(df, cols, company_id, database, **kwargs)
@@ -316,7 +348,7 @@ def get_cols_saved_in_db(database: str) -> List[str]:
         list: A list of column names.
     """
     conn = DBConnection("bronze")
-    contract = CONTRACTS_BRONZE[database]
+    contract = CONTRACT_BRONZE_ENERGY[database]
     path = get_db_path(contract)
     if check_file_exists_in_db(conn, path):
         return conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
@@ -414,7 +446,7 @@ def split_file_sizes() -> Tuple[List[str], List[str], List[str], List[str]]:
                 os.path.basename(f)
                 for f in glob.glob(
                     os.path.join(
-                        CONTRACTS_BRONZE["raw_data"]["physicalPath"], "*.gdb.zip"
+                        CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"], "*.gdb.zip"
                     )
                 )
             ]
@@ -425,7 +457,7 @@ def split_file_sizes() -> Tuple[List[str], List[str], List[str], List[str]]:
             continue
         year = company_id.split(" - ")[1].split("-")[0]
         file_path = os.path.join(
-            CONTRACTS_BRONZE["raw_data"]["physicalPath"],
+            CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"],
             company_id,
         )
         file_size = os.path.getsize(file_path)
@@ -519,8 +551,8 @@ def get_cols_in_db(table_name) -> List[str]:
     Returns:
     list: A list of column names.
     """
-    schema = CONTRACTS_BRONZE[table_name]["schema"]
-    table = CONTRACTS_BRONZE[table_name]["tableName"]
+    schema = CONTRACT_BRONZE_ENERGY[table_name]["schema"]
+    table = CONTRACT_BRONZE_ENERGY[table_name]["tableName"]
     conn = DBConnection("bronze")
     return conn.query_database(f"SELECT * FROM {schema}.{table} LIMIT 1").columns
 
@@ -580,5 +612,7 @@ def main():
     It utilizes concurrent.futures.ProcessPoolExecutor to parallelize the
     file reading process.
     """
+    module_name = os.path.basename(__file__).replace(".py", "")
+    MANAGER.update_status(module_name)
     process_files_aneel()
     MANAGER.update_last_run()
