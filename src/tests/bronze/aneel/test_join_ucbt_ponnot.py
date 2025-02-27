@@ -35,39 +35,53 @@ import pandas as pd
 import numpy as np
 
 from src.databases.bronze.aneel.steps.b_make_bronze_aneel_dataset import (
-    get_df_processed,
     split_file_sizes,
 )
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.utils.common import get_db_path
+from src.tools.utils.common import get_db_path, get_ml_flow_data
 from src.tools.utils.execution_manager import ExecutionManager
 from src.databases.bronze.aneel.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+manager.initialize_execution(EXECUTION_ID, DEBUG)
+
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
+
+ANEEL_BRONZE_CONTRACTS = manager.execution_details["data_contracts"]["aneel_bronze"]
+
+EXPERIMENT_NAME = "aneel_bronze_bk"
 
 
-ANEEL_BRONZE_CONTRACTS = execution_parameters["data_contracts"]["aneel_bronze"]
-
-
-def get_aneel_mlflow_data():
+def get_df_processed():
     """
-    Processes and aggregates MLflow data based on file sizes.
-    This function retrieves processed data, identifies extra large files,
-    and aggregates the data for these files by grouping on 'mlflow.runName'
-    and 'database'. It calculates the first occurrence of 'company', the mean
-    of 'mean_energy', the sum of 'num_rows', the sum of 'sum_energy', and the
-    mean of 'std_energy'. It then combines this aggregated data with the
-    remaining data that does not belong to the extra large files.
+    Get the processed data from MLflow.
+    """
+    df_processed = get_ml_flow_data(EXPERIMENT_NAME)
+    if df_processed.empty:
+        return pd.DataFrame({"mlflow.runName": [], "database": []})
+    df_processed = df_processed[
+        (df_processed["status"] == "FINISHED")
+        & (~df_processed["mlflow.runName"].isin(["ponnot", "ucbt", "conj"]))
+    ]
+    return df_processed
+
+
+def aggregate_large_files(df_processed: pd.DataFrame, extra_large_files: List[str]):
+    """
+    Aggregates data for large files and combines it with the rest of the data.
+    This function processes a DataFrame by separating rows that correspond to
+    extra large files, aggregating their data, and then combining the aggregated
+    data with the rest of the DataFrame.
+    Parameters:
+        df_processed (pd.DataFrame): The input DataFrame containing processed data.
+        extra_large_files (List[str]): A list of file names considered as extra large files.
     Returns:
-        pd.DataFrame: A concatenated DataFrame containing the aggregated data
-        for extra large files and the non-aggregated data for other files.
+        pd.DataFrame: A DataFrame with aggregated data for extra large files combined
+                  with the rest of the data.
     """
-    df_processed = get_df_processed()
-    extra_large_files, _, _, _ = split_file_sizes()
+
     df_extra = df_processed[df_processed["mlflow.runName"].isin(extra_large_files)]
     df_extra = (
         df_extra.groupby(["mlflow.runName", "database"])
@@ -87,6 +101,26 @@ def get_aneel_mlflow_data():
         ~df_processed["mlflow.runName"].isin(extra_large_files)
     ][cols]
     return pd.concat([df_extra, df_not_extra], ignore_index=True)
+
+
+def get_aneel_mlflow_data():
+    """
+    Processes and aggregates MLflow data based on file sizes.
+    This function retrieves processed data, identifies extra large files,
+    and aggregates the data for these files by grouping on 'mlflow.runName'
+    and 'database'. It calculates the first occurrence of 'company', the mean
+    of 'mean_energy', the sum of 'num_rows', the sum of 'sum_energy', and the
+    mean of 'std_energy'. It then combines this aggregated data with the
+    remaining data that does not belong to the extra large files.
+    Returns:
+        pd.DataFrame: A concatenated DataFrame containing the aggregated data
+        for extra large files and the non-aggregated data for other files.
+    """
+    df_processed = get_df_processed()
+    extra_large_files, _, _, _ = split_file_sizes()
+    if extra_large_files:
+        df_processed = aggregate_large_files(df_processed, extra_large_files)
+    return df_processed
 
 
 def get_aneel_db_data(conn: DBConnection, years: List[int]):
@@ -198,6 +232,8 @@ def prepare_data_test_energy_sum() -> pd.DataFrame:
     )
     df["diff"] = df["sum_energy"] - df["sum_energy_db"]
     df["rate"] = df["sum_energy"] / df["sum_energy_db"]
+    df["year"] = df["mlflow.runName"].str.extract(r"(\d{4})")
+    df["company"] = df["mlflow.runName"].str.split(" - ").str[0]
     df = df.sort_values("diff", ascending=False)
     return df
 
@@ -219,8 +255,6 @@ def prepare_data_test_match(df: pd.DataFrame) -> pd.DataFrame:
         df["ene_sum_no_match"], df["ene_sum"]
     )
     df = df.sort_values("diff_match")
-    df["year"] = df["mlflow.runName"].str.extract(r"(\d{4})")
-    df["company"] = df["mlflow.runName"].str.split(" - ").str[0]
     return df
 
 
@@ -271,6 +305,9 @@ def main():
     """
 
     df = prepare_data_test_energy_sum()
+    # import ipdb
+
+    # ipdb.set_trace()
     # assert all(
     #     df["rate"] < 1.1
     # ), "Energy rate between mlflow and database is greater than 10%"

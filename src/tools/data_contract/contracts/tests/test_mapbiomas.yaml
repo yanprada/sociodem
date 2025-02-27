@@ -1,11 +1,11 @@
 bronze:
-  contractName: 
-  tableName: 
-  schema: 
-  physicalPath: 
+  contractName: test_mapbiomas.yaml
+  tableName: test_mapbiomas
+  schema: test
+  physicalPath:  
   description: 
   queryYears: 
-  ifExists: 
+  ifExists: replace
   columns:
   - column: 
     isPrimaryKey: 

@@ -23,22 +23,18 @@ from src.tools.utils.reader import Reader
 from src.tools.utils.constants import CRS_GLOBAL
 from src.tools.utils.save import save_parquet_decorator
 
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.buildings.google.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
 
-
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-BUILDING_CONTRACTS = execution_parameters["data_contracts"]["raw_data"]
-STATE_CONTRACTS = execution_parameters["data_contracts"]["state_censo"]
-module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
-
-
-@save_parquet_decorator(
-    "bronze", BUILDING_CONTRACTS["buildings_google"], save_db=False, save_pq=True
+from src.databases.bronze.buildings.google.config import (
+    MANAGER,
+    STATE_CONTRACTS_RAW,
+    BUILDING_CONTRACTS_RAW,
 )
+
+module_name = os.path.basename(__file__).replace(".py", "")
+MANAGER.update_status(module_name)
+
+
+@save_parquet_decorator("bronze", save_db=False)
 def save_states_geom(reader: Reader, file: str, **kwargs):
     """
     Reads a geospatial file, converts its coordinate reference system (CRS) to a global CRS,
@@ -72,13 +68,16 @@ def main():
     - Ensure the directory path and files are correctly set up before running this function.
     """
     reader = Reader()
-    path = STATE_CONTRACTS["states_2022"]["physicalPath"]
+    path = STATE_CONTRACTS_RAW["states_2022"]["physicalPath"]
     files = [
         os.path.join(path, file)
         for file in os.listdir(path)
         if os.path.isfile(os.path.join(path, file))
     ]
     for file in tqdm(files, desc="Processing files"):
-        kwargs = {"filename": file.replace(".geojson", "").replace(path, "")}
+        kwargs = {
+            "filename": file.replace(".geojson", "").replace(path, ""),
+            "contract": BUILDING_CONTRACTS_RAW["buildings_google"],
+        }
         _ = save_states_geom(reader, file, **kwargs)
-    manager.update_last_run()
+    MANAGER.update_last_run()

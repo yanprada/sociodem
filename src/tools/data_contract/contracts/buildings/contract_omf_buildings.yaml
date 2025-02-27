@@ -1,0 +1,61 @@
+raw_data:
+  contractName: contract_omf_buildings.yaml
+  tableName: omf
+  schema: buildings
+  physicalPath: raw_data/buildings/omf/
+  description: 
+  queryYears: 
+  ifExists: 
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
+bronze:
+  - contractName: contract_omf_buildings.yaml
+    tableName: omf
+    schema: buildings
+    physicalPath: databases/bronze/buildings/omf/
+    description: 
+    queryYears: 
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+  - tableName: omf_grouped_by_hex
+    schema: buildings
+    physicalPath: databases/silver/buildings/omf_grouped_by_hex/
+    description: 
+    queryYears: 
+    ifExists: append
+    columns:
+    - column: hex_col
+      isPrimaryKey: True
+      ForeignKey: 
+      businessName: hexagon id
+      description: hexagon id
+      logicalType: 
+      physicalType: 
+      isNullable: False
+      isBlank: False
+      translatedValues:
+      sampleValues:
+      - 

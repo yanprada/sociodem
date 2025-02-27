@@ -1,0 +1,83 @@
+raw_data:
+  contractName: contract_dompp_censo_2022.yaml
+  tableName: dompp_censo_2022
+  schema: layers
+  physicalPath: raw_data/censo/layers/2022/dompp/
+  description: Domicile mapped by lat/long from the 2022 Census
+  queryYears: 2022
+  ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: False
+    isBlank: False 
+    translatedValues:
+    sampleValues:
+    - 
+
+bronze:
+  contractName: contract_dompp_censo_2022.yaml
+  tableName: dompp_censo_2022
+  schema: layers
+  physicalPath: databases/bronze/censo/layers/2022/dompp/
+  description: Domicile mapped by lat/long from the 2022 Census (same table of raw_data)
+  queryYears: 2022
+  ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: False
+    isBlank: False 
+    translatedValues:
+    sampleValues:
+    - 
+silver:
+  - contractName: contract_dompp_censo_2022.yaml
+    tableName: dompp_censo_2022_hex_sc
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/dompp_hex/
+    description: Domicile grouped by hexagon
+    queryYears: 2022
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: False
+      isBlank: False 
+      translatedValues:
+      sampleValues:
+      - 
+  - tableName: dompp_censo_2022_pct_hex_sc
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/dompp_pct_hex_sc/
+    description: Domicile percentage for each hexagon in the sector, but just for the hexagons that has domicile
+    queryYears: 2022
+    ifExists: append
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: False
+      isBlank: False 
+      translatedValues:
+      sampleValues:
+      - 

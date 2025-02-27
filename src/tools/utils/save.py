@@ -23,8 +23,7 @@ from src.tools.databases.data_connection.connection import DBConnection
 
 def save_parquet_decorator(
     medallon: str,
-    contract: dict,
-    save_pq: bool = False,
+    save_pq: bool = True,
     save_db: bool = True,
 ) -> None:
     """
@@ -32,7 +31,6 @@ def save_parquet_decorator(
 
     Args:
         medallon (str): The medallon string.
-        contract (dict): The database contract dictionary.
         save_pq (bool, optional): Flag indicating whether to save the result
                     as a Parquet file. Defaults to True.
         save_db (bool, optional): Flag indicating whether to save the result
@@ -45,6 +43,7 @@ def save_parquet_decorator(
     def wrap_outer(funcao):
         def wrapper(*args, **kwargs):
             result = funcao(*args, **kwargs)
+            contract = kwargs.get("contract", None)
             path = contract["physicalPath"].split(".")[0]
             if isinstance(result, (pd.DataFrame, pd.Series)):
                 if len(result) == 0:

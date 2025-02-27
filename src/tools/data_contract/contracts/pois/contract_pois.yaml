@@ -1,0 +1,83 @@
+raw_data:
+  - contractName: contract_pois.yaml
+    tableName: pois
+    schema: places
+    physicalPath: raw_data/pois/files/
+    description: points of interest
+    queryYears: 
+    ifExists: 
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+  - tableName: pois_categories
+    schema: places
+    physicalPath: raw_data/pois/categories/pois_categories.csv
+    description: points of interest general categories classification
+    queryYears: 
+    ifExists: 
+    columns:
+    - column: 
+      isPrimaryKey: 
+      ForeignKey: 
+      businessName: 
+      description: 
+      logicalType: 
+      physicalType: 
+      isNullable: 
+      isBlank: 
+      translatedValues:
+      sampleValues:
+      - 
+bronze:
+  contractName: contract_pois.yaml
+  tableName: pois
+  schema: places
+  physicalPath: databases/bronze/pois/processed/
+  description: 
+  queryYears: 
+  ifExists: append
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 
+
+silver:
+  contractName: contract_pois.yaml
+  tableName: pois
+  schema: places
+  physicalPath: databases/silver/pois/processed/
+  description: 
+  queryYears: 
+  ifExists: replace
+  columns:
+  - column: 
+    isPrimaryKey: 
+    ForeignKey: 
+    businessName: 
+    description: 
+    logicalType: 
+    physicalType: 
+    isNullable: 
+    isBlank: 
+    translatedValues:
+    sampleValues:
+    - 

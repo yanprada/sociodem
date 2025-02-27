@@ -27,7 +27,7 @@ class Reader:
         if self.parallel:
             ProgressBar().register()
 
-    def __read(self, read_fucntion, file_path: str, **kwargs):
+    def __read(self, read_fucntion, file_path: str, *args, **kwargs):
         """
         Reads a file and returns a pandas DataFrame.
 
@@ -39,7 +39,7 @@ class Reader:
         Returns:
         - DataFrame: The data read from the file.
         """
-        df = read_fucntion(file_path, **kwargs)
+        df = read_fucntion(file_path, *args, **kwargs)
         df.columns = (
             df.columns.str.lower().map(unidecode.unidecode).str.replace(" ", "_")
         )
@@ -136,7 +136,7 @@ class Reader:
         df = self.__read(read_function, file_path, **kwargs)
         return df
 
-    def read_geopandas(self, file_path: str, **kwargs):
+    def read_geopandas(self, file_path: str, as_feature: bool, *args, **kwargs):
         """
         Reads a file and returns a GeoDataFrame.
 
@@ -147,8 +147,10 @@ class Reader:
         Returns:
         - GeoDataFrame: The data read from the file.
         """
-        read_function = gpd.GeoDataFrame
-        df = self.__read(read_function, file_path, **kwargs)
+        read_function = (
+            gpd.GeoDataFrame.from_features if as_feature else gpd.GeoDataFrame
+        )
+        df = self.__read(read_function, file_path, *args, **kwargs)
         return df
 
     def read_sql(self, conn, query: str, **kwargs):

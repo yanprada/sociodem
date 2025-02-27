@@ -697,20 +697,25 @@ class DBConnection(DBConnectionHandler):
                 raise e
 
     def query_database(
-        self, query: str, geo: bool = False
+        self, query: str, geo: bool = False, display: bool = False
     ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
         """
         Executes a query on the database and returns the result as a DataFrame.
 
         Parameters:
             - query (str): The SQL query to be executed.
+            - geo (bool): A flag indicating whether the query results contain geometry data.
+            - display (bool): A flag indicating whether to display a progress bar.
 
         Returns:
             pd.DataFrame: The result of the query as a DataFrame.
         """
         with self._DBConnectionHandler__engine.connect() as conn:
             df = pd.read_sql_query(text(query), conn, chunksize=1000)
-            df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+            if display:
+                df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+            else:
+                df = pd.concat(list(df))
             if geo:
                 df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
         return df

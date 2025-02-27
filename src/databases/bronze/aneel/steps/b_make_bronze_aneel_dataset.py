@@ -1,25 +1,20 @@
 """
-This script is used to download files from the ANEEL website based on ANEEL IDs.
+This script processes files from the ANEEL dataset based on their sizes.
 
-It connects to a database, retrieves ANEEL IDs for a specific year, and then uses 
-those IDs to download files from the ANEEL website.
+Important: For large and extra-large files, the script uses parallel processing.
+If a database is not already saved, multiple workers may attempt to create it simultaneously,
+which can cause a deadlock.
 
-The downloaded files are saved to a specified output path.
-
-Usage:
-    - Ensure that the necessary database connection and contract 
-        configurations are set up correctly.
-    - Run the script to download the files.
-
+The script connects to a database, retrieves ANEEL IDs for specific years, and processes
+the corresponding files. The processed files are saved to a specified output path.
 """
 
 import os
-import gc
 import glob
 import multiprocessing
 import concurrent.futures
 from collections import defaultdict
-from typing import List, Tuple
+from typing import List, Tuple, Union, Dict
 from functools import lru_cache
 from tqdm import tqdm
 import fiona
@@ -27,7 +22,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import shape
+
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.reader import Reader
@@ -38,19 +33,14 @@ from src.tools.utils.common import (
     write_log,
     get_db_path,
 )
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.aneel.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+from src.tools.utils.constants import CRS_GLOBAL
+from src.databases.bronze.aneel.config import (
+    MANAGER,
+    CONTRACT_BRONZE_ENERGY,
+    CONTRACT_RAW_ENERGY,
+    EXPERIMENT_NAME,
+)
 
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
-
-CONTRACTS_BRONZE = execution_parameters["data_contracts"]["aneel_bronze"]
-
-
-EXPERIMENT_NAME = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 
@@ -65,109 +55,119 @@ def add_to_mlflow(df: gpd.GeoDataFrame, database: str, company_id: str) -> None:
     """
     mlflow.log_param("database", database)
     mlflow.log_param("company", df.dist.unique()[0])
-    mlflow.log_param("year", df.dist.unique()[0])
+    mlflow.log_param("year", company_id.split(" - ")[1].split("-")[0])
     mlflow.log_metric("num_rows", len(df))
     if database == "ucbt":
-        mlflow.log_metric("sum_energy", df.filter(regex="ene_").sum().sum())
-        mlflow.log_metric("mean_energy", df.filter(regex="ene_").sum(axis=1).mean())
-        mlflow.log_metric("std_energy", df.filter(regex="ene_").sum(axis=1).std())
+        mlflow.log_metric("sum_energy", df.filter(regex=r"ene_\d{2}_sum").sum().sum())
+        mlflow.log_metric(
+            "mean_energy", df.filter(regex=r"ene_\d{2}_sum").sum(axis=1).mean()
+        )
+        mlflow.log_metric(
+            "std_energy", df.filter(regex=r"ene_\d{2}_sum").sum(axis=1).std()
+        )
     else:
         mlflow.log_metric("sum_energy", 0)
         mlflow.log_metric("mean_energy", 0)
         mlflow.log_metric("std_energy", 0)
 
 
-def read_aneel_wraper_large_file(database: str, company_id: str, **kwargs):
+def read_aneel_in_chunks(
+    layer_src_path: str,
+    layer_name: str,
+    start: int,
+    chunk_size: int,
+    is_ponnot: bool,
+    queue: multiprocessing.Queue,
+):
     """
-    Wrapper function to read ANEEL data from a specific database and company.
-
-    Args:
-        database (str): The name of the database.
-        company_id (str): The ID of the company.
-        **kwargs: Additional keyword arguments.
+    Read a chunk of features from a layer source and put the result in a queue.
     """
-
-    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE[database])
-    def read_aneel_in_chunks(layer_src, start, chunk_size, company_id, **kwargs):
-        """
-        Read a chunk of features from a layer source into a GeoDataFrame.
-
-        Args:
-            layer_src (Layer): The source layer containing the features.
-            start (int): The starting index of the chunk.
-            chunk_size (int): The size of the chunk to be saved.
-            company_id (str): The ID of the company.
-            **kwargs: Additional keyword arguments to be passed to the reader.
-
-        Returns:
-            GeoDataFrame: The GeoDataFrame containing the saved features.
-        """
-        reader = Reader()
-        features = []
-        for feature in layer_src[start : start + chunk_size]:
-            features.append(feature)
-        geometries = [
-            shape(feature["geometry"])
-            for feature in features
-            if feature["geometry"] is not None
-        ]
-        properties = [feature["properties"] for feature in features]
-        if geometries == []:
-            df = reader.read_geopandas(properties)
+    reader = Reader()
+    with fiona.open(layer_src_path, layer=layer_name) as layer_src:
+        features = list(layer_src[start : start + chunk_size])
+        if is_ponnot:
+            df = reader.read_geopandas(features, as_feature=True, crs=layer_src.crs)
         else:
-            df = reader.read_geopandas(
-                properties, geometry=geometries, crs=layer_src.crs
-            )
-        df = df.drop_duplicates()
-        return columns_engineering(df, database, company_id)
+            df = reader.read_geopandas(features, as_feature=True)
+        queue.put(df)
 
-    def parallel_process():
-        with fiona.Env():
-            with fiona.open(path, layer=layers_dict[database]) as layer_src:
-                chunk_size = int(5e4)
-                num_features = len(layer_src)
-                tasks = []
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    for i, start in tqdm(enumerate(range(0, num_features, chunk_size))):
-                        comp_file = company_id.split(".")[0]
-                        file = "_".join([comp_file, str(i)])
-                        task_kwargs = {"filename": "/".join([comp_file, file])}
-                        future = executor.submit(
-                            read_aneel_in_chunks,
-                            layer_src,
-                            start,
-                            chunk_size,
-                            company_id,
-                            **task_kwargs,
-                        )
-                        tasks.append(future)
 
-                    for future in tqdm(
-                        concurrent.futures.as_completed(tasks), total=len(tasks)
-                    ):
-                        with mlflow.start_run(run_name=company_id):
-                            df = future.result()
-                            add_to_mlflow(df, database, company_id)
+def worker(
+    queue_in: multiprocessing.Queue,
+    queue_out: multiprocessing.Queue,
+    layer_src_path: str,
+    layer_name: str,
+    is_ponnot: bool,
+):
+    """
+    Worker function to process data in chunks from a source layer and put the
+    results into an output queue.
+    Args:
+        queue_in (multiprocessing.Queue): Input queue containing tuples of
+                                        (start, chunk_size) for data processing.
+        queue_out (multiprocessing.Queue): Output queue to store the processed data.
+        layer_src_path (str): Path to the source layer file.
+        layer_name (str): Name of the layer to be processed.
+        is_ponnot (bool): Flag indicating whether the data is of type 'ponnot'.
+    The function continuously reads from the input queue, processes the data in chunks,
+    and puts the results into the output queue.
+    It stops processing when it encounters a None value in the input queue.
+    """
+    while True:
+        item = queue_in.get()
+        if item is None:
+            break
+        start, chunk_size = item
+        read_aneel_in_chunks(
+            layer_src_path, layer_name, start, chunk_size, is_ponnot, queue_out
+        )
 
-    layers_dict = {
-        "ramlig": "RAMLIG",
-        "ucbt": "UCBT_tab",
-        "ponnot": "PONNOT",
-        "conj": "CONJ",
-    }
-    path = os.path.join(
-        CONTRACTS_BRONZE["raw_data"]["physicalPath"],
-        company_id,
-    )
-    layers = fiona.listlayers(path)
-    if layers_dict[database] not in layers:
-        layers_dict = {
-            "ramlig": "RAM_LIG",
-            "ucbt": "UC_BT_tab",
-            "ponnot": "PON_NOT",
-            "conj": "CONJ",
-        }
-    parallel_process()
+
+def read_in_parallel(layers_dict: Dict[str], path: str, database: str) -> pd.DataFrame:
+    """
+    Wrapper function to read ANEEL data from a specific database and company in parallel.
+    Args:
+        layers_dict (dict): A dictionary mapping database keys to layer names.
+        path (str): The path to the company's data directory.
+        database (str): The name of the database.
+    Returns:
+        pd.DataFrame: The DataFrame containing the processed data.
+    """
+    chunk_size = int(5e4)
+    is_ponnot = database == "ponnot"
+    layer_name = layers_dict[database]
+
+    queue_in = multiprocessing.Queue()
+    queue_out = multiprocessing.Queue()
+    processes = []
+
+    with fiona.open(path, layer=layer_name) as layer_src:
+        feature_count = len(layer_src)
+
+    num_workers = multiprocessing.cpu_count()
+    for _ in range(num_workers):
+        p = multiprocessing.Process(
+            target=worker, args=(queue_in, queue_out, path, layer_name, is_ponnot)
+        )
+        p.start()
+        processes.append(p)
+
+    for start in range(0, feature_count, chunk_size):
+        queue_in.put((start, chunk_size))
+
+    for _ in range(num_workers):
+        queue_in.put(None)
+
+    dfs = []
+    for _ in tqdm(range(0, feature_count, chunk_size)):
+        df = queue_out.get()
+        dfs.append(df)
+
+    for p in processes:
+        p.join()
+
+    df = pd.concat(dfs, ignore_index=True)
+    return df
 
 
 def add_missing_columns(df: pd.DataFrame, saved_columns: List[str]) -> pd.DataFrame:
@@ -186,19 +186,27 @@ def add_missing_columns(df: pd.DataFrame, saved_columns: List[str]) -> pd.DataFr
     return df[saved_columns]
 
 
+@save_parquet_decorator(medallon="bronze")
 def columns_engineering(
-    df: gpd.GeoDataFrame, database: str, company_id: str
-) -> gpd.GeoDataFrame:
+    df: Union[gpd.GeoDataFrame, pd.DataFrame],
+    cols: List[str],
+    company_id: str,
+    database: str,
+    **kwargs,
+) -> Union[gpd.GeoDataFrame, pd.DataFrame]:
     """
     Function to engineer columns in a GeoDataFrame.
 
     Args:
-        df (gpd.GeoDataFrame): The input GeoDataFrame.
-        database (str): The name of the database.
+        df (Union[gpd.GeoDataFrame, pd.DataFrame]): The input GeoDataFrame.
+        cols (List[str]): The columns that are already present in the databases saved.
         company_id (str): The ID of the company.
+        database (str): The name of the database.
+        **kwargs: Additional keyword arguments.
 
     Returns:
-        gpd.GeoDataFrame: The GeoDataFrame with engineered columns.
+        Union[gpd.GeoDataFrame, pd.DataFrame]: The GeoDataFrame or DataFrame
+                                                with engineered columns.
     """
     exclude_cols = [
         "ceq",
@@ -210,93 +218,141 @@ def columns_engineering(
         "fic",
         "semred",
         "descr",
-        "cod_id",
         "odi",
         "cm",
         "tuc",
+        "uar",
+        "tip_pn",
+        "tip_inst",
         "a1",
         "a2",
         "a3",
         "a4",
         "a5",
         "a6",
+        "pos",
+        "estr",
+        "esf",
+        "alt",
+        "ti",
     ]
     df = df.drop(columns=exclude_cols, errors="ignore")
-    conn = DBConnection("bronze")
-    contract = CONTRACTS_BRONZE[database]
-    path = get_db_path(contract)
     df["year"] = company_id.split(" - ")[1].split("-")[0]
     df["company_file"] = company_id
+
     if "conj" in df.columns:
         df["conj"] = df["conj"].fillna("0").astype(int)
-    if check_file_exists_in_db(conn, path):
-        cols = conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
+
+    if database == "ponnot":
+        df = df.set_geometry("geometry")
+        df = df.to_crs(CRS_GLOBAL)
+        df = df.drop_duplicates()
+    if database == "ucbt":
+        df = df.drop(columns=["cod_id", "geometry"], errors="ignore")
+        # transform negative energy values to 0
+        energy_cols = df.filter(regex="ene_").columns
+        for col in energy_cols:
+            df[col] = np.where(df[col] < 0, 0, df[col])
+        # generate grouped col
+        not_energy_cols = list(df.columns.difference(energy_cols))
+        agg_dict = {col: ["sum", "mean"] for col in energy_cols}
+        df = df.groupby(not_energy_cols).agg(agg_dict)
+        df.columns = ["_".join(col).strip() for col in df.columns.values]
+        df = df.reset_index()
+
+    # add missing cols
+    if len(cols) > 0:
         df = add_missing_columns(df, cols)
-    df = df.drop_duplicates()
     return df
 
 
-def read_aneel_wraper(database: str, company_id: str, **kwargs):
+def read_single_file(layers_dict, path, database: str):
     """
     Wrapper function to read ANEEL data from a specific database and company.
 
     Args:
+        layers_dict (dict): A dictionary mapping database keys to layer names.
+        path (str): The path to the company's data directory.
         database (str): The name of the database.
-        company_id (str): The ID of the company.
-        **kwargs: Additional keyword arguments.
     """
+    reader = Reader()
+    df = reader.read_geofile(
+        file_path=path,
+        driver="FileGDB",
+        layer=layers_dict[database],
+    )
+    return df
 
-    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE[database])
-    def read_aneel(company_id: str, **kwargs) -> gpd.GeoDataFrame:
+
+def get_layers_and_path(company_id: str, database: str) -> Tuple[dict, str]:
+    """
+    Retrieves the dictionary of layer names and the path to the specified company's data.
+    Args:
+        company_id (str): The ID of the company whose data path is to be retrieved.
+        database (str): The database key to look up in the layers dictionary.
+    Returns:
+        tuple: A tuple containing:
+            - layers_dict (dict): A dictionary mapping database keys to layer names.
+            - path (str): The path to the company's data directory.
+    """
+    layers_dict = {
+        "ucbt": "UCBT_tab",
+        "ponnot": "PONNOT",
+        "conj": "CONJ",
+    }
+    path = os.path.join(CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"], company_id)
+    layers = fiona.listlayers(path)
+    if layers_dict[database] not in layers:
         layers_dict = {
-            "ramlig": "RAMLIG",
-            "ucbt": "UCBT_tab",
-            "ponnot": "PONNOT",
+            "ucbt": "UC_BT_tab",
+            "ponnot": "PON_NOT",
             "conj": "CONJ",
         }
-        reader = Reader()
-        path = os.path.join(CONTRACTS_BRONZE["raw_data"]["physicalPath"], company_id)
-        layers = fiona.listlayers(path)
-        if layers_dict[database] not in layers:
-            layers_dict = {
-                "ramlig": "RAM_LIG",
-                "ucbt": "UC_BT_tab",
-                "ponnot": "PON_NOT",
-                "conj": "CONJ",
-            }
-        df = reader.read_geofile(
-            file_path=path,
-            driver="FileGDB",
-            layer=layers_dict[database],
-        )
-        df = df.drop_duplicates()
-        del reader
-        del path
-        gc.collect()
-        return columns_engineering(df, database, company_id)
-
-    with mlflow.start_run(run_name=company_id):
-        df = read_aneel(company_id, **kwargs)
-        add_to_mlflow(df, database, company_id)
+    return layers_dict, path
 
 
-def read_file(database: str, company_id: str, is_large_file: bool = False) -> None:
+def read_and_process_file(
+    database: str, company_id: str, cols: List[str], is_large_file: bool = False
+) -> None:
     """
     Reads a file from a specified database and performs some operations on it.
 
     Args:
         database (str): The name of the database to read from.
         company_id (str): The ID of the company.
+        cols (List[str]): The columns that are already present in the databases saved.
         is_large_file (bool, optional): Indicates whether the file is
                                         large or not. Defaults to False.
     """
     file_name = company_id.split(".")[0]
-    manager.update_mlflow_runs(str(database))
-    kwargs = {"filename": file_name}
-    if is_large_file:
-        read_aneel_wraper_large_file(database, company_id, **kwargs)
-    else:
-        read_aneel_wraper(database, company_id, **kwargs)
+    MANAGER.update_mlflow_runs(str(database))
+    kwargs = {"filename": file_name, "contract": CONTRACT_BRONZE_ENERGY[database]}
+    with mlflow.start_run(run_name=company_id):
+        layers_dict, path = get_layers_and_path(company_id, database)
+        if is_large_file:
+            df = read_in_parallel(layers_dict, path, database)
+        else:
+            df = read_single_file(layers_dict, path, database)
+        df = columns_engineering(df, cols, company_id, database, **kwargs)
+        add_to_mlflow(df, database, company_id)
+
+
+def get_cols_saved_in_db(database: str) -> List[str]:
+    """
+    Checks if a file exists in the database and returns the columns if it does.
+
+    Args:
+        database (str): The name of the database to check.
+
+    Returns:
+        list: A list of column names.
+    """
+    conn = DBConnection("bronze")
+    contract = CONTRACT_BRONZE_ENERGY[database]
+    path = get_db_path(contract)
+    if check_file_exists_in_db(conn, path):
+        return conn.query_database(f"SELECT * FROM {path} LIMIT 1").columns
+    return []
 
 
 def read_aneel_company_files(
@@ -307,20 +363,24 @@ def read_aneel_company_files(
 
     This function reads the downloaded ANEEL company files.
     """
-    for database in ["ponnot", "ramlig", "ucbt", "conj"]:
-        exist_file = (
-            df_processed[
-                (df_processed["mlflow.runName"] == company_id)
-                & (df_processed["database"] == database)
-            ].shape[0]
-            > 0
-        )
+    for database in ["ponnot", "ucbt", "conj"]:
+        if df_processed.empty:
+            exist_file = False
+        else:
+            exist_file = (
+                df_processed[
+                    (df_processed["mlflow.runName"] == company_id)
+                    & (df_processed["database"] == database)
+                ].shape[0]
+                > 0
+            )
         if not exist_file:
+            cols = get_cols_saved_in_db(database)
             write_log(f"Reading {database} file {company_id}")
-            read_file(database, company_id, is_large_file)
+            read_and_process_file(database, company_id, cols, is_large_file)
 
 
-def flat_list(files_dict: dict) -> List[str]:
+def flat_list(files_dict: dict) -> Union[List[str], None]:
     """
     Flattens a list of lists.
 
@@ -330,9 +390,9 @@ def flat_list(files_dict: dict) -> List[str]:
     Returns:
         list: The flattened list.
     """
-    temp_files = []
     if not files_dict:
-        temp_files.append([])
+        return None
+    temp_files = []
     for _, files in files_dict.items():
         temp_files.extend(files)
     return temp_files
@@ -386,7 +446,7 @@ def split_file_sizes() -> Tuple[List[str], List[str], List[str], List[str]]:
                 os.path.basename(f)
                 for f in glob.glob(
                     os.path.join(
-                        CONTRACTS_BRONZE["raw_data"]["physicalPath"], "*.gdb.zip"
+                        CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"], "*.gdb.zip"
                     )
                 )
             ]
@@ -397,7 +457,7 @@ def split_file_sizes() -> Tuple[List[str], List[str], List[str], List[str]]:
             continue
         year = company_id.split(" - ")[1].split("-")[0]
         file_path = os.path.join(
-            CONTRACTS_BRONZE["raw_data"]["physicalPath"],
+            CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"],
             company_id,
         )
         file_size = os.path.getsize(file_path)
@@ -491,8 +551,8 @@ def get_cols_in_db(table_name) -> List[str]:
     Returns:
     list: A list of column names.
     """
-    schema = CONTRACTS_BRONZE[table_name]["schema"]
-    table = CONTRACTS_BRONZE[table_name]["tableName"]
+    schema = CONTRACT_BRONZE_ENERGY[table_name]["schema"]
+    table = CONTRACT_BRONZE_ENERGY[table_name]["tableName"]
     conn = DBConnection("bronze")
     return conn.query_database(f"SELECT * FROM {schema}.{table} LIMIT 1").columns
 
@@ -506,7 +566,7 @@ def get_df_processed():
         return pd.DataFrame({"mlflow.runName": [], "database": []})
     df_processed = df_processed[
         (df_processed["status"] == "FINISHED")
-        & (~df_processed["mlflow.runName"].isin(["ponnot", "ucbt", "conj", "ramlig"]))
+        & (~df_processed["mlflow.runName"].isin(["ponnot", "ucbt", "conj"]))
     ]
     return df_processed
 
@@ -514,13 +574,33 @@ def get_df_processed():
 def process_files_aneel():
     """
     Process the files in the ANEEL dataset based on their sizes.
+
+    This function splits the files into four categories based on their sizes and then processes
+    each category using the appropriate functions for small, medium, large, and extra-large files.
     """
     df_processed = get_df_processed()
     extra_large_files, large_files, medium_files, small_files = split_file_sizes()
-    process_small_files(small_files, df_processed)
-    proccess_medium_files(medium_files, df_processed)
-    process_large_files(large_files, df_processed)
-    process_extra_large_files(extra_large_files, df_processed)
+
+    if small_files:
+        process_small_files(small_files, df_processed)
+
+    if medium_files:
+        proccess_medium_files(medium_files, df_processed)
+
+    df_processed = get_df_processed()
+
+    if df_processed.empty:
+        raise RuntimeError(
+            "Important: For large and extra-large files, the script uses parallel processing. "
+            "If a database is not already saved, multiple workers may attempt"
+            "to create it simultaneously, which can cause a deadlock."
+        )
+
+    if large_files:
+        process_large_files(large_files, df_processed)
+
+    if extra_large_files:
+        process_extra_large_files(extra_large_files, df_processed)
 
 
 def main():
@@ -532,5 +612,7 @@ def main():
     It utilizes concurrent.futures.ProcessPoolExecutor to parallelize the
     file reading process.
     """
+    module_name = os.path.basename(__file__).replace(".py", "")
+    MANAGER.update_status(module_name)
     process_files_aneel()
-    manager.update_last_run()
+    MANAGER.update_last_run()
