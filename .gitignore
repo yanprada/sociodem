@@ -15,5 +15,3 @@ dist
 *.geojson
 build/
 mlruns/
-databases/
-raw_data/
