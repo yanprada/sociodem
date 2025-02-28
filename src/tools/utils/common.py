@@ -276,6 +276,22 @@ def get_db_path(contract: dict) -> str:
     return ".".join([contract["schema"], contract["tableName"]])
 
 
+def add_year_to_contract(contract: dict, year: int) -> dict:
+    """
+    Add the year to the contract.
+
+    Args:
+        contract (dict): The contract containing the schema and table name.
+        year (int): The year to be added to the contract.
+
+    Returns:
+        dict: The updated contract.
+    """
+    contract["tableName"] = contract["tableName"].format(year=year)
+    contract["physicalPath"] = contract["physicalPath"].format(year=year)
+    return contract
+
+
 def get_column_name(contract: dict, column_name: str) -> str:
     """
     Get the column name based on the contract.
