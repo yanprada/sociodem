@@ -18,7 +18,6 @@ Usage example:
 """
 
 import os
-from typing import Union
 import yaml
 
 SOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "contracts")
@@ -47,9 +46,7 @@ class DataContract:
             config = yaml.safe_load(file)
         return config[meddalon]
 
-    def get_contract(
-        self, meddalon: str, agent: str, table_name: str
-    ) -> Union[dict, None]:
+    def get_contract(self, meddalon: str, agent: str, table_name: str) -> dict:
         """
         Retrieves the data from the contract.
 
@@ -66,7 +63,7 @@ class DataContract:
         for contract_name in self.contracts[agent]:
             if table_name == contract_name:
                 return self.__get_contract(meddalon, path)
-        return None
+        raise FileNotFoundError(f"Contract not found: {table_name}")
 
     def public_method(self):
         """

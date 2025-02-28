@@ -12,6 +12,7 @@ Classes:
     get_collection(): Returns the collection associated with the current instance.
 """
 
+from typing import Union
 import fileinput
 from datetime import datetime
 
@@ -63,7 +64,7 @@ class ExecutionManager:
 
     def __init__(self, params: dict):
         self.params = params
-        self.execution_details = params.get("execution_details", None)
+        self.execution_details: dict = params.get("execution_details", {})
         self.data_contracts = self.__load_contracts()
         self.run_mode = params.get("run_mode", None)
         self.conn = MongoDBConnection(
@@ -160,7 +161,9 @@ class ExecutionManager:
             write_log(f"Execution ID `{self.execution_id}` saved in MongoDB")
             self.overwrite_execution_id()
 
-    def start_execution(self, execution_id: str = None, overwrite: bool = True):
+    def start_execution(
+        self, execution_id: Union[str, None] = None, overwrite: bool = True
+    ):
         """
         Starts the execution process.
         This method updates the status to "running" and writes a log message indicating
@@ -175,7 +178,9 @@ class ExecutionManager:
             if func_step["run"]:
                 func_step["function"]()
 
-    def initialize_execution(self, execution_id: str = None, overwrite: bool = False):
+    def initialize_execution(
+        self, execution_id: Union[str, None] = None, overwrite: bool = False
+    ):
         """
         Initializes the execution process.
         This method updates the status to "initialized" and writes a log message indicating
@@ -184,7 +189,9 @@ class ExecutionManager:
         if execution_id is None and self.execution_id is None:
             self.create_execution(overwrite)
         query = {"execution_id": execution_id if execution_id else self.execution_id}
-        self.execution_details = self.collection.find_one(query)
+        db_return = self.collection.find_one(query)
+        if isinstance(db_return, dict):
+            self.execution_details = db_return
         self.execution_id = self.execution_details["execution_id"]
 
     def overwrite_execution_id(self):
@@ -253,3 +260,25 @@ class ExecutionManager:
             {"$set": {"last_run": date}},
         )
         write_log(f"Execution ID {self.execution_id} updated last_run to {date}")
+
+
+class ExecutionManagerWrapper:
+    """Classe wrapper para gerenciar instâncias únicas de ExecutionManager."""
+
+    def __init__(self, base_params, execution_id, debug):
+        self._manager = ExecutionManager(base_params)
+        self._manager.initialize_execution(execution_id, debug)
+
+    @property
+    def manager(self):
+        """
+        Return instance of ExecutionManager.
+        """
+        return self._manager
+
+    @property
+    def execution_details(self):
+        """
+        Return execution_details from ExecutionManager.
+        """
+        return self._manager.execution_details
