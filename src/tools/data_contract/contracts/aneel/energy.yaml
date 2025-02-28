@@ -5,7 +5,7 @@ raw_data:
   physicalPath: raw_data/aneel/
   description: Raw data from aneel
   queryYears: [2017, 2023]
-  ifExists: replace
+  ifExists: append
   columns:
   - column: 
     isPrimaryKey: 
@@ -21,9 +21,9 @@ raw_data:
 
 bronze:
   - contractName: contract_aneel_companies.yaml
-    tableName: ponnot
+    tableName: ponnot_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ponnot/
+    physicalPath: databases/bronze/aneel/ponnot_{year}/
     description: Energy infrastructure points of energy companies
     queryYears: [2017, 2023]
     ifExists: append
@@ -39,12 +39,12 @@ bronze:
       isBlank: 
       translatedValues:
       sampleValues:
-  - tableName: ucbt
+  - tableName: ucbt_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt/
+    physicalPath: databases/bronze/aneel/ucbt_{year}/
     description: Energy infrastructure consumption for energy companies
     queryYears: [2017, 2023]
-    ifExists: append
+    ifExists: replace
     columns:
     - column: 
       isPrimaryKey: 
