@@ -23,7 +23,7 @@ import numpy as np
 from tqdm import tqdm
 
 from src.tools.utils.constants import CRS_GLOBAL, HEX_RESOLUTION
-
+from src.tools.utils.common import add_year_to_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.execution_manager import ExecutionManager
 from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
@@ -33,7 +33,7 @@ from config.run_mode import DEBUG
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
 mlflow.set_experiment(EXPERIMENT_ID)
 
@@ -102,7 +102,10 @@ def generate_windows(height: int, width: int, block_size: int):
             yield rasterio.windows.Window(j, i, block_size, block_size)
 
 
-def save_partitions(all_dfs: List[pd.DataFrame], partition: int, year: int) -> int:
+@save_parquet_decorator("bronze")
+def save_partitions(
+    all_dfs: List[pd.DataFrame], partition: int, year: int, **kwargs
+) -> int:
     """
     Save the partitions of dataframes into separate files.
 
@@ -110,31 +113,19 @@ def save_partitions(all_dfs: List[pd.DataFrame], partition: int, year: int) -> i
         all_dfs (List[pd.DataFrame]): A list of dataframes to be concatenated and saved.
         partition (int): The current partition number.
         year (int) : The Mapbiomas year being processed.
+        **kwargs: Additional keyword arguments to be passed to the save function.
 
     Returns:
         int: The updated partition number.
 
     """
-    contract = CONTRACTS_BRONZE["mapbiomas"].copy()
-    contract["tableName"] = contract["tableName"].format(year=year)
-    contract["physicalPath"] = contract["physicalPath"].format(year=year)
-
-    @save_parquet_decorator("bronze", contract, save_db=True, save_pq=True)
-    def save_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-        return df
-
     df = pd.concat(all_dfs, ignore_index=True)
     df["year"] = year
     df = df_to_gdf(df)
     df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
     df = df.groupby(["hex_col", "value"], as_index=False).size()
-    kwargs = {"filename": f"brasil_coverage_{year}_{partition}"}
-    df = save_data(df, **kwargs)
     add_to_mlflow(df, partition)
-    del df
-    gc.collect()
-    partition += 1
-    return partition
+    return df
 
 
 def process_batch(
@@ -182,6 +173,9 @@ def process_batch(
         >>> new_partition = process_batch(file_path, size_list, batch, partition, year)
     """
     all_dfs = []
+    contract = CONTRACTS_BRONZE["mapbiomas"].copy()
+    contract = add_year_to_contract(contract, year)
+    kwargs = {"filename": f"brasil_coverage_{year}_{partition}", "contract": contract}
     with rasterio.open(file_path) as src:
         transform = src.transform
         windows = list(generate_windows(src.height, src.width, size_list[0]))[
@@ -209,13 +203,16 @@ def process_batch(
                         continue
                     all_dfs.append(block_df.query("value != 0"))
                     if sum(len(df) for df in all_dfs) > 1e5:
-                        partition = save_partitions(all_dfs, partition, year)
+                        df = save_partitions(all_dfs, partition, year, **kwargs)
+                        del df
+                        gc.collect()
+                        partition += 1
                         all_dfs = []
                 except Exception as e:
                     print(f"Error processing window: {e}")
 
     if all_dfs:
-        partition = save_partitions(all_dfs, partition, year)
+        partition = save_partitions(all_dfs, partition, year, **kwargs)
     return partition
 
 
