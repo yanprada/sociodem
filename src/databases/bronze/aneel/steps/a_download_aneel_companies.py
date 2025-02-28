@@ -10,14 +10,14 @@ import pandas as pd
 from src.tools.utils.reader import Reader
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 from src.databases.bronze.aneel.config import (
-    MANAGER,
+    manager,
     CONTRACT_RAW_IDS,
     CONTRACT_RAW_ENERGY,
 )
 
 
 module_name = os.path.basename(__file__).replace(".py", "")
-MANAGER.update_status(module_name)
+manager.update_status(module_name)
 
 
 def load_aneel_ids() -> pd.DataFrame:
@@ -67,4 +67,4 @@ def main():
     """
     df = load_aneel_ids()
     download_aneel_company_files(df)
-    MANAGER.update_last_run()
+    manager.update_last_run()
