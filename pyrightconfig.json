@@ -1,0 +1,12 @@
+{
+    "exclude": [
+        "**/__pycache__",
+        "**/.git",
+        "**/venv",
+        "**/mlruns",
+        "**/references",
+        "**/.venv",
+        "**/databases",
+        "**/raw_data"
+    ]
+}
