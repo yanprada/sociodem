@@ -4,11 +4,11 @@ This module provides a class that provides methods to read different file format
 It includes methods to read Parquet files, CSV files, Excel files, and shapefiles.
 """
 
-from typing import Optional, Union
+from typing import Optional, Union, List
 import dask.dataframe as dd
 import pandas as pd
 import geopandas as gpd
-from dask.diagnostics import ProgressBar
+from dask.diagnostics.progress import ProgressBar
 import unidecode
 from sqlalchemy import text
 from tqdm import tqdm
@@ -88,7 +88,7 @@ class Reader:
         df = self.__read(read_function, file_path, **kwargs)
         return df
 
-    def read_csv(self, file_path: str, **kwargs):
+    def read_csv(self, file_path: str, **kwargs) -> pd.DataFrame:
         """
         Reads a CSV file and returns a pandas DataFrame.
 
@@ -136,7 +136,9 @@ class Reader:
         df = self.__read(read_function, file_path, **kwargs)
         return df
 
-    def read_geopandas(self, file_path: str, as_feature: bool, *args, **kwargs):
+    def read_geopandas(
+        self, file_path: Union[str, List[str]], as_feature: bool, *args, **kwargs
+    ):
         """
         Reads a file and returns a GeoDataFrame.
 
