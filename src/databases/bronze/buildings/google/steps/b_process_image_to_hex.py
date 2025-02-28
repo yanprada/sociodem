@@ -27,7 +27,7 @@ from pyproj import Transformer
 
 
 from src.tools.utils.constants import HEX_RESOLUTION, CRS_GLOBAL
-from src.tools.utils.common import write_log
+from src.tools.utils.common import write_log, add_year_to_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.databases.bronze.buildings.google.config import (
     MANAGER,
@@ -129,8 +129,7 @@ def process_and_save(file_path, batch_number):
         result["year"] = int(YEAR)
         result["state"] = STATE
         contract = BUILDING_CONTRACTS_BRONZE["buildings_google"]
-        contract["physicalPath"] = contract["physicalPath"].format(year=YEAR)
-        contract["tableName"] = contract["tableName"].format(year=YEAR)
+        contract = add_year_to_contract(contract, YEAR)
         kwargs = {
             "filename": f"batch_{batch_number}_{os.path.basename(file_path)}",
             "contract": contract,
