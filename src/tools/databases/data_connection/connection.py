@@ -604,7 +604,9 @@ class DBConnection(DBConnectionHandler):
         with self._DBConnectionHandler__engine.begin() as conn:
             conn.execute(text(query))
 
-    def add_table(self, table: Union[pd.DataFrame, gpd.GeoDataFrame], contract: dict):
+    def add_table(
+        self, table: Union[pd.Series, pd.DataFrame, gpd.GeoDataFrame], contract: dict
+    ):
         """
         Adds a table to the database.
 
