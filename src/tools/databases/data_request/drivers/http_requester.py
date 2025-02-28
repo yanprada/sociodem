@@ -43,7 +43,7 @@ class HttpRequesterAneel:
         self,
         id_params: pd.Series,
         destination_path: str,
-        titles: Optional[Union[str, None]] = None,
+        titles: Optional[Union[pd.Series, None]] = None,
     ):
         """Method to request Aneel data from website.
 
