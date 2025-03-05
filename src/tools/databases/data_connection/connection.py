@@ -710,9 +710,10 @@ class DBConnection(DBConnectionHandler):
             - display (bool): A flag indicating whether to display a progress bar.
 
         Returns:
-            pd.DataFrame: The result of the query as a DataFrame.
+            Union[pd.DataFrame, gpd.GeoDataFrame]: The result of the query as a DataFrame.
         """
         with self._DBConnectionHandler__engine.connect() as conn:
+            conn = conn.execution_options(stream_results=True)
             df = pd.read_sql_query(text(query), conn, chunksize=1000)
             if display:
                 df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
