@@ -567,8 +567,8 @@ def main() -> None:
     This is the main function that executes the join_ucbt_and_ponnot operation.
     """
     conn = DBConnection("bronze")
-    large_files, medium_files, small_files = split_file_sizes()
-    company_files = large_files + medium_files + small_files
+    large_files, small_files = split_file_sizes()
+    company_files = large_files + small_files
     for company_file in tqdm(company_files, desc="Processing companies"):
         year = company_file.split(" - ")[1].split("-")[0]
         path_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"aneel_join_{year}"])

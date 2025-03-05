@@ -38,21 +38,18 @@ def flat_list(files_dict: DefaultDict[str, List[str]]) -> List[str]:
     return temp_files
 
 
-def split_file_sizes() -> Tuple[List[str], List[str], List[str]]:
+def split_file_sizes() -> Tuple[List[str], List[str]]:
     """
     Splits the file sizes into four lists based on their sizes.
 
     Returns:
         tuple: A tuple containing two lists - large_files and small_files.
-               large_files: List of file ids with sizes greater than or equal to 800MB.
-               medium_files: List of file ids with sizes greater than or equal
-                            to 100MB and less than 800MB.
+               large_files: List of file ids with sizes greater than or equal to 100MB.
                small_files: List of file ids with sizes less than 100MB.
     """
     large_files = defaultdict(list)
-    medium_files = defaultdict(list)
     small_files = defaultdict(list)
-    split_size = 800 * 1024 * 1024
+    split_size = 100 * 1024 * 1024
     df_aneel_ids = pd.DataFrame(
         {
             "company_ids": [
@@ -76,11 +73,8 @@ def split_file_sizes() -> Tuple[List[str], List[str], List[str]]:
         file_size = os.path.getsize(file_path)
         if file_size >= split_size:
             large_files[year].append(company_id)
-        elif (split_size / 8) <= file_size < split_size:
-            medium_files[year].append(company_id)
         else:
             small_files[year].append(company_id)
     large_files = flat_list(large_files)
-    medium_files = flat_list(medium_files)
     small_files = flat_list(small_files)
-    return large_files, medium_files, small_files
+    return large_files, small_files
