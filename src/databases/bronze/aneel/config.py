@@ -15,7 +15,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "bronze-aneel-qStOVo6wDOk3obC"
+EXECUTION_ID = "bronze-aneel-2025-03-02-15h55m14s"
 
 BASE_PARAMS = {
     "medallon": "bronze",
@@ -37,5 +37,7 @@ manager = _manager_wrapper.manager
 CONTRACT_BRONZE_ENERGY = manager.execution_details["data_contracts"]["aneel_bronze"]
 CONTRACT_RAW_ENERGY = manager.execution_details["data_contracts"]["aneel_raw"]
 CONTRACT_RAW_IDS = manager.execution_details["data_contracts"]["aneel_company_ids"]
+
+YEARS = manager.execution_details["info"]["running_years"]
 
 EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]
