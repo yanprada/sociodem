@@ -16,7 +16,7 @@ from typing import Union
 import fileinput
 from datetime import datetime
 
-from src.tools.utils.common import generate_random_string, write_log
+from src.tools.utils.common import write_log
 from src.tools.databases.data_connection.connection import MongoDBConnection
 from src.tools.data_contract.data_contract_class import DataContract
 
@@ -75,24 +75,47 @@ class ExecutionManager:
 
     def __load_contracts(self):
         dc = DataContract()
-        contract = {}
-        for k, v in self.params.get("data_contracts", None).items():
-            subcontracts = {}
-            contract_result = dc.get_contract(v[0], v[1], v[2])
-            if isinstance(contract_result, list):
-                for subc in contract_result:
-                    table_name = subc["tableName"]
-                    subcontracts[table_name] = subc
+        contracts = self.params.get("data_contracts", {})
+        return {k: self.__process_contract(dc, v) for k, v in contracts.items()}
+
+    def __process_contract(self, dc, contract_params):
+        contract_result = dc.get_contract(*contract_params)
+        if isinstance(contract_result, list):
+            return self.__process_subcontracts(contract_result)
+        return {contract_result["tableName"]: contract_result}
+
+    def __process_subcontracts(self, subcontracts):
+        processed_subcontracts = {}
+        for subc in subcontracts:
+            if "{year}" in subc["tableName"]:
+                processed_subcontracts.update(self.__expand_yearly_subcontracts(subc))
             else:
-                table_name = contract_result["tableName"]
-                subcontracts[table_name] = contract_result
-            contract[k] = subcontracts
-        return contract
+                processed_subcontracts[subc["tableName"]] = subc
+                year_init, year_end = subc["queryYears"]
+                self.params["years"] = list(range(year_init, year_end + 1))
+        return processed_subcontracts
+
+    def __expand_yearly_subcontracts(self, subcontract):
+        expanded_subcontracts = {}
+        year_init, year_end = subcontract["queryYears"]
+        self.params["years"] = list(range(year_init, year_end + 1))
+        for year in range(year_init, year_end + 1):
+            subc_copy = self.__replace_year_in_subcontract(subcontract, year)
+            expanded_subcontracts[subc_copy["tableName"]] = subc_copy
+        return expanded_subcontracts
+
+    def __replace_year_in_subcontract(self, subcontract, year):
+        subc_copy = subcontract.copy()
+        subc_copy["tableName"] = subc_copy["tableName"].replace("{year}", str(year))
+        for key, value in subc_copy.items():
+            if isinstance(value, str) and "{year}" in value:
+                subc_copy[key] = value.replace("{year}", str(year))
+        return subc_copy
 
     def __create_execution_id(self, overwrite: bool):
-        execution_id_str = generate_random_string(15)
+        timestamp_str = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss")
         execution_id = (
-            f"{self.params['medallon']}-{self.params['data_name']}-{execution_id_str}"
+            f"{self.params['medallon']}-{self.params['data_name']}-{timestamp_str}"
         )
         self.execution_details["execution_id"] = execution_id
         self.execution_id = execution_id
@@ -138,6 +161,11 @@ class ExecutionManager:
         if overwrite:
             write_log(f"Last run set to {self.params['last_run']}")
 
+    def __create_info(self, overwrite: bool):
+        self.execution_details["info"] = {"running_years": self.params.get("years", [])}
+        if overwrite:
+            write_log("Info added to execution details")
+
     def __create_execution(self, overwrite: bool):
         self.execution_details = {}
         self.__create_execution_id(overwrite)
@@ -148,6 +176,7 @@ class ExecutionManager:
         self.__create_steps(overwrite)
         self.__create_run_mode(overwrite)
         self.__create_last_run(overwrite)
+        self.__create_info(overwrite)
 
     def create_execution(self, overwrite: bool = False):
         """
