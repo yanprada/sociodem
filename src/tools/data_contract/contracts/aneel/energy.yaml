@@ -57,45 +57,9 @@ bronze:
       isBlank: 
       translatedValues:
       sampleValues:
-  - tableName: ucbt_agg
+  - tableName: conj_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt_agg/
-    description: Energy infrastructure consumption for energy companies
-    queryYears: [2017, 2023]
-    ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: ucbt_no_join
-    schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt_no_join/
-    description: Energy infrastructure consumption for energy companies that do not have a ponnot
-    queryYears: [2017, 2023]
-    ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: conj
-    schema: infrastructure
-    physicalPath: databases/bronze/aneel/conj/
+    physicalPath: databases/bronze/aneel/conj_{year}/
     description: geometry area of influence of energy companies
     queryYears: [2017, 2023]
     ifExists: append
@@ -111,9 +75,9 @@ bronze:
       isBlank: 
       translatedValues:
       sampleValues:
-  - tableName: aneel_join
+  - tableName: aneel_join_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/aneel_join/
+    physicalPath: databases/bronze/aneel/aneel_join_{year}/
     description: Energy infrastructure consumption for energy companies that has a ponnot
     queryYears: [2017, 2023]
     ifExists: append
@@ -129,28 +93,10 @@ bronze:
       isBlank: 
       translatedValues:
       sampleValues:
-  - tableName: ucbt_clean
+  - tableName: ucbt_no_join_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt_clean/
-    description: Energy infrastructure consumption for energy companies that has a ponnot
-    queryYears: [2017, 2023]
-    ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: ponnot_clean
-    schema: infrastructure
-    physicalPath: databases/bronze/aneel/ponnot_clean/
-    description: Energy infrastructure consumption for energy companies that has a ponnot
+    physicalPath: databases/bronze/aneel/ucbt_no_join_{year}/
+    description: Energy infrastructure consumption for energy companies that do not have a ponnot
     queryYears: [2017, 2023]
     ifExists: append
     columns:
