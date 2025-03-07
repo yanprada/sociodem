@@ -15,7 +15,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "bronze-aneel-2025-03-02-15h55m14s"
+EXECUTION_ID = "bronze-aneel-2025-03-06-17h13m55s"
 
 BASE_PARAMS = {
     "medallon": "bronze",
