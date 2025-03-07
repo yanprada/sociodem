@@ -5,6 +5,7 @@
 .vscode
 *.egg-info
 dist
+*.xlsx
 *.csv
 *.parquet
 *.zip
