@@ -283,6 +283,7 @@ def process_ucbt_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.drop(columns=["cod_id", "geometry"], errors="ignore")
     df["dat_con"] = pd.to_datetime(df["dat_con"], errors="coerce").dt.date
+    df["conj"] = df["conj"].astype(str)
     df = transform_negative_energy_values(df)
     df = generate_grouped_columns(df)
     return df
@@ -468,7 +469,7 @@ def check_if_file_exists(df_processed: pd.DataFrame, database: str, company_id: 
         return False
     return (
         df_processed[
-            (df_processed["mlflow.runName"] == company_id)
+            (df_processed["company_id"] == company_id)
             & (df_processed["database"] == database)
         ].shape[0]
         > 0
@@ -492,7 +493,7 @@ def process_single_file(
         List[Dict[str, Union[str, int]]]: A list of dictionaries containing the results.
     """
     results = []
-    for database in ["conj"]:
+    for database in ["ponnot", "ucbt", "conj"]:
         exist_file = check_if_file_exists(df_processed, database, company_id)
         if not exist_file:
             year = int(company_id.split(" - ")[1].split("-")[0])
@@ -509,7 +510,7 @@ def process_single_file(
     return results
 
 
-def process_in_parallel(
+def process_small_files(
     files: list, df_processed: pd.DataFrame, max_num_cores: int
 ) -> None:
     """
@@ -548,8 +549,6 @@ def process_large_files(large_files: list, df_processed: pd.DataFrame) -> None:
     Process a list of large files.
     """
     for company_id in tqdm(large_files, desc="Processing large files"):
-        if company_id in ["NEOENERGIA_COELBA - 2022-12-31.gdb.zip"]:
-            continue
         write_log(f"Reading large file: {company_id}")
         try:
             results = process_single_file(company_id, df_processed, is_large_file=True)
@@ -570,12 +569,12 @@ def get_data_processed_from_mlflow():
     """
     df_processed = get_ml_flow_data(EXPERIMENT_NAME)
     if df_processed.empty:
-        return pd.DataFrame({"mlflow.runName": [], "database": []})
+        return pd.DataFrame({"company_id": [], "database": []})
     df_processed = df_processed[
         (df_processed["status"] == "FINISHED")
-        & (~df_processed["mlflow.runName"].isin(["ponnot", "ucbt", "conj"]))
+        & (~df_processed["company_id"].isin(["ponnot", "ucbt", "conj"]))
     ]
-    return df_processed
+    return df_processed[["company_id", "database"]]
 
 
 def get_data_processed_from_db():
@@ -592,9 +591,16 @@ def get_data_processed_from_db():
     for year in YEARS:
         for database in ["ponnot", "ucbt", "conj"]:
             path = get_db_path(CONTRACT_BRONZE_ENERGY[f"{database}_{year}"])
-            company_files.append(
-                conn.query_database(f"SELECT DISTINCT company_file FROM {path}")
-            )
+            try:
+                df = conn.query_database(
+                    f"SELECT DISTINCT(company_file) as company_id FROM {path}"
+                )
+                df["database"] = database
+                company_files.append(df)
+            except:
+                continue
+    if not company_files:
+        return pd.DataFrame({"company_id": [], "database": []})
     return pd.concat(company_files)
 
 
@@ -604,13 +610,15 @@ def get_df_already_processed():
     """
     df_mlflow = get_data_processed_from_mlflow()
     df_db = get_data_processed_from_db()
-    assert (
-        set(df_mlflow["company_id"]).difference(set(df_db["company_file"])) == set()
-    ), "MLflow data not in DB"
-    # assert (
-    #     set(df_db["company_file"]).difference(set(df_mlflow["company_id"])) == set()
-    # ), "DB data not in MLflow"
-    return df_mlflow
+    diff_mlflow_db = set(df_mlflow["company_id"]).difference(set(df_db["company_id"]))
+    diff_db_mlflow = set(df_db["company_id"]).difference(set(df_mlflow["company_id"]))
+    if diff_mlflow_db and not diff_db_mlflow:
+        write_log(f"Mlflow has {len(diff_mlflow_db)} files that is not in the database")
+        return df_mlflow
+    if diff_db_mlflow and not diff_mlflow_db:
+        write_log(f"Database has {len(diff_db_mlflow)} files that is not in Mlflow")
+        return df_db
+    return df_db
 
 
 def process_files_per_size_aneel():
@@ -621,7 +629,7 @@ def process_files_per_size_aneel():
     large_files, small_files = split_file_sizes()
 
     if small_files:
-        process_in_parallel(small_files, df_processed, 10)
+        process_small_files(small_files, df_processed, 10)
     if large_files:
         process_large_files(large_files, df_processed)
 
