@@ -30,16 +30,16 @@ from src.tools.utils.constants import HEX_RESOLUTION, CRS_GLOBAL
 from src.tools.utils.common import write_log, add_year_to_contract
 from src.tools.utils.save import save_parquet_decorator
 from src.databases.bronze.buildings.google.config import (
-    MANAGER,
+    manager,
     BUILDING_CONTRACTS_BRONZE,
     BUILDING_CONTRACTS_RAW,
-    EXPERIMENT_ID,
+    EXPERIMENT_NAME,
 )
 
 module_name = os.path.basename(__file__).replace(".py", "")
-MANAGER.update_status(module_name)
+manager.update_status(module_name)
 
-mlflow.set_experiment(EXPERIMENT_ID)
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
 YEAR = 2017
@@ -76,6 +76,8 @@ def process_image(file_path: str) -> gpd.GeoDataFrame:
             proj_coords = np.array(src.xy(rows, cols)).T
 
             if crs.is_projected:
+                if transformer is None:
+                    raise ValueError("Failed to create transformer")
                 lats_lons = np.array(
                     transformer.transform(proj_coords[:, 0], proj_coords[:, 1])
                 ).T
@@ -101,8 +103,8 @@ def add_hexagons(lats_lons, building_counts):
     df = df[df["building_count"] > 0]
     grouped = df.groupby("h3_index")["building_count"].sum().reset_index()
 
-    geometries = grouped["h3_index"].apply(
-        lambda h: Polygon(h3.h3_to_geo_boundary(h, geo_json=True))
+    geometries = grouped["h3_index"].apply(  # type: ignore
+        lambda h: Polygon(h3.h3_to_geo_boundary(h, geo_json=True))  # type: ignore
     )
     gdf = gpd.GeoDataFrame(grouped, geometry=geometries, crs=CRS_GLOBAL)
 
@@ -172,7 +174,7 @@ def get_remaining_files(path: str) -> List[str]:
 
 def categorize_files_by_size(
     file_paths: List[str],
-) -> Tuple[List[str], List[str], List[str]]:
+) -> Tuple[List[str], List[str], List[str], List[str], List[str], List[str]]:
     """
     Categorizes files into small, medium, and large based on their sizes.
 
@@ -180,8 +182,9 @@ def categorize_files_by_size(
         file_paths (List[str]): List of file paths to categorize.
 
     Returns:
-        Tuple[List[str], List[str], List[str]]: Three lists containing
-            small, medium, and large files respectively.
+        Tuple[List[str], List[str], List[str],
+            List[str], List[str], List[str]]: Six lists containing
+            nano, extra small, small, medium, large and extra large files respectively.
     """
     nano_files = []
     xsm_files = []
@@ -231,7 +234,7 @@ def process_files_in_parallel(
             memory_limit=memory_limit,
             processes=True,
         ) as cluster, Client(cluster):
-            ddf = dd.from_pandas(
+            ddf = dd.from_pandas(  # type: ignore
                 pd.DataFrame({"file_path": file_paths}), npartitions=n_workers
             )
             futures = ddf.apply(
@@ -265,16 +268,20 @@ def log_mlflow_metrics(results):
     - dompp_sum_mean: Mean of the second elements in the results tuples.
     """
 
-    mlflow.log_metric("results_len", np.sum(r_tuple[0] for r_tuple in results))
+    mlflow.log_metric("results_len", np.sum(r_tuple[0] for r_tuple in results))  # type: ignore
     mlflow.log_metric(
-        "results_len_median", np.median([r_tuple[0] for r_tuple in results])
+        "results_len_median", np.median([r_tuple[0] for r_tuple in results])  # type: ignore
     )
-    mlflow.log_metric("results_len_mean", np.mean([r_tuple[0] for r_tuple in results]))
-    mlflow.log_metric("dompp_sum", np.sum(r_tuple[1] for r_tuple in results))
     mlflow.log_metric(
-        "dompp_sum_median", np.median([r_tuple[1] for r_tuple in results])
+        "results_len_mean", np.mean([r_tuple[0] for r_tuple in results])
+    )  # type: ignore
+    mlflow.log_metric("dompp_sum", np.sum(r_tuple[1] for r_tuple in results))  # type: ignore
+    mlflow.log_metric(
+        "dompp_sum_median", np.median([r_tuple[1] for r_tuple in results])  # type: ignore
     )
-    mlflow.log_metric("dompp_sum_mean", np.mean([r_tuple[1] for r_tuple in results]))
+    mlflow.log_metric(
+        "dompp_sum_mean", np.mean([r_tuple[1] for r_tuple in results])
+    )  # type: ignore
 
 
 def move_files_location():

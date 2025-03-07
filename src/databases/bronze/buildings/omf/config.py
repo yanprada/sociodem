@@ -1,5 +1,5 @@
 """
-This module contains the configuration settings for the bronze 
+This module contains the configuration settings for the bronze
     database related to the Buildings data.
 
 Attributes:
@@ -12,19 +12,31 @@ Attributes:
 
 import os
 
-from src.tools.data_contract.buildings_data_contract import get_buildings_contracts
 from config.run_mode import DEBUG
 
-EXECUTION_ID = "bronze-buildings-W6KKXJzPYgkpAW4"
+from src.tools.utils.execution_manager import ExecutionManagerWrapper
+
+EXECUTION_ID = None
 
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "buildings",
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
-        "raw_data": get_buildings_contracts("raw_data"),
-        "bronze": get_buildings_contracts("bronze"),
+        "omf_raw_data": ["raw_data", "buildings", "omf"],
+        "omf_bronze": ["raw_data", "buildings", "omf"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
 }
+
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+manager = _manager_wrapper.manager
+
+
+CONTRACT_BRONZE_OMF = manager.execution_details["data_contracts"]["omf_bronze"]
+CONTRACT_RAW_OMF = manager.execution_details["data_contracts"]["omf_raw_data"]
+
+YEARS = manager.execution_details["info"]["running_years"]
+
+EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]

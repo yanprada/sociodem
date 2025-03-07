@@ -25,13 +25,13 @@ from src.tools.utils.save import save_parquet_decorator
 
 
 from src.databases.bronze.buildings.google.config import (
-    MANAGER,
+    manager,
     STATE_CONTRACTS_RAW,
     BUILDING_CONTRACTS_RAW,
 )
 
 module_name = os.path.basename(__file__).replace(".py", "")
-MANAGER.update_status(module_name)
+manager.update_status(module_name)
 
 
 @save_parquet_decorator("bronze", save_db=False)
@@ -80,4 +80,4 @@ def main():
             "contract": BUILDING_CONTRACTS_RAW["buildings_google"],
         }
         _ = save_states_geom(reader, file, **kwargs)
-    MANAGER.update_last_run()
+    manager.update_last_run()
