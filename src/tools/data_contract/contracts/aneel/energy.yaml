@@ -44,7 +44,7 @@ bronze:
     physicalPath: databases/bronze/aneel/ucbt_{year}/
     description: Energy infrastructure consumption for energy companies
     queryYears: [2017, 2023]
-    ifExists: replace
+    ifExists: append
     columns:
     - column: 
       isPrimaryKey: 
