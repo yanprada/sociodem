@@ -24,7 +24,7 @@ BASE_PARAMS = {
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
         "omf_raw_data": ["raw_data", "buildings", "omf"],
-        "omf_bronze": ["raw_data", "buildings", "omf"],
+        "omf_bronze": ["bronze", "buildings", "omf"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
