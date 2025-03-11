@@ -1,7 +1,7 @@
 """
 This module provides a class for handling database connections.
 
-The DBConnectionHandler class encapsulates the logic for creating 
+The DBConnectionHandler class encapsulates the logic for creating
 and managing a database connection using SQLAlchemy.
 """
 
@@ -291,6 +291,8 @@ class DBConnection(DBConnectionHandler):
             conn.execute(sqlalchemy.schema.CreateSchema(schema_name))
 
     def __get_pk(self, contract):
+        if "columns" not in contract:
+            return None
         return next(
             (col["column"] for col in contract["columns"] if col["isPrimaryKey"]),
             None,
@@ -328,6 +330,8 @@ class DBConnection(DBConnectionHandler):
                 )
 
     def __get_fk(self, contract):
+        if "columns" not in contract:
+            return None
         return [
             (col["column"], col["ForeignKey"])
             for col in contract["columns"]
@@ -370,6 +374,8 @@ class DBConnection(DBConnectionHandler):
                     )
 
     def __get_not_null(self, contract: dict):
+        if "columns" not in contract:
+            return None
         return [col["column"] for col in contract["columns"] if col["isNullable"]]
 
     def __add_not_null_to_table(
@@ -535,9 +541,9 @@ class DBConnection(DBConnectionHandler):
 
         if primary_key is not None:
             self.add_pk_to_table(schema_name, table_name, primary_key)
-        if len(foreign_keys) > 0:
+        if foreign_keys is not None and len(foreign_keys) > 0:
             self.__add_fk_to_table(schema_name, table_name, foreign_keys)
-        if len(not_null_columns) > 0:
+        if not_null_columns is not None and len(not_null_columns) > 0:
             self.__add_not_null_to_table(schema_name, table_name, not_null_columns)
 
     def execute_query(self, query: str) -> Union[list, None]:
@@ -619,7 +625,6 @@ class DBConnection(DBConnectionHandler):
         not_null_columns = self.__get_not_null(contract)
         action_if_table_exists = contract["ifExists"]
         names = (contract["schema"], contract["tableName"])
-
         if table.filter(regex="geom").shape[1] > 0:
             col_geom = table.filter(regex="geom").columns[0]
             if all(table[col_geom].isnull()) or all(table[col_geom] == "None"):
@@ -698,6 +703,50 @@ class DBConnection(DBConnectionHandler):
                 conn.rollback()
                 raise e
 
+    def create_materialized_view(self, query: str, path_new_table: str):
+        """
+        Create a new materialized view in the database based on the provided SQL query.
+
+        Args:
+            query (str): The SQL query used to create the materialized view.
+            path_new_table (str): The name of the materialized view to be created.
+
+        Raises:
+            Exception: If an error occurs during the materialized view creation process.
+        """
+        creation_query = f"""
+        CREATE MATERIALIZED VIEW IF NOT EXISTS {path_new_table} AS
+        {query}
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            try:
+                conn.execute(text(creation_query))
+            except Exception as e:
+                conn.rollback()
+                raise e
+
+    def create_view(self, query: str, path_new_table: str):
+        """
+        Create a new view in the database based on the provided SQL query.
+
+        Args:
+            query (str): The SQL query used to create the view.
+            path_new_table (str): The name of the view to be created.
+
+        Raises:
+            Exception: If an error occurs during the view creation process.
+        """
+        creation_query = f"""
+        CREATE VIEW IF NOT EXISTS {path_new_table} AS
+        {query}
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            try:
+                conn.execute(text(creation_query))
+            except Exception as e:
+                conn.rollback()
+                raise e
+
     def query_database(
         self, query: str, geo: bool = False, display: bool = False
     ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
@@ -714,11 +763,15 @@ class DBConnection(DBConnectionHandler):
         """
         with self._DBConnectionHandler__engine.connect() as conn:
             conn = conn.execution_options(stream_results=True)
-            df = pd.read_sql_query(text(query), conn, chunksize=1000)
-            if display:
-                df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
-            else:
-                df = pd.concat(list(df))
-            if geo:
-                df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
-        return df
+            try:
+                df = pd.read_sql_query(text(query), conn, chunksize=1000)
+                if display:
+                    df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+                else:
+                    df = pd.concat(list(df))
+                if geo:
+                    df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
+                return df
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return pd.DataFrame()
