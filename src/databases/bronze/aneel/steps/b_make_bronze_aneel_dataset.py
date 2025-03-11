@@ -29,12 +29,11 @@ from src.tools.utils.reader import Reader
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import (
     check_file_exists_in_db,
-    get_ml_flow_data,
     write_log,
     get_db_path,
 )
 from src.tools.utils.constants import CRS_GLOBAL
-from src.databases.bronze.aneel.common import split_file_sizes
+from src.databases.bronze.aneel.common import split_file_sizes, get_df_already_processed
 
 
 from src.databases.bronze.aneel.config import (
@@ -42,7 +41,6 @@ from src.databases.bronze.aneel.config import (
     CONTRACT_BRONZE_ENERGY,
     CONTRACT_RAW_ENERGY,
     EXPERIMENT_NAME,
-    YEARS,
 )
 
 mlflow.set_experiment(EXPERIMENT_NAME)
@@ -176,7 +174,7 @@ def add_missing_columns(df: pd.DataFrame, saved_columns: List[str]) -> pd.DataFr
 
 
 @save_parquet_decorator(medallon="bronze")
-def engineer_columns(
+def engineer_columns_and_save(
     df: Union[gpd.GeoDataFrame, pd.DataFrame],
     saved_columns: List[str],
     company_id: str,
@@ -188,7 +186,8 @@ def engineer_columns(
     """
     df = drop_unnecessary_columns(df)
     df = add_basic_columns(df, company_id)
-
+    if "conj" in df.columns:
+        df["conj"] = df["conj"].fillna(0).astype(float).astype(int)
     if database in ["ponnot", "conj"]:
         df = process_geometry_column(df)  # type: ignore
     elif database == "ucbt":
@@ -283,7 +282,6 @@ def process_ucbt_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.drop(columns=["cod_id", "geometry"], errors="ignore")
     df["dat_con"] = pd.to_datetime(df["dat_con"], errors="coerce").dt.date
-    df["conj"] = df["conj"].astype(str)
     df = transform_negative_energy_values(df)
     df = generate_grouped_columns(df)
     return df
@@ -302,7 +300,7 @@ def transform_negative_energy_values(df: pd.DataFrame) -> pd.DataFrame:
     """
     energy_columns = df.filter(regex="ene_").columns
     for col in energy_columns:
-        df[col] = np.where(df[col] < 0, df[col] * (-1), df[col])
+        df[col] = np.absolute(df[col])
     return df
 
 
@@ -423,7 +421,7 @@ def start_process(
         df = read_in_parallel(layers_dict, path, database)
     else:
         df = read_single_file(layers_dict, path, database)
-    df = engineer_columns(df, cols, company_id, database, **kwargs)
+    df = engineer_columns_and_save(df, cols, company_id, database, **kwargs)
     results = generate_mlflow_results_dict(df, database, year, company_id)
     del df
     gc.collect()
@@ -477,8 +475,8 @@ def check_if_file_exists(df_processed: pd.DataFrame, database: str, company_id: 
 
 
 def process_single_file(
-    company_id: str, df_processed: pd.DataFrame, is_large_file: bool = False
-) -> List[Dict[str, Union[str, int]]]:
+    company_id: str, database: str, is_large_file: bool = False
+) -> Dict[str, Union[str, int]]:
     """
     Reads ANEEL company files.
 
@@ -486,57 +484,50 @@ def process_single_file(
     It processes the files and saves the results to a specified output path.
     Args:
         company_id (str): The ID of the company.
-        df_processed (pd.DataFrame): The DataFrame containing processed files.
+        database (str): The name of the database.
         is_large_file (bool, optional): Indicates whether the file is
 
     Returns:
-        List[Dict[str, Union[str, int]]]: A list of dictionaries containing the results.
+        Dict[str, Union[str, int]]: A dictionary containing the results.
     """
-    results = []
-    for database in ["ponnot", "ucbt", "conj"]:
-        exist_file = check_if_file_exists(df_processed, database, company_id)
-        if not exist_file:
-            year = int(company_id.split(" - ")[1].split("-")[0])
-            cols = get_cols_saved_in_db(database, year)
-            file_name = company_id.split(".")[0]
-            contract_key = "_".join([database, str(year)])
-            contract = CONTRACT_BRONZE_ENERGY[contract_key]
-            kwargs = {"filename": file_name, "contract": contract}
-            if is_large_file:
-                write_log(f"Reading {database} file {company_id}")
-            results.append(
-                start_process(database, company_id, cols, year, is_large_file, **kwargs)
-            )
-    return results
+
+    year = int(company_id.split(" - ")[1].split("-")[0])
+    cols = get_cols_saved_in_db(database, year)
+    file_name = company_id.split(".")[0]
+    contract_key = "_".join([database, str(year)])
+    contract = CONTRACT_BRONZE_ENERGY[contract_key]
+    kwargs = {"filename": file_name, "contract": contract}
+    if is_large_file:
+        write_log(f"Reading {database} file {company_id}")
+    mlflow_results = start_process(
+        database, company_id, cols, year, is_large_file, **kwargs
+    )
+    return mlflow_results
 
 
-def process_small_files(
-    files: list, df_processed: pd.DataFrame, max_num_cores: int
-) -> None:
+def process_small_files(files: list, max_num_cores: int) -> None:
     """
     Process files using Dask for parallel processing.
     """
     write_log("Processing files in parallel")
 
-    batch_size = min(max_num_cores, 10)
-
+    batch_size = min(max_num_cores, len(files))
     cluster = LocalCluster(n_workers=batch_size, threads_per_worker=1, processes=True)
     client = Client(cluster)
 
     file_batches = [files[i::batch_size] for i in range(batch_size)]
     futures = []
     for batch in file_batches:
-        for company_id in batch:
-            future = client.submit(process_single_file, company_id, df_processed)
+        for company_id, database in batch:
+            future = client.submit(process_single_file, company_id, database)
             futures.append(future)
 
     for future in tqdm(as_completed(futures), desc="Processing batches"):
         try:
             results = future.result()  # type: ignore
-            for result in results:
-                company_id = result["company_id"]
-                with mlflow.start_run(run_name=company_id):
-                    mlflow.log_params(result)
+            company_id = results["company_id"]
+            with mlflow.start_run(run_name=company_id):
+                mlflow.log_params(results)
         except Exception as e:
             write_log(f"Error processing file: {e}")
 
@@ -544,81 +535,21 @@ def process_small_files(
     cluster.close()
 
 
-def process_large_files(large_files: list, df_processed: pd.DataFrame) -> None:
+def process_large_files(large_files: list) -> None:
     """
     Process a list of large files.
     """
-    for company_id in tqdm(large_files, desc="Processing large files"):
+    for company_id, database in tqdm(large_files, desc="Processing large files"):
         write_log(f"Reading large file: {company_id}")
         try:
-            results = process_single_file(company_id, df_processed, is_large_file=True)
+            results = process_single_file(company_id, database, is_large_file=True)
         except Exception as e:
             write_log(f"Error processing large file: {e}")
-            results = []
+            results = {}
 
         if results:
-            for result in results:
-                company_id = str(result["company_id"])
-                with mlflow.start_run(run_name=company_id):
-                    mlflow.log_params(result)
-
-
-def get_data_processed_from_mlflow():
-    """
-    Get the processed data from MLflow.
-    """
-    df_processed = get_ml_flow_data(EXPERIMENT_NAME)
-    if df_processed.empty:
-        return pd.DataFrame({"company_id": [], "database": []})
-    df_processed = df_processed[
-        (df_processed["status"] == "FINISHED")
-        & (~df_processed["company_id"].isin(["ponnot", "ucbt", "conj"]))
-    ]
-    return df_processed[["company_id", "database"]]
-
-
-def get_data_processed_from_db():
-    """
-    Retrieves and processes data from the bronze database for specified years and databases.
-    This function connects to the bronze database, queries distinct company files for each
-    specified year and database, and concatenates the results into a single DataFrame.
-    Returns:
-        pd.DataFrame: A DataFrame containing the concatenated results of distinct company files
-                      from the specified years and databases.
-    """
-    conn = DBConnection("bronze")
-    company_files = []
-    for year in YEARS:
-        for database in ["ponnot", "ucbt", "conj"]:
-            path = get_db_path(CONTRACT_BRONZE_ENERGY[f"{database}_{year}"])
-            try:
-                df = conn.query_database(
-                    f"SELECT DISTINCT(company_file) as company_id FROM {path}"
-                )
-                df["database"] = database
-                company_files.append(df)
-            except:
-                continue
-    if not company_files:
-        return pd.DataFrame({"company_id": [], "database": []})
-    return pd.concat(company_files)
-
-
-def get_df_already_processed():
-    """
-    Get the processed data from MLflow.
-    """
-    df_mlflow = get_data_processed_from_mlflow()
-    df_db = get_data_processed_from_db()
-    diff_mlflow_db = set(df_mlflow["company_id"]).difference(set(df_db["company_id"]))
-    diff_db_mlflow = set(df_db["company_id"]).difference(set(df_mlflow["company_id"]))
-    if diff_mlflow_db and not diff_db_mlflow:
-        write_log(f"Mlflow has {len(diff_mlflow_db)} files that is not in the database")
-        return df_mlflow
-    if diff_db_mlflow and not diff_mlflow_db:
-        write_log(f"Database has {len(diff_db_mlflow)} files that is not in Mlflow")
-        return df_db
-    return df_db
+            with mlflow.start_run(run_name=company_id):
+                mlflow.log_params(results)
 
 
 def process_files_per_size_aneel():
@@ -626,12 +557,11 @@ def process_files_per_size_aneel():
     Process the files in the ANEEL dataset based on their sizes.
     """
     df_processed = get_df_already_processed()
-    large_files, small_files = split_file_sizes()
-
+    large_files, small_files = split_file_sizes(df_processed)
     if small_files:
-        process_small_files(small_files, df_processed, 10)
+        process_small_files(small_files, 10)
     if large_files:
-        process_large_files(large_files, df_processed)
+        process_large_files(large_files)
 
 
 def main():
