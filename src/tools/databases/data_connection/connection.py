@@ -772,6 +772,5 @@ class DBConnection(DBConnectionHandler):
                 if geo:
                     df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
                 return df
-            except Exception as e:
-                print(f"An error occurred: {e}")
+            except:
                 return pd.DataFrame()
