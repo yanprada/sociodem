@@ -172,7 +172,7 @@ def get_data_processed_from_mlflow():
     return df_processed[["company_id", "database", "sum_energy"]]
 
 
-def get_data_processed_from_db() -> pd.DataFrame:
+def get_data_processed_from_db(refresh_materialized_view=False) -> pd.DataFrame:
     """
     Retrieves and processes data from the bronze database for specified years and databases.
     This function connects to the bronze database, queries distinct company files for each
@@ -202,7 +202,7 @@ def get_data_processed_from_db() -> pd.DataFrame:
                 f"SELECT DISTINCT(company_file) as company_id FROM {path}", path_mv
             )
             df = conn.query_database(f"SELECT * FROM {path_mv}")
-        else:
+        if refresh_materialized_view:
             conn.execute_query(f"REFRESH MATERIALIZED VIEW {path_mv}")
             df = conn.query_database(f"SELECT * FROM {path_mv}")
         return df
@@ -224,7 +224,7 @@ def get_data_processed_from_db() -> pd.DataFrame:
     return pd.concat(company_files)
 
 
-def get_df_already_processed() -> pd.DataFrame:
+def get_df_already_processed(refresh_materialized_view=False) -> pd.DataFrame:
     """
     Get the processed data from MLflow.
 
