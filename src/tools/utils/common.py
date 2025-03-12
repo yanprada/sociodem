@@ -197,7 +197,6 @@ def check_file_exists_in_db(
     """
     try:
         file_exists = conn.query_database(f"SELECT * FROM {path_saved} {condition}")
-        conn.close()
         return len(file_exists) > 0
     except:
         return False
