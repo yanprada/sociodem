@@ -1,19 +1,19 @@
 """
-This script performs a join operation between the 'ucbt' and 'ponnot' tables 
+This script performs a join operation between the 'ucbt' and 'ponnot' tables
 to update the 'pn_con' column in the 'ucbt' table.
 It retrieves batches of data from two paths and joins them based on specific conditions.
-The resulting DataFrame is then saved in parquet format, with dropped columns, 
+The resulting DataFrame is then saved in parquet format, with dropped columns,
 for each municipality.
-Additionally, the 'pn_con' values that did not match between the 'ucbt' and 
+Additionally, the 'pn_con' values that did not match between the 'ucbt' and
 'ponnot' tables are saved separately.
 
 The script consists of the following functions:
-- try_join: Executes a database query and appends the resulting DataFrame to the 
+- try_join: Executes a database query and appends the resulting DataFrame to the
     list of good match DataFrames.
-- save_no_join_ucbt_ponnot: Saves the 'pn_con' values that did not match between the 
+- save_no_join_ucbt_ponnot: Saves the 'pn_con' values that did not match between the
     'ucbt' and 'ponnot' tables.
 - save_partitioned_mun: Saves the concatenated DataFrame with dropped columns.
-- save_mun: Saves the concatenated DataFrame with dropped columns, filtered by a 
+- save_mun: Saves the concatenated DataFrame with dropped columns, filtered by a
     specific municipality.
 - join_ucbt_ponnot_tables: Joins batches of data from two paths based on specific conditions.
 - join_ucbt_and_ponnot: Joins the 'ucbt' and 'ponnot' tables to update the 'pn_con'
@@ -21,14 +21,15 @@ The script consists of the following functions:
 - main: The main function that executes the join_ucbt_and_ponnot operation.
 """
 
+from typing import List
 from tqdm import tqdm
+import pandas as pd
 
 from src.tools.databases.data_connection.connection import DBConnection
 
-from src.tools.utils.common import get_db_path, check_file_exists_in_db
-from src.tools.utils.common import write_log
+from src.tools.utils.common import write_log, check_file_exists_in_db, get_db_path
 from src.databases.bronze.aneel.common import split_file_sizes
-from src.databases.bronze.aneel.config import manager, CONTRACT_BRONZE_ENERGY
+from src.databases.bronze.aneel.config import manager, CONTRACT_BRONZE_ENERGY, YEARS
 
 
 def create_primary_key(path_table: str, pk_key: str) -> None:
@@ -562,21 +563,81 @@ def join_ucbt_ponnot_tables(conn: DBConnection, company_file: str, year: str) ->
     drop_temp_tables(conn, year)
 
 
+def get_data_already_processed(refresh_materialized_view: bool = False) -> pd.DataFrame:
+    """
+    Retrieves the processed data from Aneel join.
+    """
+    write_log("Getting processed data from MLflow")
+    conn = DBConnection("bronze")
+    dfs = []
+    for year in YEARS:
+        path_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"aneel_join_{year}"])
+        data_exists = check_file_exists_in_db(conn, path_join)
+        if not data_exists:
+            continue
+        path_mv = f"{path_join}_companies_already_processed"
+        df = conn.query_database(f"SELECT * FROM {path_mv}")
+        if df.empty:
+            query = f"""
+            CREATE MATERIALIZED VIEW {path_mv} AS
+            SELECT DISTINCT(company_file) as company_id
+            FROM {path_join}
+            """
+            conn.execute_query(query)
+            df = conn.query_database(f"SELECT * FROM {path_mv}")
+        if refresh_materialized_view:
+            conn.execute_query(f"REFRESH MATERIALIZED VIEW {path_mv}")
+            df = conn.query_database(f"SELECT * FROM {path_mv}")
+        dfs.append(df)
+    if not dfs:
+        return pd.DataFrame()
+    return pd.concat(dfs)
+
+
+def get_all_companies() -> List[str]:
+    """
+    Retrieves a list of all unique company names from a collection of files.
+
+    This function splits the files into large and small categories, combines them,
+    and extracts the unique company names from the combined list.
+
+    Returns:
+        List[str]: A list of unique company names.
+    """
+    large_files, small_files = split_file_sizes()
+    company_files = large_files + small_files
+    company_files = list(set(company_file for company_file, _ in company_files))
+    company_files.sort(key=lambda x: int(x.split(" - ")[1].split("-")[0]))
+    return company_files
+
+
+def get_company_files_to_process() -> List[str]:
+    """
+    Retrieves a list of company files that need to be processed.
+
+    This function compares the list of all company files with the list of
+    already processed company files and returns the difference.
+
+    Returns:
+        List[str]: A list of company file identifiers that have not yet been processed.
+    """
+    df_processed = get_data_already_processed()
+    all_company_files = get_all_companies()
+    if df_processed.empty:
+        return all_company_files
+    files_to_process = list(
+        set(all_company_files).difference(set(df_processed["company_id"]))
+    )
+    return files_to_process
+
+
 def main() -> None:
     """
     This is the main function that executes the join_ucbt_and_ponnot operation.
     """
     conn = DBConnection("bronze")
-    large_files, small_files = split_file_sizes()
-    company_files = large_files + small_files
+    company_files = get_company_files_to_process()
     for company_file in tqdm(company_files, desc="Processing companies"):
         year = company_file.split(" - ")[1].split("-")[0]
-        path_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"aneel_join_{year}"])
-        if check_file_exists_in_db(
-            conn,
-            path_join,
-            condition=f"company_file = {company_file} LIMIT 1",
-        ):
-            continue
         join_ucbt_ponnot_tables(conn, company_file, year)
     manager.update_last_run()
