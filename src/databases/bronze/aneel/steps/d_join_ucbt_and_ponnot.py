@@ -32,13 +32,11 @@ from src.databases.bronze.aneel.common import split_file_sizes
 from src.databases.bronze.aneel.config import manager, CONTRACT_BRONZE_ENERGY, YEARS
 
 
-def create_primary_key(path_table: str, pk_key: str) -> None:
+def create_primary_key(conn: DBConnection, path_table: str, pk_key: str) -> None:
     """
     Creates a primary key on the ID column of ucbt table.
     """
-    conn = DBConnection("bronze")
     schema, table_name = path_table.split(".")
-
     df = conn.query_database(f"SELECT * FROM {path_table} LIMIT 1")
     if pk_key not in df.columns:
         conn.create_pk(schema, table_name, pk_key)
@@ -123,7 +121,7 @@ def create_temp_table(
         WHERE company_file = '{company_file}'
     """
     conn.execute_query(sql_query)
-    create_primary_key(path_temp_table, pk_key)
+    create_primary_key(conn, path_temp_table, pk_key)
 
 
 def create_temp_ucbt(
@@ -222,7 +220,7 @@ def query_first_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_first_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_first_join, pk_key)
-    create_primary_key(path_first_join, pk_key)
+    create_primary_key(conn, path_first_join, pk_key)
 
 
 def query_second_join(conn: DBConnection, year: str, pk_key: str) -> None:
@@ -268,7 +266,7 @@ def query_second_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_second_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_second_join, pk_key)
-    create_primary_key(path_second_join, pk_key)
+    create_primary_key(conn, path_second_join, pk_key)
 
 
 def query_third_join(conn: DBConnection, year: str, pk_key: str) -> None:
@@ -314,7 +312,7 @@ def query_third_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_third_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_third_join, pk_key)
-    create_primary_key(path_third_join, pk_key)
+    create_primary_key(conn, path_third_join, pk_key)
 
 
 def query_fourth_join(conn: DBConnection, year: str, pk_key: str) -> None:
@@ -349,7 +347,7 @@ def query_fourth_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_fourth_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_fourth_join, pk_key)
-    create_primary_key(path_fourth_join, pk_key)
+    create_primary_key(conn, path_fourth_join, pk_key)
 
 
 def create_indexes(conn: DBConnection, year: str) -> None:
@@ -591,6 +589,7 @@ def get_data_already_processed(refresh_materialized_view: bool = False) -> pd.Da
         dfs.append(df)
     if not dfs:
         return pd.DataFrame()
+    conn.close()
     return pd.concat(dfs)
 
 
@@ -641,3 +640,4 @@ def main() -> None:
         year = company_file.split(" - ")[1].split("-")[0]
         join_ucbt_ponnot_tables(conn, company_file, year)
     manager.update_last_run()
+    conn.close()
