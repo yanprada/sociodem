@@ -561,7 +561,7 @@ def join_ucbt_ponnot_tables(conn: DBConnection, company_file: str, year: str) ->
     drop_temp_tables(conn, year)
 
 
-def get_data_already_processed(refresh_materialized_view: bool = False) -> pd.DataFrame:
+def get_data_already_processed(refresh_view: bool = False) -> pd.DataFrame:
     """
     Retrieves the processed data from Aneel join.
     """
@@ -583,7 +583,7 @@ def get_data_already_processed(refresh_materialized_view: bool = False) -> pd.Da
             """
             conn.execute_query(query)
             df = conn.query_database(f"SELECT * FROM {path_mv}")
-        if refresh_materialized_view:
+        if refresh_view:
             conn.execute_query(f"REFRESH MATERIALIZED VIEW {path_mv}")
             df = conn.query_database(f"SELECT * FROM {path_mv}")
         dfs.append(df)
@@ -610,7 +610,7 @@ def get_all_companies() -> List[str]:
     return company_files
 
 
-def get_company_files_to_process() -> List[str]:
+def get_company_files_to_process(refresh_view: bool) -> List[str]:
     """
     Retrieves a list of company files that need to be processed.
 
@@ -620,7 +620,7 @@ def get_company_files_to_process() -> List[str]:
     Returns:
         List[str]: A list of company file identifiers that have not yet been processed.
     """
-    df_processed = get_data_already_processed()
+    df_processed = get_data_already_processed(refresh_view=refresh_view)
     all_company_files = get_all_companies()
     if df_processed.empty:
         return all_company_files
@@ -635,7 +635,7 @@ def main() -> None:
     This is the main function that executes the join_ucbt_and_ponnot operation.
     """
     conn = DBConnection("bronze")
-    company_files = get_company_files_to_process()
+    company_files = get_company_files_to_process(refresh_view=True)
     for company_file in tqdm(company_files, desc="Processing companies"):
         year = company_file.split(" - ")[1].split("-")[0]
         join_ucbt_ponnot_tables(conn, company_file, year)
