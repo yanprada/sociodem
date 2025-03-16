@@ -48,14 +48,17 @@ mlflow.set_experiment(EXPERIMENT_NAME)
 
 def generate_mlflow_results_dict(
     df: Union[pd.DataFrame, gpd.GeoDataFrame], database: str, year: int, company_id: str
-) -> Dict[str, Union[str, int]]:
+) -> Dict[str, Dict[str, Union[str, int]]]:
     """
     Logs the parameters and metrics to MLflow for the given DataFrame or GeoDataFrame.
     """
-    results = {
+    results = {"parameters": {}, "metrics": {}}
+    results["parameters"] = {
         "company_id": company_id,
         "company": df.dist.unique()[0],
         "database": database,
+    }
+    results["metrics"] = {
         "year": year,
         "num_rows": len(df),
         "sum_energy": 0,
@@ -64,7 +67,7 @@ def generate_mlflow_results_dict(
     }
     if database == "ucbt":
         energy_columns = df.filter(regex=r"ene_\d{2}_sum")
-        results.update(
+        results["metrics"].update(
             {
                 "sum_energy": energy_columns.sum().sum(),
                 "mean_energy": energy_columns.sum(axis=1).mean(),
@@ -184,6 +187,9 @@ def engineer_columns_and_save(
     """
     Function to engineer columns in a GeoDataFrame.
     """
+    # import ipdb
+
+    # ipdb.set_trace()
     df = drop_unnecessary_columns(df)
     df = add_basic_columns(df, company_id)
     if "conj" in df.columns:
@@ -403,7 +409,7 @@ def start_process(
     year: int,
     is_large_file: bool = False,
     **kwargs,
-) -> Dict[str, Union[str, int]]:
+) -> Dict[str, Dict[str, Union[str, int]]]:
     """
     Reads a file from a specified database and performs some operations on it.
 
@@ -474,9 +480,40 @@ def check_if_file_exists(df_processed: pd.DataFrame, database: str, company_id: 
     )
 
 
+def assert_sum_energy_db_and_mlflow_are_equal(conn: DBConnection, results: dict):
+    """
+    Asserts that the sum_energy values in the database and MLflow are equal.
+
+    Args:
+        conn (DBConnection): The database connection object.
+        results (dict): The results dictionary.
+
+    Raises:
+        AssertionError: If the sum_energy values are not equal.
+    """
+    year = results["metrics"]["year"]
+    company_id = results["parameters"]["company_id"]
+    contract = CONTRACT_BRONZE_ENERGY[f"ucbt_{year}"]
+    path = get_db_path(contract)
+    sum_energy_db = conn.query_database(
+        f"""SELECT sum(
+                    u.ene_01_sum + u.ene_02_sum+
+                    u.ene_03_sum + u.ene_04_sum+
+                    u.ene_05_sum + u.ene_06_sum+
+                    u.ene_07_sum + u.ene_08_sum+
+                    u.ene_09_sum + u.ene_10_sum+
+                    u.ene_11_sum + u.ene_12_sum
+                ) FROM {path} u where company_file= '{company_id}'
+                """
+    ).squeeze()
+    np.testing.assert_almost_equal(
+        sum_energy_db, results["metrics"]["sum_energy"], decimal=0
+    )
+
+
 def process_single_file(
     company_id: str, database: str, is_large_file: bool = False
-) -> Dict[str, Union[str, int]]:
+) -> Dict[str, Dict[str, Union[str, int]]]:
     """
     Reads ANEEL company files.
 
@@ -488,7 +525,7 @@ def process_single_file(
         is_large_file (bool, optional): Indicates whether the file is
 
     Returns:
-        Dict[str, Union[str, int]]: A dictionary containing the results.
+        Dict[str, Dict[str, Union[str, int]]]: A dictionary containing the results.
     """
 
     year = int(company_id.split(" - ")[1].split("-")[0])
@@ -505,40 +542,80 @@ def process_single_file(
     return mlflow_results
 
 
-def process_small_files(files: list, max_num_cores: int) -> None:
+def assert_lenth_are_equal(conn: DBConnection, results: dict):
+    """
+    Asserts that the length of the database and MLflow results are equal.
+
+    Args:
+        conn (DBConnection): The database connection object.
+        results (dict): The results dictionary.
+
+    Raises:
+        AssertionError: If the lengths are not equal.
+    """
+    year = results["metrics"]["year"]
+    company_id = results["parameters"]["company_id"]
+    database = results["parameters"]["database"]
+    contract = CONTRACT_BRONZE_ENERGY[f"{database}_{year}"]
+    path = get_db_path(contract)
+    length_db = conn.query_database(
+        f"""SELECT count(*) FROM {path} where company_file= '{company_id}'"""
+    ).squeeze()
+
+    np.testing.assert_almost_equal(length_db, results["metrics"]["num_rows"], decimal=0)
+
+
+def process_small_files(files: list, max_num_cores: int, parallel: bool = True) -> None:
     """
     Process files using Dask for parallel processing.
     """
     write_log("Processing files in parallel")
+    if parallel:
+        batch_size = min(max_num_cores, len(files))
+        cluster = LocalCluster(
+            n_workers=batch_size, threads_per_worker=1, processes=True
+        )
+        client = Client(cluster)
 
-    batch_size = min(max_num_cores, len(files))
-    cluster = LocalCluster(n_workers=batch_size, threads_per_worker=1, processes=True)
-    client = Client(cluster)
-
-    file_batches = [files[i::batch_size] for i in range(batch_size)]
-    futures = []
-    for batch in file_batches:
-        for company_id, database in batch:
-            future = client.submit(process_single_file, company_id, database)
-            futures.append(future)
-
-    for future in tqdm(as_completed(futures), desc="Processing batches"):
-        try:
-            results = future.result()  # type: ignore
-            company_id = results["company_id"]
+        file_batches = [files[i::batch_size] for i in range(batch_size)]
+        futures = []
+        for batch in file_batches:
+            for company_id, database in batch:
+                future = client.submit(process_single_file, company_id, database)
+                futures.append(future)
+        conn = DBConnection("bronze")
+        for future in tqdm(as_completed(futures), desc="Processing batches"):
+            try:
+                results = future.result()  # type: ignore
+                if results["parameters"]["database"] == "ucbt":
+                    assert_sum_energy_db_and_mlflow_are_equal(conn, results)
+                assert_lenth_are_equal(conn, results)
+                with mlflow.start_run(run_name=results["parameters"]["company_id"]):
+                    mlflow.log_params(results["parameters"])
+                    mlflow.log_metrics(results["metrics"])
+            except Exception as e:
+                write_log(f"Error processing file: {e}")
+        conn.close()
+        client.close()
+        cluster.close()
+    else:
+        conn = DBConnection("bronze")
+        for company_id, database in tqdm(files, desc="Processing files"):
+            results = process_single_file(company_id, database)
+            if results["parameters"]["database"] == "ucbt":
+                assert_sum_energy_db_and_mlflow_are_equal(conn, results)
+            assert_lenth_are_equal(conn, results)
             with mlflow.start_run(run_name=company_id):
-                mlflow.log_params(results)
-        except Exception as e:
-            write_log(f"Error processing file: {e}")
-
-    client.close()
-    cluster.close()
+                mlflow.log_params(results["parameters"])
+                mlflow.log_metrics(results["metrics"])  # type: ignore
+        conn.close()
 
 
 def process_large_files(large_files: list) -> None:
     """
     Process a list of large files.
     """
+    conn = DBConnection("bronze")
     for company_id, database in tqdm(large_files, desc="Processing large files"):
         write_log(f"Reading large file: {company_id}")
         try:
@@ -548,15 +625,20 @@ def process_large_files(large_files: list) -> None:
             results = {}
 
         if results:
+            if results["parameters"]["database"] == "ucbt":
+                assert_sum_energy_db_and_mlflow_are_equal(conn, results)
+            assert_lenth_are_equal(conn, results)
             with mlflow.start_run(run_name=company_id):
-                mlflow.log_params(results)
+                mlflow.log_params(results["parameters"])
+                mlflow.log_metrics(results["metrics"])  # type: ignore
+    conn.close()
 
 
-def process_files_per_size_aneel():
+def process_files_per_size_aneel(refresh_view: bool = False) -> None:
     """
     Process the files in the ANEEL dataset based on their sizes.
     """
-    df_processed = get_df_already_processed()
+    df_processed = get_df_already_processed(refresh_view)
     large_files, small_files = split_file_sizes(df_processed)
     if small_files:
         process_small_files(small_files, 10)
@@ -573,7 +655,8 @@ def main():
     It utilizes concurrent.futures.ProcessPoolExecutor to parallelize the
     file reading process.
     """
+    refresh_view = True
     module_name = os.path.basename(__file__).replace(".py", "")
     manager.update_status(module_name)
-    process_files_per_size_aneel()
+    process_files_per_size_aneel(refresh_view)
     manager.update_last_run()
