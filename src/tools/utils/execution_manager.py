@@ -3,9 +3,9 @@
 This module contains classes for managing MongoDB connections and executing tasks.
 
 Classes:
-- MongoDBConnection: Represents a MongoDB collection and provides 
+- MongoDBConnection: Represents a MongoDB collection and provides
         methods for interacting with the collection.
-- ExecutionManager: Manages the execution of a task and provides methods for 
+- ExecutionManager: Manages the execution of a task and provides methods for
         creating, updating, and retrieving execution details.
     test_connection(): Test the connection to MongoDB server.
     get_database(): Returns the database associated with the current instance.
@@ -166,6 +166,11 @@ class ExecutionManager:
         if overwrite:
             write_log("Info added to execution details")
 
+    def __create_paths_materialized_views(self, overwrite: bool):
+        self.execution_details["materialized_views"] = self.params["materialized_views"]
+        if overwrite:
+            write_log("Materialized views paths added to execution details")
+
     def __create_execution(self, overwrite: bool):
         self.execution_details = {}
         self.__create_execution_id(overwrite)
@@ -177,6 +182,7 @@ class ExecutionManager:
         self.__create_run_mode(overwrite)
         self.__create_last_run(overwrite)
         self.__create_info(overwrite)
+        self.__create_paths_materialized_views(overwrite)
 
     def create_execution(self, overwrite: bool = False):
         """
