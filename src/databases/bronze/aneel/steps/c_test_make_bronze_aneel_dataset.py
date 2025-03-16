@@ -44,6 +44,7 @@ from src.databases.bronze.aneel.config import (
     YEARS,
     CONTRACT_RAW_ENERGY,
     CONTRACT_BRONZE_ENERGY,
+    PATHS_MV,
 )
 from src.databases.bronze.aneel.common import (
     get_df_already_processed,
@@ -135,7 +136,7 @@ def get_data_from_website():
 
 
 def append_with_database_data(
-    df: pd.DataFrame, refresh_materialized_view: bool = False
+    df: pd.DataFrame, refresh_view: bool = False
 ) -> pd.DataFrame:
     """
     Appends data from a database to the given DataFrame.
@@ -144,7 +145,7 @@ def append_with_database_data(
     creation and refreshing of materialized views in the database.
     Parameters:
     df (pd.DataFrame): The input DataFrame to which the database data will be appended.
-    refresh_materialized_view (bool): If True, refreshes the materialized view before
+    refresh_view (bool): If True, refreshes the materialized view before
                                       querying the database. Default is False.
     Returns:
     pd.DataFrame: A DataFrame with the original data and the appended database data.
@@ -153,7 +154,7 @@ def append_with_database_data(
     dfs = []
     for year in tqdm(YEARS, desc="Getting data from database"):
         path = get_db_path(CONTRACT_BRONZE_ENERGY[f"ucbt_{year}"])
-        path_mv = f"{path}_sum_energy_per_companies"
+        path_mv = PATHS_MV
         df_ucbt = conn.query_database(f"SELECT * FROM {path_mv}")
         if df_ucbt.empty:
             conn.create_materialized_view(
@@ -170,7 +171,7 @@ def append_with_database_data(
                 path_mv,
             )
             df_ucbt = conn.query_database(f"SELECT * FROM {path_mv}")
-        if refresh_materialized_view:
+        if refresh_view:
             conn.execute_query(f"REFRESH MATERIALIZED VIEW {path_mv}")
             df_ucbt = conn.query_database(f"SELECT * FROM {path_mv}")
         df_ucbt["empresa_map"] = df_ucbt["empresa_map"].str.replace("–", "-")
@@ -405,7 +406,7 @@ def check_geometry_correspondence(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame()
 
 
-def test_total_energy_consumption(refresh_materialized_view) -> pd.DataFrame:
+def test_total_energy_consumption(refresh_view) -> pd.DataFrame:
     """
     Tests the total energy consumption by comparing processed data from MLflow with
     total values from the ANEEL website.
@@ -428,7 +429,7 @@ def test_total_energy_consumption(refresh_materialized_view) -> pd.DataFrame:
         get_data_from_website()
         .pipe(
             append_with_database_data,
-            refresh_materialized_view=refresh_materialized_view,
+            refresh_view=refresh_view,
         )
         .pipe(append_with_mlflow_data)
         .pipe(add_need_to_correct_column)
@@ -442,7 +443,7 @@ def test_total_energy_consumption(refresh_materialized_view) -> pd.DataFrame:
     return df
 
 
-def check_if_need_to_rerun_previous_module(refresh_materialized_view: bool) -> None:
+def check_if_need_to_rerun_previous_module(refresh_view: bool) -> None:
     """
     Checks if the previous module needs to be re-run based on the number
     of files processed per company.
@@ -452,14 +453,14 @@ def check_if_need_to_rerun_previous_module(refresh_materialized_view: bool) -> N
     and raises a ValueError indicating that the previous module needs to be re-run.
 
     Args:
-        refresh_materialized_view (bool): If True, refreshes the materialized view before
+        refresh_view (bool): If True, refreshes the materialized view before
                                           querying the database. Default is False.
 
 
     Raises:
         ValueError: If there are companies with less than 3 files processed.
     """
-    df = get_df_already_processed(refresh_materialized_view)
+    df = get_df_already_processed(refresh_view)
     files_per_company = df["company_id"].value_counts()
     wrong_companies = files_per_company[files_per_company < 3].index
     if len(wrong_companies) > 0:
@@ -519,15 +520,14 @@ def main():
         consumption.
     2. Executes the `check_if_need_to_rerun_previous_module` function to determine if the
         previous module needs to be rerun.
+
+    Important:
+            -> refresh_view (bool): set to True to refresh the materialized view before querying
+                the database. It is usually set to False, but when you run the first time,
+                or changed the data in the database, set to True.
+                This will refresh the sum of energy per company.
     """
-    # Set to True to refresh the materialized view before querying the database
-    # usually set to False, but when you run the first time, set to True.
-    # This will refresh the sum of energy per company
-    refresh_materialized_view = False
-    check_if_need_to_rerun_previous_module(
-        refresh_materialized_view=refresh_materialized_view
-    )
-    df = test_total_energy_consumption(
-        refresh_materialized_view=refresh_materialized_view
-    )
+    refresh_view = False
+    check_if_need_to_rerun_previous_module(refresh_view=refresh_view)
+    df = test_total_energy_consumption(refresh_view=refresh_view)
     return df
