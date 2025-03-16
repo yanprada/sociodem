@@ -7,7 +7,7 @@ Functions:
     flat_list(files_dict: DefaultDict[str, List[str]]) -> List[str]:
         Flattens a dictionary of lists into a single list.
 
-    split_file_sizes() -> Tuple[List[str], List[str], List[str]]:
+    split_file_sizes() -> Tuple[List[str],  List[str]]:
         Splits files into three categories based on their sizes: large, medium, and small.
 
 """
@@ -26,6 +26,7 @@ from src.databases.bronze.aneel.config import (
     CONTRACT_RAW_ENERGY,
     CONTRACT_BRONZE_ENERGY,
     EXPERIMENT_NAME,
+    PATHS_MV,
     YEARS,
 )
 
@@ -110,9 +111,9 @@ def split_file_sizes(
                 company_id,
             )
             file_size = os.path.getsize(file_path)
-            if file_size >= split_size:
+            if file_size >= split_size:  # above 100MB -> large file
                 large_files[year].append(company_id)
-            else:
+            else:  # below 100MB -> small file
                 small_files[year].append(company_id)
         return large_files, small_files
 
@@ -169,10 +170,11 @@ def get_data_processed_from_mlflow():
         (df_processed["status"] == "FINISHED")
         & (~df_processed["company_id"].isin(["ponnot", "ucbt", "conj"]))
     ]
+    df_processed["sum_energy"] = df_processed["sum_energy"].astype(float)
     return df_processed[["company_id", "database", "sum_energy"]]
 
 
-def get_data_processed_from_db(refresh_materialized_view=False) -> pd.DataFrame:
+def get_data_processed_from_db(refresh_view=False) -> pd.DataFrame:
     """
     Retrieves and processes data from the bronze database for specified years and databases.
     This function connects to the bronze database, queries distinct company files for each
@@ -183,7 +185,9 @@ def get_data_processed_from_db(refresh_materialized_view=False) -> pd.DataFrame:
                       from the specified years and databases.
     """
 
-    def query_or_create_view(conn: DBConnection, path: str) -> pd.DataFrame:
+    def query_or_create_view(
+        conn: DBConnection, path: str, path_mv: str
+    ) -> pd.DataFrame:
         """
         Queries the database for distinct company files or creates a
         materialized view if not exists.
@@ -191,18 +195,21 @@ def get_data_processed_from_db(refresh_materialized_view=False) -> pd.DataFrame:
         Args:
             conn (DBConnection): The database connection object.
             path (str): The database path.
+            path_mv (str): The materialized view path.
 
         Returns:
             pd.DataFrame: A DataFrame containing the distinct company files.
         """
-        path_mv = f"{path}_companies_already_processed"
+        df = conn.query_database(f"SELECT * FROM {path} LIMIT 1")
+        if df.empty:
+            return pd.DataFrame()
         df = conn.query_database(f"SELECT * FROM {path_mv}")
         if df.empty:
             conn.create_materialized_view(
                 f"SELECT DISTINCT(company_file) as company_id FROM {path}", path_mv
             )
             df = conn.query_database(f"SELECT * FROM {path_mv}")
-        if refresh_materialized_view:
+        if refresh_view:
             conn.execute_query(f"REFRESH MATERIALIZED VIEW {path_mv}")
             df = conn.query_database(f"SELECT * FROM {path_mv}")
         return df
@@ -215,7 +222,8 @@ def get_data_processed_from_db(refresh_materialized_view=False) -> pd.DataFrame:
         product(YEARS, ["ponnot", "ucbt", "conj"]), desc="Years/database"
     ):
         path = get_db_path(CONTRACT_BRONZE_ENERGY[f"{database}_{year}"])
-        df = query_or_create_view(conn, path)
+        path_mv = PATHS_MV["common"].format(path=path)
+        df = query_or_create_view(conn, path, path_mv)
         if not df.empty:
             df["database"] = database
             company_files.append(df)
@@ -224,7 +232,7 @@ def get_data_processed_from_db(refresh_materialized_view=False) -> pd.DataFrame:
     return pd.concat(company_files)
 
 
-def get_df_already_processed(refresh_materialized_view=False) -> pd.DataFrame:
+def get_df_already_processed(refresh_view=False) -> pd.DataFrame:
     """
     Get the processed data from MLflow.
 
@@ -232,7 +240,7 @@ def get_df_already_processed(refresh_materialized_view=False) -> pd.DataFrame:
         pd.DataFrame: A DataFrame containing the processed data from MLflow.
     """
     df_mlflow = get_data_processed_from_mlflow()
-    df_db = get_data_processed_from_db()
+    df_db = get_data_processed_from_db(refresh_view)
     diff_mlflow_db = set(df_mlflow["company_id"]).difference(set(df_db["company_id"]))
     diff_db_mlflow = set(df_db["company_id"]).difference(set(df_mlflow["company_id"]))
     if diff_mlflow_db and not diff_db_mlflow:
