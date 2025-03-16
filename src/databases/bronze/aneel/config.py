@@ -17,7 +17,7 @@ from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
 # main run = "bronze-aneel-2025-03-06-17h13m55s"
 
-EXECUTION_ID = "bronze-aneel-2025-03-11-09h43m41s"
+EXECUTION_ID = "bronze-aneel-2025-03-13-15h51m53s"
 
 
 BASE_PARAMS = {
@@ -31,6 +31,10 @@ BASE_PARAMS = {
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
+    "materialized_views": {
+        "common": "{path}_companies_already_processed_v2",
+        "step_c": "{path}_sum_energy_per_companies_v2",
+    },
 }
 
 _manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
@@ -44,3 +48,5 @@ CONTRACT_RAW_IDS = manager.execution_details["data_contracts"]["aneel_company_id
 YEARS = manager.execution_details["info"]["running_years"]
 
 EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]
+
+PATHS_MV = manager.execution_details["materialized_views"]
