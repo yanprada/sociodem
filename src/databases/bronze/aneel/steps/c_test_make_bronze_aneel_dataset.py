@@ -154,7 +154,7 @@ def append_with_database_data(
     dfs = []
     for year in tqdm(YEARS, desc="Getting data from database"):
         path = get_db_path(CONTRACT_BRONZE_ENERGY[f"ucbt_{year}"])
-        path_mv = PATHS_MV
+        path_mv = PATHS_MV["step_c"].format(path=path)
         df_ucbt = conn.query_database(f"SELECT * FROM {path_mv}")
         if df_ucbt.empty:
             conn.create_materialized_view(
@@ -527,7 +527,7 @@ def main():
                 or changed the data in the database, set to True.
                 This will refresh the sum of energy per company.
     """
-    refresh_view = False
+    refresh_view = True
     check_if_need_to_rerun_previous_module(refresh_view=refresh_view)
     df = test_total_energy_consumption(refresh_view=refresh_view)
     return df
