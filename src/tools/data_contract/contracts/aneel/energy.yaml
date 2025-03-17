@@ -1,405 +1,95 @@
 raw_data:
-  contractName: contract_aneel_companies.yaml
   tableName: raw_data
   schema: 
   physicalPath: raw_data/aneel/
   description: Raw data from aneel
   queryYears: [2017, 2023]
-  ifExists: replace
-  columns:
-  - column: 
-    isPrimaryKey: 
-    ForeignKey: 
-    businessName: 
-    description: 
-    logicalType: 
-    physicalType: 
-    isNullable: 
-    isBlank: 
-    translatedValues:
-    sampleValues:
+  ifExists: append
 
 bronze:
-  - contractName: contract_aneel_companies.yaml
-    tableName: ponnot
+  - tableName: ponnot_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ponnot/
+    physicalPath: databases/bronze/aneel/ponnot_{year}/
     description: Energy infrastructure points of energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: ucbt
+    
+  - tableName: ucbt_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt/
+    physicalPath: databases/bronze/aneel/ucbt_{year}/
     description: Energy infrastructure consumption for energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: ucbt_agg
+    
+  - tableName: conj_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt_agg/
-    description: Energy infrastructure consumption for energy companies
-    queryYears: [2017, 2023]
-    ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: ucbt_no_join
-    schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt_no_join/
-    description: Energy infrastructure consumption for energy companies that do not have a ponnot
-    queryYears: [2017, 2023]
-    ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: conj
-    schema: infrastructure
-    physicalPath: databases/bronze/aneel/conj/
+    physicalPath: databases/bronze/aneel/conj_{year}/
     description: geometry area of influence of energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: aneel_join
+    
+  - tableName: aneel_join_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/aneel_join/
+    physicalPath: databases/bronze/aneel/aneel_join_{year}/
     description: Energy infrastructure consumption for energy companies that has a ponnot
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: ucbt_clean
+    
+  - tableName: ucbt_no_join_{year}
     schema: infrastructure
-    physicalPath: databases/bronze/aneel/ucbt_clean/
-    description: Energy infrastructure consumption for energy companies that has a ponnot
+    physicalPath: databases/bronze/aneel/ucbt_no_join_{year}/
+    description: Energy infrastructure consumption for energy companies that do not have a ponnot
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: ponnot_clean
-    schema: infrastructure
-    physicalPath: databases/bronze/aneel/ponnot_clean/
-    description: Energy infrastructure consumption for energy companies that has a ponnot
-    queryYears: [2017, 2023]
-    ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
+    
 silver:
-  - contractName: contract_aneel_companies.yaml
-    tableName: aneel
+  - tableName: aneel
     schema: infrastructure
     physicalPath: databases/silver/aneel/mun/
     description: Energy infrastructure points of energy companies, with energy consumption per type (residencial, commercial, industrial, ...)
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: neighbors_lvl0
+    
+  - tableName: neighbors_lvl_{i}
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
     description: grouped energy infrastructure points of energy companies based on a more granular level
     queryYears: [2017, 2023]
     ifExists: replace
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: neighbors_lvl1
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies based on a more general level than level above
-    queryYears: [2017, 2023]
-    ifExists: replace
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: neighbors_lvl2
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies based on a more general level than level above
-    queryYears: [2017, 2023]
-    ifExists: replace
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: neighbors_lvl3
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies based on a more general level than level above
-    queryYears: [2017, 2023]
-    ifExists: replace
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: neighbors_lvl4
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies based on a more general level than level above
-    queryYears: [2017, 2023]
-    ifExists: replace
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: neighbors_lvl5
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies based on a more general level than level above
-    queryYears: [2017, 2023]
-    ifExists: replace
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
-  - tableName: neighbors_lvl6
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies based on a more general level than level above
-    queryYears: [2017, 2023]
-    ifExists: replace
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
+    
+
   - tableName: aneel_temp_join
     schema: infrastructure
     physicalPath: databases/silver/aneel/temp/
     description: Temporary join of energy infrastructure points of energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
+    
   - tableName: aneel_final_join
     schema: infrastructure
     physicalPath: databases/silver/aneel/final_join/
     description: Final join of energy infrastructure points of energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
+    
   - tableName: aneel_hexagon
     schema: infrastructure
     physicalPath: databases/silver/aneel/hexagon/
     description: Energy infrastructure points of energy companies per hexagon
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
+    
   - tableName: aneel_hexagon_grp
     schema: infrastructure
     physicalPath: databases/silver/aneel/hexagon_grp/
     description: Energy infrastructure points of energy companies per hexagon
     queryYears: [2017, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: 
-      isBlank: 
-      translatedValues:
-      sampleValues:
+    
 gold:
-  contractName: contract_aneel_companies.yaml
   tableName: aneel
   schema: infrastructure
   physicalPath: databases/gold/aneel/
   description: Energy infrastructure points of energy companies per hexagon
   queryYears: [2017, 2023]
   ifExists: append
-  columns:
-  - column: 
-    isPrimaryKey: 
-    ForeignKey: 
-    businessName: 
-    description: 
-    logicalType: 
-    physicalType: 
-    isNullable: 
-    isBlank: 
-    translatedValues:
-    sampleValues:

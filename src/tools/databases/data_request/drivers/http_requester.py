@@ -3,7 +3,7 @@ Module to make requests to pages.
 """
 
 import os
-from typing import Tuple, Dict, Union, Optional
+from typing import Tuple, Dict, Union, Optional, List
 import duckdb as db
 from tqdm import tqdm
 import requests
@@ -204,6 +204,8 @@ class HttpRequesterCenso:
         """
         This method is responsible for making a request to the website.
         """
+        if not self.__url_dompp:
+            raise ValueError("Dompp is not available for this year.")
         return requests.get(
             self.__url_dompp.format(
                 base_url=self.__url_dompp, state_code=state_code, state=state
@@ -358,13 +360,13 @@ class HttpRequesterOvertureMaps:
         self.lines_per_file = lines_per_file
         os.makedirs(download_path, exist_ok=True)
 
-    def download_data(self, cols: list):
+    def download_data(self, cols: List[str]):
         """
         Downloads data from a database and saves it into Parquet files.
         Args:
-            cols (list): A list of column names to be selected from the database.
+            cols (List[str]): A list of column names to be selected from the database.
         """
-        cols = ", ".join(cols)
+        str_cols = ", ".join(cols)
         offset = 0
         file_count = 0
 
@@ -376,7 +378,7 @@ class HttpRequesterOvertureMaps:
                 f"""
                     COPY (
                         SELECT
-                            {cols}
+                            {str_cols}
                         FROM
                             read_parquet('{self.path}', filename=true, hive_partitioning=1)
                         WHERE

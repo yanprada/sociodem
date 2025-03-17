@@ -1,7 +1,7 @@
 """
 This module provides a class for handling database connections.
 
-The DBConnectionHandler class encapsulates the logic for creating 
+The DBConnectionHandler class encapsulates the logic for creating
 and managing a database connection using SQLAlchemy.
 """
 
@@ -291,6 +291,8 @@ class DBConnection(DBConnectionHandler):
             conn.execute(sqlalchemy.schema.CreateSchema(schema_name))
 
     def __get_pk(self, contract):
+        if "columns" not in contract:
+            return None
         return next(
             (col["column"] for col in contract["columns"] if col["isPrimaryKey"]),
             None,
@@ -328,6 +330,8 @@ class DBConnection(DBConnectionHandler):
                 )
 
     def __get_fk(self, contract):
+        if "columns" not in contract:
+            return None
         return [
             (col["column"], col["ForeignKey"])
             for col in contract["columns"]
@@ -370,6 +374,8 @@ class DBConnection(DBConnectionHandler):
                     )
 
     def __get_not_null(self, contract: dict):
+        if "columns" not in contract:
+            return None
         return [col["column"] for col in contract["columns"] if col["isNullable"]]
 
     def __add_not_null_to_table(
@@ -397,8 +403,28 @@ class DBConnection(DBConnectionHandler):
                         )
                     )
 
-    def __save_in_sequence(self, partitions, names):
-        for partition in tqdm(partitions, desc="Saving partitions of the dataframe"):
+    def __save_in_sequence(self, partitions, names, table_exists):
+        """
+        Save partitions of a DataFrame in sequence.
+
+        Args:
+            partitions: List of DataFrame partitions to save
+            names: Tuple containing schema name and table name
+            table_exists: Boolean indicating if the table already exists
+        """
+        if not partitions:
+            return
+
+        # Determine the action for the first partition
+        first_action = "replace" if not table_exists else "append"
+
+        # Save the first partition
+        self._save_small_table(partitions[0], names, first_action)
+
+        # Save remaining partitions with 'append'
+        for partition in tqdm(
+            partitions[1:], desc="Saving partitions of the dataframe"
+        ):
             self._save_small_table(partition, names, "append")
 
     def __save_large_table(
@@ -408,11 +434,31 @@ class DBConnection(DBConnectionHandler):
         action_if_table_exists: str,
         memory_usage: int,
     ):
-        num_partitions = int(memory_usage / 500) + 1
-        partitions = np.array_split(table, num_partitions)
-        if action_if_table_exists == "replace":
+        """
+        Save a large table to the database by splitting it into smaller partitions.
+
+        Args:
+            table: The DataFrame or GeoDataFrame to save
+            names: Tuple of (schema_name, table_name)
+            action_if_table_exists: What to do if table exists ('replace' or 'append')
+            memory_usage: Memory usage in MB to determine number of partitions
+        """
+        # Check if the table already exists in the database
+        schema_name, table_name = names
+        table_exists = False
+
+        table_exists = self.__table_exists(schema_name, table_name)
+
+        # If table exists and action is 'replace', drop the table first
+        if table_exists and action_if_table_exists == "replace":
             self.__drop_table(*names)
-        self.__save_in_sequence(partitions, names)
+
+        # Determine number of partitions based on memory usage
+        num_partitions = max(1, int(memory_usage / 500))
+        partitions = np.array_split(table, num_partitions)
+
+        # Save partitions
+        self.__save_in_sequence(partitions, names, table_exists)
 
     def _save_small_table(
         self,
@@ -455,6 +501,31 @@ class DBConnection(DBConnectionHandler):
                     conn.close()
                 raise e
 
+    def __table_exists(self, schema_name, table_name):
+        """
+        Check if a table exists in the database.
+
+        Args:
+            schema_name: Name of the schema
+            table_name: Name of the table
+
+        Returns:
+            bool: True if the table exists, False otherwise
+        """
+        with self._DBConnectionHandler__engine.connect() as conn:
+            result = conn.execute(
+                text(
+                    f"""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = '{schema_name}'
+                    AND table_name = '{table_name}'
+                )
+                """
+                )
+            )
+            return result.scalar()
+
     def __save_table(
         self,
         table: Union[pd.DataFrame, gpd.GeoDataFrame],
@@ -470,11 +541,28 @@ class DBConnection(DBConnectionHandler):
             action_if_table_exists (str): The action to take if the table already
             exists in the database.
         """
+        # Check for empty table
+        if table.empty:
+            print("Warning: Empty table provided, nothing to save.")
+            return
+
+        # Get memory usage to decide how to save
         memory_usage = table.memory_usage(deep=True).sum() / (1024 * 1024)
+
+        # Check if table already exists
+        schema_name, table_name = names
+        table_exists = self.__table_exists(schema_name, table_name)
+
+        # If appending to existing table and table doesn't exist, use 'replace' instead
+        actual_action = action_if_table_exists
+        if action_if_table_exists == "append" and not table_exists:
+            actual_action = "replace"
+
+        # Use appropriate method based on table size
         if memory_usage > 500:
-            self.__save_large_table(table, names, action_if_table_exists, memory_usage)
+            self.__save_large_table(table, names, actual_action, memory_usage)
         else:
-            self._save_small_table(table, names, action_if_table_exists)
+            self._save_small_table(table, names, actual_action)
 
     def __create_temp_table(
         self, table: Union[pd.DataFrame, gpd.GeoDataFrame], schema: str, table_name: str
@@ -535,9 +623,9 @@ class DBConnection(DBConnectionHandler):
 
         if primary_key is not None:
             self.add_pk_to_table(schema_name, table_name, primary_key)
-        if len(foreign_keys) > 0:
+        if foreign_keys is not None and len(foreign_keys) > 0:
             self.__add_fk_to_table(schema_name, table_name, foreign_keys)
-        if len(not_null_columns) > 0:
+        if not_null_columns is not None and len(not_null_columns) > 0:
             self.__add_not_null_to_table(schema_name, table_name, not_null_columns)
 
     def execute_query(self, query: str) -> Union[list, None]:
@@ -604,7 +692,9 @@ class DBConnection(DBConnectionHandler):
         with self._DBConnectionHandler__engine.begin() as conn:
             conn.execute(text(query))
 
-    def add_table(self, table: Union[pd.DataFrame, gpd.GeoDataFrame], contract: dict):
+    def add_table(
+        self, table: Union[pd.Series, pd.DataFrame, gpd.GeoDataFrame], contract: dict
+    ):
         """
         Adds a table to the database.
 
@@ -612,19 +702,44 @@ class DBConnection(DBConnectionHandler):
         - table (pd.DataFrame): The table to be added.
         - contract (dict): A dictionary containing the database contract.
         """
+        # Validate inputs
+        if table is None or table.empty:
+            print("Warning: Empty table provided to add_table, skipping operation")
+            return
+
+        if (
+            not isinstance(contract, dict)
+            or "schema" not in contract
+            or "tableName" not in contract
+        ):
+            raise ValueError("Invalid contract provided to add_table")
+
+        # Copy the table to prevent modifications to the original
+        table_copy = table.copy()
+
+        # Handle geometry column if present
+        if table_copy.filter(regex="geom").shape[1] > 0:
+            col_geom = table_copy.filter(regex="geom").columns[0]
+            if all(table_copy[col_geom].isnull()) or all(
+                table_copy[col_geom] == "None"
+            ):
+                table_copy.drop(columns=col_geom, inplace=True)
+                if isinstance(table_copy, gpd.GeoDataFrame):
+                    table_copy = pd.DataFrame(table_copy)
+
+        # Extract contract details
         primary_key = self.__get_pk(contract)
         foreign_keys = self.__get_fk(contract)
         not_null_columns = self.__get_not_null(contract)
-        action_if_table_exists = contract["ifExists"]
+        action_if_table_exists = contract.get(
+            "ifExists", "replace"
+        )  # Default to 'replace' if not specified
         names = (contract["schema"], contract["tableName"])
 
-        if table.filter(regex="geom").shape[1] > 0:
-            col_geom = table.filter(regex="geom").columns[0]
-            if all(table[col_geom].isnull()) or all(table[col_geom] == "None"):
-                table.drop(columns=col_geom, inplace=True)
-                if isinstance(table, gpd.GeoDataFrame):
-                    table = pd.DataFrame(table)
-        self.__save_table(table, names, action_if_table_exists)
+        # Save the table in a single operation
+        self.__save_table(table_copy, names, action_if_table_exists)
+
+        # Update table keys after saving
         self.__update_table_keys(names, primary_key, foreign_keys, not_null_columns)
 
     def delete_rows_table(self, names: Tuple[str, str], condition: str) -> None:
@@ -696,6 +811,50 @@ class DBConnection(DBConnectionHandler):
                 conn.rollback()
                 raise e
 
+    def create_materialized_view(self, query: str, path_new_table: str):
+        """
+        Create a new materialized view in the database based on the provided SQL query.
+
+        Args:
+            query (str): The SQL query used to create the materialized view.
+            path_new_table (str): The name of the materialized view to be created.
+
+        Raises:
+            Exception: If an error occurs during the materialized view creation process.
+        """
+        creation_query = f"""
+        CREATE MATERIALIZED VIEW IF NOT EXISTS {path_new_table} AS
+        {query}
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            try:
+                conn.execute(text(creation_query))
+            except Exception as e:
+                conn.rollback()
+                raise e
+
+    def create_view(self, query: str, path_new_table: str):
+        """
+        Create a new view in the database based on the provided SQL query.
+
+        Args:
+            query (str): The SQL query used to create the view.
+            path_new_table (str): The name of the view to be created.
+
+        Raises:
+            Exception: If an error occurs during the view creation process.
+        """
+        creation_query = f"""
+        CREATE VIEW IF NOT EXISTS {path_new_table} AS
+        {query}
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            try:
+                conn.execute(text(creation_query))
+            except Exception as e:
+                conn.rollback()
+                raise e
+
     def query_database(
         self, query: str, geo: bool = False, display: bool = False
     ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
@@ -708,14 +867,18 @@ class DBConnection(DBConnectionHandler):
             - display (bool): A flag indicating whether to display a progress bar.
 
         Returns:
-            pd.DataFrame: The result of the query as a DataFrame.
+            Union[pd.DataFrame, gpd.GeoDataFrame]: The result of the query as a DataFrame.
         """
         with self._DBConnectionHandler__engine.connect() as conn:
-            df = pd.read_sql_query(text(query), conn, chunksize=1000)
-            if display:
-                df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
-            else:
-                df = pd.concat(list(df))
-            if geo:
-                df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
-        return df
+            conn = conn.execution_options(stream_results=True)
+            try:
+                df = pd.read_sql_query(text(query), conn, chunksize=1000)
+                if display:
+                    df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+                else:
+                    df = pd.concat(list(df))
+                if geo:
+                    df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
+                return df
+            except:
+                return pd.DataFrame()

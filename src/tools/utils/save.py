@@ -12,6 +12,7 @@ Functions:
 - save_as_dask: Partition a file with more than 100Mb into smaller partitions using Dask.
 """
 
+from typing import Union, Callable
 import os
 import gc
 import yaml
@@ -25,7 +26,7 @@ def save_parquet_decorator(
     medallon: str,
     save_pq: bool = True,
     save_db: bool = True,
-) -> None:
+) -> Callable:
     """
     Decorator function that saves the output of a decorated function as a Parquet file.
 
@@ -70,7 +71,9 @@ def save_parquet_decorator(
     return wrap_outer
 
 
-def save_in_db(df_data: pd.DataFrame, medallon: str, database_contract: dict) -> None:
+def save_in_db(
+    df_data: Union[pd.DataFrame, pd.Series], medallon: str, database_contract: dict
+) -> None:
     """
     Saves the given DataFrame to a database table.
 
@@ -83,7 +86,7 @@ def save_in_db(df_data: pd.DataFrame, medallon: str, database_contract: dict) ->
     database_connection.add_table(df_data, database_contract)
 
 
-def save_parquet(df_data: pd.DataFrame, path: str, **kwargs) -> None:
+def save_parquet(df_data: Union[pd.Series, pd.DataFrame], path: str, **kwargs) -> None:
     """
     Save a DataFrame as a Parquet file.
 
@@ -128,7 +131,9 @@ def save_particionado(df_data: pd.DataFrame, path: str):
         save_as_dask(df_data, path, total_size, limit_partition)
 
 
-def converte_geometria(df_data: pd.DataFrame) -> pd.DataFrame:
+def converte_geometria(
+    df_data: Union[pd.DataFrame, pd.Series]
+) -> Union[pd.DataFrame, pd.Series]:
     """
     Convert the geometries that are of type 'object' to string.
 
@@ -192,7 +197,7 @@ def save_as_dask(
     for col in df_data.filter(like="geom").columns:
         if df_data[col].dtype != "O":
             df_data[col] = df_data[col].apply(str)
-    ddf_data = dd.from_pandas(df_data, npartitions=int(n_particoes))
+    ddf_data = dd.from_pandas(df_data, npartitions=int(n_particoes))  # type: ignore
     del df_data
     gc.collect()
     ddf_data.to_parquet(filename)

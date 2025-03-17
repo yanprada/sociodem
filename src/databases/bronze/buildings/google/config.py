@@ -1,5 +1,5 @@
 """
-This module contains the configuration settings for the bronze 
+This module contains the configuration settings for the bronze
     database related to the Buildings data.
 
 Attributes:
@@ -13,9 +13,10 @@ Attributes:
 import os
 
 from config.run_mode import DEBUG
-from src.tools.utils.execution_manager import ExecutionManager
 
-EXECUTION_ID = "bronze-buildings-KgcKlXbQ5P85l7X"
+from src.tools.utils.execution_manager import ExecutionManagerWrapper
+
+EXECUTION_ID = None
 
 BASE_PARAMS = {
     "medallon": "bronze",
@@ -30,11 +31,14 @@ BASE_PARAMS = {
     "last_run": None,
 }
 
-MANAGER = ExecutionManager(BASE_PARAMS)
-MANAGER.initialize_execution(EXECUTION_ID, DEBUG)
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+manager = _manager_wrapper.manager
 
-BUILDING_CONTRACTS_RAW = MANAGER.execution_details["data_contracts"]["raw_google"]
-STATE_CONTRACTS_RAW = MANAGER.execution_details["data_contracts"]["raw_state_censo"]
-BUILDING_CONTRACTS_BRONZE = MANAGER.execution_details["data_contracts"]["bronze_google"]
 
-EXPERIMENT_ID = MANAGER.execution_details["mlflow_experiment"]
+BUILDING_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_google"]
+STATE_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_state_censo"]
+BUILDING_CONTRACTS_BRONZE = manager.execution_details["data_contracts"]["bronze_google"]
+
+YEARS = manager.execution_details["info"]["running_years"]
+
+EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]

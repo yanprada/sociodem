@@ -15,7 +15,10 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "bronze-aneel-qStOVo6wDOk3obC"
+# main run = "bronze-aneel-2025-03-13-15h51m53s"
+
+EXECUTION_ID = "bronze-aneel-2025-03-17-07h27m27s"
+
 
 BASE_PARAMS = {
     "medallon": "bronze",
@@ -28,6 +31,11 @@ BASE_PARAMS = {
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
+    "materialized_views": {
+        "common": "{path}_companies_already_processed_v2",
+        "step_c": "{path}_sum_energy_per_companies_v2",
+        "step_e": "{path}_test_join_v2",
+    },
 }
 
 _manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
@@ -38,4 +46,8 @@ CONTRACT_BRONZE_ENERGY = manager.execution_details["data_contracts"]["aneel_bron
 CONTRACT_RAW_ENERGY = manager.execution_details["data_contracts"]["aneel_raw"]
 CONTRACT_RAW_IDS = manager.execution_details["data_contracts"]["aneel_company_ids"]
 
+YEARS = manager.execution_details["info"]["running_years"]
+
 EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]
+
+PATHS_MV = manager.execution_details["materialized_views"]

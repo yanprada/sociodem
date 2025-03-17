@@ -1,70 +1,57 @@
 """
-This script performs a join operation between the 'ucbt' and 'ponnot' tables 
+This script performs a join operation between the 'ucbt' and 'ponnot' tables
 to update the 'pn_con' column in the 'ucbt' table.
 It retrieves batches of data from two paths and joins them based on specific conditions.
-The resulting DataFrame is then saved in parquet format, with dropped columns, 
+The resulting DataFrame is then saved in parquet format, with dropped columns,
 for each municipality.
-Additionally, the 'pn_con' values that did not match between the 'ucbt' and 
+Additionally, the 'pn_con' values that did not match between the 'ucbt' and
 'ponnot' tables are saved separately.
 
 The script consists of the following functions:
-- try_join: Executes a database query and appends the resulting DataFrame to the 
+- try_join: Executes a database query and appends the resulting DataFrame to the
     list of good match DataFrames.
-- save_no_join_ucbt_ponnot: Saves the 'pn_con' values that did not match between the 
+- save_no_join_ucbt_ponnot: Saves the 'pn_con' values that did not match between the
     'ucbt' and 'ponnot' tables.
 - save_partitioned_mun: Saves the concatenated DataFrame with dropped columns.
-- save_mun: Saves the concatenated DataFrame with dropped columns, filtered by a 
+- save_mun: Saves the concatenated DataFrame with dropped columns, filtered by a
     specific municipality.
-- join_batches: Joins batches of data from two paths based on specific conditions.
+- join_ucbt_ponnot_tables: Joins batches of data from two paths based on specific conditions.
 - join_ucbt_and_ponnot: Joins the 'ucbt' and 'ponnot' tables to update the 'pn_con'
      column in the 'ucbt' table.
 - main: The main function that executes the join_ucbt_and_ponnot operation.
 """
 
-import os
 from typing import List
-from functools import lru_cache
 from tqdm import tqdm
 import pandas as pd
 
 from src.tools.databases.data_connection.connection import DBConnection
 
-from src.tools.utils.common import get_db_path, check_file_exists_in_db
-
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.aneel.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
-
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+from src.tools.utils.common import write_log, check_file_exists_in_db, get_db_path
+from src.databases.bronze.aneel.common import split_file_sizes
+from src.databases.bronze.aneel.config import manager, CONTRACT_BRONZE_ENERGY, YEARS
 
 
-ANEEL_BRONZE_CONTRACTS = execution_parameters["data_contracts"]["aneel_bronze"]
-
-
-def create_primary_key(path_table: str, pk_key: str) -> None:
+def create_primary_key(conn: DBConnection, path_table: str, pk_key: str) -> None:
     """
     Creates a primary key on the ID column of ucbt table.
     """
-    conn = DBConnection("bronze")
     schema, table_name = path_table.split(".")
-
     df = conn.query_database(f"SELECT * FROM {path_table} LIMIT 1")
     if pk_key not in df.columns:
         conn.create_pk(schema, table_name, pk_key)
 
 
-def get_paths(year):
+def get_paths(year: str, table_name: str):
     """
     Generates and returns a dictionary of various database paths and table names
     based on the provided year.
     Args:
         year (str): The year to append to certain paths and table names.
+        table_name (str): The name of the table to retrieve the paths for.
     Returns:
         dict: A dictionary containing the following keys and their corresponding
-            paths or table names:
+            paths of the request table name from:
             - "path_ucbt": Path to the UCBT aggregated database.
             - "path_ponnot": Path to the Ponnot database.
             - "path_join": Path to the joined database with the year appended.
@@ -78,13 +65,11 @@ def get_paths(year):
             - "path_second_join": Path for the second join operation.
     """
 
-    path_ucbt = get_db_path(ANEEL_BRONZE_CONTRACTS["ucbt_agg"])
-    path_ponnot = get_db_path(ANEEL_BRONZE_CONTRACTS["ponnot_clean"])
-    path_join = get_db_path(ANEEL_BRONZE_CONTRACTS["aneel_join"])
-    path_join = "_".join([path_join, year])
+    path_ucbt = get_db_path(CONTRACT_BRONZE_ENERGY[f"ucbt_{year}"])
+    path_ponnot = get_db_path(CONTRACT_BRONZE_ENERGY[f"ponnot_{year}"])
+    path_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"aneel_join_{year}"])
     table_name_join = path_join.split(".", maxsplit=1)[1]
-    path_no_join = get_db_path(ANEEL_BRONZE_CONTRACTS["ucbt_no_join"])
-    path_no_join = "_".join([path_no_join, year])
+    path_no_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"ucbt_no_join_{year}"])
     table_name_no_join = path_no_join.split(".", maxsplit=1)[1]
     schema = path_ucbt.split(".", maxsplit=1)[0]
     path_temp_ucbt = ".".join([schema, "z_temp_ucbt"])
@@ -93,7 +78,7 @@ def get_paths(year):
     path_second_join = ".".join([schema, "z_second_join"])
     path_third_join = ".".join([schema, "z_third_join"])
     path_fourth_join = ".".join([schema, "z_fourth_join"])
-    return {
+    dict_all_paths = {
         "path_ucbt": path_ucbt,
         "path_ponnot": path_ponnot,
         "path_join": path_join,
@@ -108,56 +93,71 @@ def get_paths(year):
         "path_third_join": path_third_join,
         "path_fourth_join": path_fourth_join,
     }
+    return dict_all_paths[table_name]
 
 
-def query_temp_ucbt(conn: DBConnection, mun_batch: str, year: str, pk_key: str) -> None:
+def create_temp_table(
+    conn: DBConnection,
+    company_file: str,
+    path_original_table: str,
+    path_temp_table: str,
+    pk_key: str,
+) -> None:
+    """
+    Creates a temporary table by filtering rows from the original table based on the company_file.
+    Args:
+        conn (DBConnection): The database connection object.
+        company_file (str): The ID of the company to filter the rows.
+        path_original_table (str): The path to the original table.
+        path_temp_table (str): The path where the temporary table will be created.
+        pk_key (str): The primary key to be set for the temporary table.
+    """
+    sql_query = f"""
+    -- Create filtered_ucbt table
+        DROP TABLE IF EXISTS {path_temp_table};
+        CREATE TABLE {path_temp_table} AS
+        SELECT *
+        FROM {path_original_table}
+        WHERE company_file = '{company_file}'
+    """
+    conn.execute_query(sql_query)
+    create_primary_key(conn, path_temp_table, pk_key)
+
+
+def create_temp_ucbt(
+    conn: DBConnection, company_file: str, year: str, pk_key: str
+) -> None:
     """
     Creates a temporary table with filtered data from the UCBT table based on the given
     municipality batch and year.
     Args:
         conn: Database connection object.
-        mun_batch (str): A string containing a batch of municipalities to filter by.
+        company_file (str): The company_file name to filter the data by.
         year (str): The year to filter the data by.
         pk_key (str): The primary key column to create in the temporary table.
     """
-    path_ucbt = get_paths(year)["path_ucbt"]
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
-    sql_query = f"""
-    -- Create filtered_ucbt table
-        DROP TABLE IF EXISTS {path_temp_ucbt};
-        CREATE TABLE {path_temp_ucbt} AS
-        SELECT *
-        FROM {path_ucbt}
-        WHERE mun IN ({mun_batch}) AND year = '{year}';
-    """
-    conn.execute_query(sql_query)
-    create_primary_key(path_temp_ucbt, pk_key)
+    write_log(f"Creating temp UCBT table for {company_file}")
+    path_ucbt = get_paths(year, "path_ucbt")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
+    create_temp_table(conn, company_file, path_ucbt, path_temp_ucbt, pk_key)
 
 
-def query_temp_ponnot(
-    conn: DBConnection, mun_batch: str, year: str, pk_key: str
+def create_temp_ponnot(
+    conn: DBConnection, company_file: str, year: str, pk_key: str
 ) -> None:
     """
     Creates a temporary table with filtered data from the 'ponnot' table based on the
     specified municipality batch and year.
     Args:
         conn: Database connection object used to execute the query.
-        mun_batch (str): A string containing a batch of municipalities to filter the data.
+        company_file (str): A string containing the company_file name.
         year (str): The year to filter the data.
         pk_key (str): The primary key column to create in the temporary table.
     """
-    path_ponnot = get_paths(year)["path_ponnot"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
-    sql_query = f"""
-    -- Create filtered_ponnot table
-        DROP TABLE IF EXISTS {path_temp_ponnot};
-        CREATE TABLE {path_temp_ponnot} AS
-        SELECT *
-        FROM {path_ponnot}
-        WHERE mun IN ({mun_batch}) AND year = '{year}';
-    """
-    conn.execute_query(sql_query)
-    create_primary_key(path_temp_ponnot, pk_key)
+    write_log(f"Creating temp Ponnot table for {company_file}")
+    path_ponnot = get_paths(year, "path_ponnot")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
+    create_temp_table(conn, company_file, path_ponnot, path_temp_ponnot, pk_key)
 
 
 def delete_rows_in_table(
@@ -199,14 +199,15 @@ def query_first_join(conn: DBConnection, year: str, pk_key: str) -> None:
     selected columns (geometry, mat, are_loc, cod_id) from the second temporary table (ponnot),
     joined on matching values of pn_con, dist, conj, and mun.
     """
-    path_first_join = get_paths(year)["path_first_join"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
+    write_log("Creating first join table")
+    path_first_join = get_paths(year, "path_first_join")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
     sql_query = f"""
     -- Create first_join table
         DROP TABLE IF EXISTS {path_first_join};
         CREATE TABLE {path_first_join} AS
-        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}
+        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}, 1 AS join_type
         FROM {path_temp_ucbt} u
         INNER JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id 
@@ -219,6 +220,7 @@ def query_first_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_first_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_first_join, pk_key)
+    create_primary_key(conn, path_first_join, pk_key)
 
 
 def query_second_join(conn: DBConnection, year: str, pk_key: str) -> None:
@@ -244,14 +246,15 @@ def query_second_join(conn: DBConnection, year: str, pk_key: str) -> None:
         The function assumes that the `get_paths` function is defined elsewhere and
         returns a dictionary with the required file paths.
     """
-    path_second_join = get_paths(year)["path_second_join"]
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
+    write_log("Creating second join table")
+    path_second_join = get_paths(year, "path_second_join")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
     sql_query = f"""
     -- Create second_join table
         DROP TABLE IF EXISTS {path_second_join};
         CREATE TABLE {path_second_join} AS
-        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}
+        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}, 2 AS join_type
         FROM {path_temp_ucbt} u
         INNER JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id
@@ -263,6 +266,7 @@ def query_second_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_second_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_second_join, pk_key)
+    create_primary_key(conn, path_second_join, pk_key)
 
 
 def query_third_join(conn: DBConnection, year: str, pk_key: str) -> None:
@@ -288,14 +292,15 @@ def query_third_join(conn: DBConnection, year: str, pk_key: str) -> None:
         The function assumes that the `get_paths` function is defined elsewhere and
         returns a dictionary with the required file paths.
     """
-    path_third_join = get_paths(year)["path_third_join"]
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
+    write_log("Creating third join table")
+    path_third_join = get_paths(year, "path_third_join")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
     sql_query = f"""
     -- Create third_join table
         DROP TABLE IF EXISTS {path_third_join};
         CREATE TABLE {path_third_join} AS
-        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}
+        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}, 3 AS join_type
         FROM {path_temp_ucbt} u
         INNER JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id
@@ -307,6 +312,7 @@ def query_third_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_third_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_third_join, pk_key)
+    create_primary_key(conn, path_third_join, pk_key)
 
 
 def query_fourth_join(conn: DBConnection, year: str, pk_key: str) -> None:
@@ -322,14 +328,15 @@ def query_fourth_join(conn: DBConnection, year: str, pk_key: str) -> None:
         pk_key (str): The primary key column to create in the temporary table.
 
     """
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
-    path_fourth_join = get_paths(year)["path_fourth_join"]
+    write_log("Creating fourth join table")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
+    path_fourth_join = get_paths(year, "path_fourth_join")
     sql_query = f"""
     -- Create third_join table
         DROP TABLE IF EXISTS {path_fourth_join};
         CREATE TABLE {path_fourth_join} AS
-        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}
+        SELECT u.*, p.geometry, p.mat, p.are_loc, p.cod_id, p.{pk_key}, 4 AS join_type
         FROM {path_temp_ucbt} u
         RIGHT JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id 
@@ -340,6 +347,7 @@ def query_fourth_join(conn: DBConnection, year: str, pk_key: str) -> None:
         conn, path_temp_ucbt, path_fourth_join, "_".join([pk_key, "ucbt"])
     )
     delete_rows_in_table(conn, path_temp_ponnot, path_fourth_join, pk_key)
+    create_primary_key(conn, path_fourth_join, pk_key)
 
 
 def create_indexes(conn: DBConnection, year: str) -> None:
@@ -352,8 +360,9 @@ def create_indexes(conn: DBConnection, year: str) -> None:
         conn (DBConnection): The database connection object used to execute the queries.
         year (str): The year for which the indexes are to be created.
     """
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
+    write_log("Creating indexes")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
     query_create_indexes = f"""
         CREATE INDEX idx_filtered_ucbt_mun_year ON {path_temp_ucbt} (mun, year);
         CREATE INDEX idx_filtered_ponnot_mun_year ON {path_temp_ponnot} (mun, year);
@@ -374,16 +383,17 @@ def create_final_join(conn: DBConnection, year: str) -> None:
         conn (DBConnection): The database connection object used to execute the query.
         year (str): The year used to determine the paths and table names for the join.
     """
-    path_join = get_paths(year)["path_join"]
-    table_name_join = get_paths(year)["table_name_join"]
-    schema = get_paths(year)["schema"]
+    write_log("Creating final join")
+    path_join = get_paths(year, "path_join")
+    table_name_join = get_paths(year, "table_name_join")
+    schema = get_paths(year, "schema")
 
-    path_second_join = get_paths(year)["path_second_join"]
-    path_first_join = get_paths(year)["path_first_join"]
+    path_second_join = get_paths(year, "path_second_join")
+    path_first_join = get_paths(year, "path_first_join")
     table_name_fj = path_first_join.split(".", maxsplit=1)[1]
-    path_third_join = get_paths(year)["path_third_join"]
-    path_fourth_join = get_paths(year)["path_fourth_join"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
+    path_third_join = get_paths(year, "path_third_join")
+    path_fourth_join = get_paths(year, "path_fourth_join")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
     table_name_temp_ponnot = path_temp_ponnot.split(".", maxsplit=1)[1]
     query_rearrange_ponnot_cols = f"""
     DO $$
@@ -431,7 +441,7 @@ def create_final_join(conn: DBConnection, year: str) -> None:
     """
     conn.execute_query(query_rearrange_ponnot_cols)
 
-    query_join = f"""
+    query_join_table = f"""
     SELECT *
     FROM {path_first_join} f
     UNION ALL
@@ -443,35 +453,31 @@ def create_final_join(conn: DBConnection, year: str) -> None:
     UNION ALL
     SELECT *
     FROM {path_fourth_join} fo
-    UNION ALL
-    SELECT year, dist, mun, conj, pn_con, clas_sub, dat_con,
-       company_file, brr, ene_01_sum, ene_02_sum, ene_03_sum,
-       ene_04_sum, ene_05_sum, ene_06_sum, ene_07_sum, ene_08_sum,
-       ene_09_sum, ene_10_sum, ene_11_sum, ene_12_sum, ene_01_mean,
-       ene_02_mean, ene_03_mean, ene_04_mean, ene_05_mean,
-       ene_06_mean, ene_07_mean, ene_08_mean, ene_09_mean,
-       ene_10_mean, ene_11_mean, ene_12_mean, ene_01_std, ene_02_std,
-       ene_03_std, ene_04_std, ene_05_std, ene_06_std, ene_07_std,
-       ene_08_std, ene_09_std, ene_10_std, ene_11_std, ene_12_std,
-       row_id_ucbt, geometry, mat, are_loc, cod_id, row_id
-    FROM {path_temp_ponnot} p
     """
 
-    query_final_join = f"""
+    query_join = f"""
     -- Check if the table exists and append or create
         DO $$
         BEGIN
             -- If the table exists, insert new rows
             IF EXISTS (SELECT 1 FROM information_schema.tables 
                     WHERE table_name = '{table_name_join}' AND table_schema = '{schema}') THEN
-                INSERT INTO {path_join} ({query_join});
+                INSERT INTO {path_join} ({query_join_table});
             ELSE
                 -- If the table does not exist, create it and insert rows
-               CREATE TABLE {path_join} AS {query_join};
+               CREATE TABLE {path_join} AS {query_join_table};
             END IF;
         END $$;
     """
-    conn.execute_query(query_final_join)
+    conn.execute_query(query_join)
+    temp_ponnot_lenth = conn.query_database(
+        f"SELECT COUNT(*) FROM {path_temp_ponnot}"
+    ).squeeze()
+    if temp_ponnot_lenth > 0:
+        query_append_ponnot = f"SELECT * FROM {path_temp_ponnot}"
+        final_query = f"""
+            INSERT INTO {path_join} ({query_append_ponnot})"""
+        conn.execute_query(final_query)
 
 
 def create_no_join(conn: DBConnection, year: str) -> None:
@@ -482,10 +488,11 @@ def create_no_join(conn: DBConnection, year: str) -> None:
         conn (DBConnection): The database connection object used to execute queries.
         year (str): The year used to retrieve paths and table names from the configuration.
     """
-    path_no_join = get_paths(year)["path_no_join"]
-    table_name_no_join = get_paths(year)["table_name_no_join"]
-    schema = get_paths(year)["schema"]
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
+    write_log("Creating no join table")
+    path_no_join = get_paths(year, "path_no_join")
+    table_name_no_join = get_paths(year, "table_name_no_join")
+    schema = get_paths(year, "schema")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
 
     query_no_join = f"""
     SELECT u.*
@@ -514,13 +521,13 @@ def drop_temp_tables(conn: DBConnection, year: str) -> None:
         conn (DBConnection): The database connection object used to execute queries.
         year (str): The year for which the temporary tables should be dropped.
     """
-
-    path_temp_ucbt = get_paths(year)["path_temp_ucbt"]
-    path_temp_ponnot = get_paths(year)["path_temp_ponnot"]
-    path_first_join = get_paths(year)["path_first_join"]
-    path_second_join = get_paths(year)["path_second_join"]
-    path_third_join = get_paths(year)["path_third_join"]
-    path_fourth_join = get_paths(year)["path_fourth_join"]
+    write_log("Dropping temporary tables")
+    path_temp_ucbt = get_paths(year, "path_temp_ucbt")
+    path_temp_ponnot = get_paths(year, "path_temp_ponnot")
+    path_first_join = get_paths(year, "path_first_join")
+    path_second_join = get_paths(year, "path_second_join")
+    path_third_join = get_paths(year, "path_third_join")
+    path_fourth_join = get_paths(year, "path_fourth_join")
     query_drop_tables = f"""
         DROP TABLE IF EXISTS {path_temp_ucbt};
         DROP TABLE IF EXISTS {path_temp_ponnot};
@@ -532,18 +539,18 @@ def drop_temp_tables(conn: DBConnection, year: str) -> None:
     conn.execute_query(query_drop_tables)
 
 
-def join_batches(conn: DBConnection, mun_batch: str, year: str) -> None:
+def join_ucbt_ponnot_tables(conn: DBConnection, company_file: str, year: str) -> None:
     """
     Joins batches of data from two paths based on specific conditions.
 
     Args:
         conn (DBConnection): The database connection object.
-        mun_batch (str): A string containing a batch of municipalities to filter by.
+        company_file (str): A string containing a batch of municipalities to filter by.
         year (int): The year to include in the join.
     """
     pk_key = "row_id"
-    query_temp_ucbt(conn, mun_batch, year, "_".join([pk_key, "ucbt"]))
-    query_temp_ponnot(conn, mun_batch, year, pk_key)
+    create_temp_ucbt(conn, company_file, year, "_".join([pk_key, "ucbt"]))
+    create_temp_ponnot(conn, company_file, year, pk_key)
     query_first_join(conn, year, pk_key)
     query_second_join(conn, year, pk_key)
     query_third_join(conn, year, pk_key)
@@ -554,63 +561,83 @@ def join_batches(conn: DBConnection, mun_batch: str, year: str) -> None:
     drop_temp_tables(conn, year)
 
 
-@lru_cache(maxsize=1)
-def get_mun_batches() -> List[str]:
+def get_data_already_processed(refresh_view: bool = False) -> pd.DataFrame:
     """
-    Retrieves batches of municipalities (mun) from the database,
-    excluding a predefined list of large municipalities.
-    Returns:
-        List[str]: A list of DataFrames, each containing a batch of municipalities.
-        Large municipalities are returned as individual DataFrames.
+    Retrieves the processed data from Aneel join.
     """
+    write_log("Getting processed data from MLflow")
     conn = DBConnection("bronze")
-    muns = conn.query_database(
-        "select distinct (cd_mun) as mun from layers.mun_censo_2022 ORDER BY mun ASC"
-    )
+    dfs = []
+    for year in YEARS:
+        path_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"aneel_join_{year}"])
+        data_exists = check_file_exists_in_db(conn, path_join)
+        if not data_exists:
+            continue
+        path_mv = f"{path_join}_companies_already_processed"
+        df = conn.query_database(f"SELECT * FROM {path_mv}")
+        if df.empty:
+            query = f"""
+            CREATE MATERIALIZED VIEW {path_mv} AS
+            SELECT DISTINCT(company_file) as company_id
+            FROM {path_join}
+            """
+            conn.execute_query(query)
+            df = conn.query_database(f"SELECT * FROM {path_mv}")
+        if refresh_view:
+            conn.execute_query(f"REFRESH MATERIALIZED VIEW {path_mv}")
+            df = conn.query_database(f"SELECT * FROM {path_mv}")
+        dfs.append(df)
+    if not dfs:
+        return pd.DataFrame()
+    conn.close()
+    return pd.concat(dfs)
 
-    large_mun_cods = [
-        "3550308",
-        "3304557",
-        "3106200",
-        "5300108",
-        "2304400",
-        "2927408",
-        "1302603",
-        "4106902",
-        "2611606",
-        "5208707",
-        "4314902",
-        "3518800",
-        "3509502",
-        "2111300",
-    ]
-    batch_size = 150
-    muns = muns[~muns["mun"].isin(large_mun_cods)]
-    mun_batches = [muns[i : i + batch_size] for i in range(0, len(muns), batch_size)]
-    mun_batches.extend([pd.DataFrame({"mun": [mun]}) for mun in large_mun_cods])
-    return mun_batches
+
+def get_all_companies() -> List[str]:
+    """
+    Retrieves a list of all unique company names from a collection of files.
+
+    This function splits the files into large and small categories, combines them,
+    and extracts the unique company names from the combined list.
+
+    Returns:
+        List[str]: A list of unique company names.
+    """
+    large_files, small_files = split_file_sizes()
+    company_files = large_files + small_files
+    company_files = list(set(company_file for company_file, _ in company_files))
+    company_files.sort(key=lambda x: int(x.split(" - ")[1].split("-")[0]))
+    return company_files
+
+
+def get_company_files_to_process(refresh_view: bool) -> List[str]:
+    """
+    Retrieves a list of company files that need to be processed.
+
+    This function compares the list of all company files with the list of
+    already processed company files and returns the difference.
+
+    Returns:
+        List[str]: A list of company file identifiers that have not yet been processed.
+    """
+    df_processed = get_data_already_processed(refresh_view=refresh_view)
+    all_company_files = get_all_companies()
+    if df_processed.empty:
+        return all_company_files
+    files_to_process = list(
+        set(all_company_files).difference(set(df_processed["company_id"]))
+    )
+    return files_to_process
 
 
 def main() -> None:
     """
     This is the main function that executes the join_ucbt_and_ponnot operation.
     """
-    year_init, year_end = ANEEL_BRONZE_CONTRACTS["ucbt_agg"]["queryYears"]
-    years = [str(year) for year in range(year_init, year_end + 1)]
     conn = DBConnection("bronze")
-    path_join = get_db_path(ANEEL_BRONZE_CONTRACTS["aneel_join"])
-    mun_batches = get_mun_batches()
-    for year in tqdm(years, desc="Processing years"):
-        for mun_batch in tqdm(mun_batches, desc="Processing mun batches"):
-            if all(
-                check_file_exists_in_db(
-                    conn,
-                    path_join,
-                    condition=f"mun = {mun} AND year = {year} LIMIT 1",
-                )
-                for mun in mun_batch["mun"].to_list()
-            ):
-                continue
-            mun_batch = ",".join([f"'{mun}'" for mun in mun_batch["mun"].to_list()])
-            join_batches(conn, mun_batch, year)
+    company_files = get_company_files_to_process(refresh_view=True)
+    for company_file in tqdm(company_files, desc="Processing companies"):
+        year = company_file.split(" - ")[1].split("-")[0]
+        join_ucbt_ponnot_tables(conn, company_file, year)
     manager.update_last_run()
+    conn.close()

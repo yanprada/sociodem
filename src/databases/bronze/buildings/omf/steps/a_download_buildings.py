@@ -11,24 +11,17 @@ import os
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterOvertureMaps,
 )
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
-
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-BUILDING_CONTRACTS = execution_parameters["data_contracts"]["raw_data"]
-
+from src.databases.bronze.buildings.omf.config import manager, CONTRACT_RAW_OMF
 
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 
 
 def download_buildings_omf():
     """
     Downloads data for buildings from the "omf" source.
     """
-    download_path = BUILDING_CONTRACTS["buildings_omf"]["physicalPath"]
+    download_path = CONTRACT_RAW_OMF["omf"]["physicalPath"]
     theme = "buildings"
     requester = HttpRequesterOvertureMaps(theme, download_path)
     requester.download_buildings_omf()
