@@ -15,9 +15,9 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-# main run = "bronze-aneel-2025-03-06-17h13m55s"
+# main run = "bronze-aneel-2025-03-13-15h51m53s"
 
-EXECUTION_ID = "bronze-aneel-2025-03-13-15h51m53s"
+EXECUTION_ID = "bronze-aneel-2025-03-17-07h27m27s"
 
 
 BASE_PARAMS = {
@@ -34,6 +34,7 @@ BASE_PARAMS = {
     "materialized_views": {
         "common": "{path}_companies_already_processed_v2",
         "step_c": "{path}_sum_energy_per_companies_v2",
+        "step_e": "{path}_test_join_v2",
     },
 }
 
