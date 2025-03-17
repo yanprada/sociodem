@@ -34,10 +34,7 @@ import numpy as np
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path, write_log
 from src.databases.bronze.aneel.common import get_data_processed_from_mlflow
-from src.databases.bronze.aneel.config import (
-    CONTRACT_BRONZE_ENERGY,
-    YEARS,
-)
+from src.databases.bronze.aneel.config import CONTRACT_BRONZE_ENERGY, YEARS, PATHS_MV
 
 
 def create_materialized_view(
@@ -122,7 +119,7 @@ def get_aneel_db_data(conn: DBConnection, refresh_view: bool = False) -> pd.Data
     for year in tqdm(YEARS, desc="Years"):
         path_aneel_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"aneel_join_{year}"])
         path_aneel_no_join = get_db_path(CONTRACT_BRONZE_ENERGY[f"ucbt_no_join_{year}"])
-        path_view = path_aneel_join + "_test_join"
+        path_view = PATHS_MV["step_e"].format(path=path_aneel_join)
         df = conn.query_database(f"SELECT * FROM {path_view}")
         if df.empty:
             create_materialized_view(
@@ -158,7 +155,7 @@ def get_aneel_ucbt_data(conn: DBConnection) -> pd.DataFrame:
     dfs = []
     for year in YEARS:
         path = get_db_path(CONTRACT_BRONZE_ENERGY[f"ucbt_{year}"])
-        path_mv = f"{path}_sum_energy_per_companies"
+        path_mv = PATHS_MV["step_c"].format(path=path)
         df = conn.query_database(f"SELECT * FROM {path_mv}")
         dfs.append(df)
     return pd.concat(dfs, ignore_index=True)
@@ -222,8 +219,9 @@ def prepare_data_test_energy_sum(
     df["rate_ucbt_mlflow"] = df["sum_energy_mlflow"] / df["sum_energy_db_ucbt"]
     df["diff_ucbt_join"] = df["sum_energy_db_join"] - df["sum_energy_db_ucbt"]
     df["rate_ucbt_join"] = df["sum_energy_db_join"] / df["sum_energy_db_ucbt"]
-    df["year"] = df["company_file"].str.extract(r"(\d{4})")
-    df["company"] = df["company_file"].str.split(" - ").str[0]
+    df["rate_no_match"] = df["ene_sum_no_match"] / (
+        df["ene_sum"] + df["ene_sum_no_match"]
+    )
     return df[
         [
             "company_file",
@@ -236,61 +234,50 @@ def prepare_data_test_energy_sum(
             "rate_ucbt_mlflow",
             "diff_join_mlflow",
             "rate_join_mlflow",
+            "ene_sum",
+            "ene_sum_no_match",
+            "rate_no_match",
         ]
-    ].sort_values("diff_ucbt_join", ascending=False)
+    ].sort_values("rate_no_match", ascending=False)
 
 
-def prepare_data_test_match(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Prepares the data for testing by filtering, calculating differences and rates,
-    sorting, and extracting year and company information.
-    Args:
-        df (pd.DataFrame): Input DataFrame containing the columns 'ene_sum_no_match',
-                           'ene_sum', and 'mlflow.runName'.
-    Returns:
-        pd.DataFrame: Processed DataFrame with additional columns 'diff_match',
-                      'rate_match', 'year', and 'company'.
-    """
-    df = df[(df["ene_sum_no_match"] > 0) & (df["ene_sum"] > 0)]
-    df["diff_match"] = df["ene_sum"] - df["ene_sum_no_match"]
-    df["rate_match"] = df["diff_match"] / np.minimum(
-        df["ene_sum_no_match"], df["ene_sum"]
-    )
-    df = df.sort_values("diff_match")
-    return df
-
-
-def group_by_col(df: pd.DataFrame, col: str) -> pd.DataFrame:
+def group_by_col(df: pd.DataFrame) -> pd.DataFrame:
     """
     Groups the DataFrame by a specified column and performs aggregation on several columns.
     Parameters:
     df (pd.DataFrame): The input DataFrame to be grouped.
-    col (str): The column name to group by.
+
     Returns:
     pd.DataFrame: A DataFrame with aggregated results for each group.
-    Aggregations:
-    - "company_file": count
-    - "sum_energy": sum
-    - "ene_sum": sum
-    - "ene_sum_no_match": sum
-    - "diff": sum
-    - "rate": mean
-    - "diff_match": sum
-    - "rate_match": mean
     """
-
-    return df.groupby(col).agg(
+    df["year"] = df["company_file"].str.extract(r"(\d{4})")
+    df["company"] = df["company_file"].str.split(" - ").str[0]
+    return df.groupby(["year"]).agg(
         {
             "company_file": "count",
-            "sum_energy": "sum",
+            "sum_energy_mlflow": "sum",
             "ene_sum": "sum",
             "ene_sum_no_match": "sum",
-            "diff": "sum",
-            "rate": "mean",
-            "diff_match": "sum",
-            "rate_match": "mean",
+            "rate_no_match": "mean",
         }
     )
+
+
+def assert_rates_energy(df: pd.DataFrame) -> None:
+    """
+    Asserts that all values in the "rate" column are less than 1.1, ensuring that the energy rate
+    between mlflow and the database is not greater than 10%.
+    Args:
+        df (pd.DataFrame): Input DataFrame containing the columns 'rate'.
+    Raises:
+        AssertionError: If any value in the "rate" column is greater than or equal to 1.1.
+    """
+    np.testing.assert_almost_equal(df["rate_ucbt_join"].max(), 1.0, decimal=0)
+    np.testing.assert_almost_equal(df["rate_ucbt_join"].min(), 1.0, decimal=0)
+    np.testing.assert_almost_equal(df["rate_ucbt_mlflow"].max(), 1.0, decimal=0)
+    np.testing.assert_almost_equal(df["rate_ucbt_mlflow"].min(), 1.0, decimal=0)
+    np.testing.assert_almost_equal(df["rate_join_mlflow"].max(), 1.0, decimal=0)
+    np.testing.assert_almost_equal(df["rate_join_mlflow"].min(), 1.0, decimal=0)
 
 
 def main():
@@ -301,14 +288,12 @@ def main():
     2. Asserts that all values in the "rate" column are less than 1.1, ensuring that the energy rate
         between mlflow and the database is not greater than 10%.
     3. Prepares the data for matching by calling `prepare_data_test_match`.
-    4. Groups the data by the "year" column using `group_by_col`.
+    4. Groups the data by the "year" and "company" column using `group_by_col`.
     Raises:
         AssertionError: If any value in the "rate" column is greater than or equal to 1.1.
     """
     refresh_view = True
     df = prepare_data_test_energy_sum(refresh_view)
-    # assert all(
-    #     df["rate"] < 1.1
-    # ), "Energy rate between mlflow and database is greater than 10%"
-    df = prepare_data_test_match(df)
-    # df_grp = group_by_col(df, "year")
+    assert_rates_energy(df)
+    df_grp = group_by_col(df)
+    return df, df_grp
