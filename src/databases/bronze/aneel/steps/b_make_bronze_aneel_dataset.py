@@ -187,9 +187,6 @@ def engineer_columns_and_save(
     """
     Function to engineer columns in a GeoDataFrame.
     """
-    # import ipdb
-
-    # ipdb.set_trace()
     df = drop_unnecessary_columns(df)
     df = add_basic_columns(df, company_id)
     if "conj" in df.columns:
@@ -307,6 +304,7 @@ def transform_negative_energy_values(df: pd.DataFrame) -> pd.DataFrame:
     energy_columns = df.filter(regex="ene_").columns
     for col in energy_columns:
         df[col] = np.absolute(df[col])
+        df[col] = df[col].fillna(0)
     return df
 
 
