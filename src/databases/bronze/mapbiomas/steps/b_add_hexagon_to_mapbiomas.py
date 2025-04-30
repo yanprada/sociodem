@@ -1,11 +1,11 @@
 """
 This module contains functions to process and save MapBiomas data as a DataFrame.
 
-The main function `main()` processes the MapBiomas image and saves the data 
+The main function `main()` processes the MapBiomas image and saves the data
 in a Parquet file.
-The `save_mapbiomas()` function is a decorator that saves the MapBiomas 
+The `save_mapbiomas()` function is a decorator that saves the MapBiomas
 DataFrame to a file or database.
-The `process_block()` function processes a block of the image and returns a DataFrame 
+The `process_block()` function processes a block of the image and returns a DataFrame
 with the coordinates and values of the pixels.
 """
 
@@ -23,22 +23,22 @@ import numpy as np
 from tqdm import tqdm
 
 from src.tools.utils.constants import CRS_GLOBAL, HEX_RESOLUTION
-from src.tools.utils.common import add_year_to_contract
+
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+
+from src.databases.bronze.mapbiomas.config import (
+    manager,
+    EXPERIMENT_NAME,
+    CONTRACTS_BRONZE,
+    CONTRACTS_RAW,
+    YEARS,
+)
 
 
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 module_name = os.path.basename(__file__).replace(".py", "")
 manager.update_status(module_name)
-EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
-mlflow.set_experiment(EXPERIMENT_ID)
 
-CONTRACTS_BRONZE = execution_parameters["data_contracts"]["mapbiomas_bronze"]
-CONTRACTS_RAW = execution_parameters["data_contracts"]["mapbiomas_raw"]
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 
 def df_to_gdf(df: pd.DataFrame) -> gpd.GeoDataFrame:
@@ -99,7 +99,7 @@ def generate_windows(height: int, width: int, block_size: int):
     """
     for i in range(0, height, block_size):
         for j in range(0, width, block_size):
-            yield rasterio.windows.Window(j, i, block_size, block_size)
+            yield rasterio.windows.Window(j, i, block_size, block_size)  # type: ignore
 
 
 @save_parquet_decorator("bronze")
@@ -173,8 +173,7 @@ def process_batch(
         >>> new_partition = process_batch(file_path, size_list, batch, partition, year)
     """
     all_dfs = []
-    contract = CONTRACTS_BRONZE["mapbiomas"].copy()
-    contract = add_year_to_contract(contract, year)
+    contract = CONTRACTS_BRONZE[f"brasil_coverage_{year}"].copy()
     kwargs = {"filename": f"brasil_coverage_{year}_{partition}", "contract": contract}
     with rasterio.open(file_path) as src:
         transform = src.transform
@@ -216,7 +215,7 @@ def process_batch(
     return partition
 
 
-def add_to_mlflow(df: pd.DataFrame, partition: int) -> pd.DataFrame:
+def add_to_mlflow(df: pd.DataFrame, partition: int) -> None:
     """
     Process a partition of data.
 
@@ -242,14 +241,12 @@ def main() -> None:
     """
     date = pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")
     manager.update_mlflow_runs(date)
-    year_init, year_end = CONTRACTS_RAW["raw_data"]["queryYears"]
-    for year in tqdm(range(year_init, year_end), desc="Processing Years"):
+    for year in tqdm(YEARS, desc="Processing Years"):
+        contract_key = f"brasil_coverage_{year}"
         with mlflow.start_run(run_name=str(year)):
-            filename = "".join([CONTRACTS_RAW["raw_data"]["tableName"], ".tif"]).format(
-                year=year
-            )
+            filename = "".join([CONTRACTS_RAW[contract_key]["tableName"], ".tif"])
             file_path = os.path.join(
-                CONTRACTS_RAW["raw_data"]["physicalPath"], filename
+                CONTRACTS_RAW[contract_key]["physicalPath"], filename
             )
             block_size = 2048
             batch_size = 100  # Limit to a small number for quick profiling
