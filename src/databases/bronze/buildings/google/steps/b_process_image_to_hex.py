@@ -27,7 +27,7 @@ from pyproj import Transformer
 
 
 from src.tools.utils.constants import HEX_RESOLUTION, CRS_GLOBAL
-from src.tools.utils.common import write_log, add_year_to_contract
+from src.tools.utils.common import write_log
 from src.tools.utils.save import save_parquet_decorator
 from src.databases.bronze.buildings.google.config import (
     manager,
@@ -36,14 +36,12 @@ from src.databases.bronze.buildings.google.config import (
     EXPERIMENT_NAME,
 )
 
-module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(module_name)
 
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
-YEAR = 2017
-STATE = "SE"
+YEAR = 2018
+STATE = "PB"
 
 
 def process_image(file_path: str) -> gpd.GeoDataFrame:
@@ -130,13 +128,11 @@ def process_and_save(file_path, batch_number):
             return 0, 0
         result["year"] = int(YEAR)
         result["state"] = STATE
-        contract = BUILDING_CONTRACTS_BRONZE["buildings_google"]
-        contract = add_year_to_contract(contract, YEAR)
         kwargs = {
             "filename": f"batch_{batch_number}_{os.path.basename(file_path)}",
-            "contract": contract,
+            "contract": BUILDING_CONTRACTS_BRONZE[f"google_{YEAR}"],
         }
-        save_results(result, **kwargs)
+        result = save_results(result, **kwargs)
         result_len = len(result)
         result_dompp = result["building_count"].sum()
         del result
@@ -163,9 +159,7 @@ def get_remaining_files(path: str) -> List[str]:
     processed_files = [
         os.path.join(path, os.path.splitext(file)[0].split("_", 2)[-1])
         for file in os.listdir(
-            BUILDING_CONTRACTS_BRONZE["buildings_google"]["physicalPath"].format(
-                year=YEAR
-            )
+            BUILDING_CONTRACTS_BRONZE[f"google_{YEAR}"]["physicalPath"]
         )
         if file.endswith(".parquet")
     ]
@@ -273,14 +267,14 @@ def log_mlflow_metrics(results):
         "results_len_median", np.median([r_tuple[0] for r_tuple in results])  # type: ignore
     )
     mlflow.log_metric(
-        "results_len_mean", np.mean([r_tuple[0] for r_tuple in results])
+        "results_len_mean", np.mean([r_tuple[0] for r_tuple in results])  # type: ignore
     )  # type: ignore
     mlflow.log_metric("dompp_sum", np.sum(r_tuple[1] for r_tuple in results))  # type: ignore
     mlflow.log_metric(
         "dompp_sum_median", np.median([r_tuple[1] for r_tuple in results])  # type: ignore
     )
     mlflow.log_metric(
-        "dompp_sum_mean", np.mean([r_tuple[1] for r_tuple in results])
+        "dompp_sum_mean", np.mean([r_tuple[1] for r_tuple in results])  # type: ignore
     )  # type: ignore
 
 
@@ -299,9 +293,7 @@ def move_files_location():
     Raises:
         OSError: If an error occurs while renaming or creating directories.
     """
-    old_path = BUILDING_CONTRACTS_BRONZE["buildings_google"]["physicalPath"].format(
-        year=YEAR
-    )
+    old_path = BUILDING_CONTRACTS_BRONZE[f"google_{YEAR}"]["physicalPath"]
     new_path = old_path.replace(str(YEAR), f"process/{YEAR}")
     new_path = os.path.join(new_path, STATE)
     if os.path.exists(old_path):
@@ -315,11 +307,13 @@ def main():
     """
     Main function to process image files into hex format using Dask for parallelization.
     """
+    module_name = os.path.basename(__file__).replace(".py", "")
+    manager.update_status(module_name)
     results_total = pd.Series()
     with mlflow.start_run(run_name=f"{STATE}_{YEAR}_{RUN_TIME}"):
         path = os.path.join(
-            BUILDING_CONTRACTS_RAW["buildings_google"]["physicalPath"], STATE
-        ).format(year=YEAR)
+            BUILDING_CONTRACTS_RAW[f"google_{YEAR}"]["physicalPath"], STATE
+        )
         files = get_remaining_files(path)
         nano_files, xsm_files, small_files, medium_files, large_files, xl_files = (
             categorize_files_by_size(files)
