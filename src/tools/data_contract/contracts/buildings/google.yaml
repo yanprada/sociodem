@@ -1,62 +1,24 @@
 raw_data:
   contractName: contract_google_buildings.yaml
-  tableName: google
+  tableName: google_{year}
   schema: buildings
   physicalPath: /mnt/files/google_buildings/{year}/
-  description: 
-  queryYears: 
-  ifExists: 
-  columns:
-  - column: 
-    isPrimaryKey: 
-    ForeignKey: 
-    businessName: 
-    description: 
-    logicalType: 
-    physicalType: 
-    isNullable: 
-    isBlank: 
-    translatedValues:
-    sampleValues:
-    - 
+  description:
+  queryYears: [2016, 2023]
+  ifExists:
 
 bronze:
   - contractName: contract_google_buildings.yaml
     tableName: google_{year}
     schema: buildings
     physicalPath: /mnt/files/google_buildings_process/{year}/
-    description: 
-    queryYears: 
+    description:
+    queryYears: [2016, 2023]
     ifExists: append
-    columns:
-    - column: 
-      isPrimaryKey: 
-      ForeignKey: 
-      businessName: 
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: False
-      isBlank: False
-      translatedValues:
-      sampleValues:
-      - 
+
   - tableName: google_grouped_by_hex_{year}
     schema: buildings
     physicalPath: /mnt/files/google_buildings_process/google_grouped_by_hex/{year}/
-    description: 
-    queryYears: 
+    description:
+    queryYears: [2016, 2023]
     ifExists: append
-    columns:
-    - column: hex_col
-      isPrimaryKey: True
-      ForeignKey: 
-      businessName: hexagon id
-      description: 
-      logicalType: 
-      physicalType: 
-      isNullable: False
-      isBlank: False
-      translatedValues:
-      sampleValues:
-      - 
