@@ -16,7 +16,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = None
+EXECUTION_ID = "bronze-buildings-2025-03-18-07h19m49s"
 
 BASE_PARAMS = {
     "medallon": "bronze",
@@ -29,6 +29,7 @@ BASE_PARAMS = {
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
+    "materialized_views": {},
 }
 
 _manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
