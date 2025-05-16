@@ -16,7 +16,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "bronze-buildings-2025-03-18-07h19m49s"
+EXECUTION_ID = "bronze-buildings-2025-05-09-08h52m41s"
 
 BASE_PARAMS = {
     "medallon": "bronze",
@@ -24,7 +24,7 @@ BASE_PARAMS = {
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
         "raw_google": ["raw_data", "buildings", "google"],
-        "raw_state_censo": ["raw_data", "censo", "states_2022"],
+        "raw_state_censo": ["raw_data", "censo", "censo_2022"],
         "bronze_google": ["bronze", "buildings", "google"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
@@ -37,7 +37,9 @@ manager = _manager_wrapper.manager
 
 
 BUILDING_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_google"]
-STATE_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_state_censo"]
+STATE_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_state_censo"][
+    "states_2022"
+]
 BUILDING_CONTRACTS_BRONZE = manager.execution_details["data_contracts"]["bronze_google"]
 
 YEARS = manager.execution_details["info"]["running_years"]

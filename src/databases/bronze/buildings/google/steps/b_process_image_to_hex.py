@@ -40,8 +40,8 @@ from src.databases.bronze.buildings.google.config import (
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
-YEAR = 2018
-STATE = "PB"
+YEAR = 2019
+STATE = "AL"
 
 
 def process_image(file_path: str) -> gpd.GeoDataFrame:
