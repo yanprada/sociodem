@@ -27,9 +27,11 @@ Functions:
 
 """
 
+import os
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path, write_log
@@ -54,7 +56,7 @@ def create_materialized_view(
         CREATE MATERIALIZED VIEW {path_view} AS
         WITH ene_match AS (
             SELECT 
-                company_file, 
+                company_file_ponnot as company_file, 
                 ROUND(SUM(
                     ene_01_sum + ene_02_sum + ene_03_sum + ene_04_sum + ene_05_sum + 
                     ene_06_sum + ene_07_sum + ene_08_sum + ene_09_sum + ene_10_sum + 
@@ -280,6 +282,74 @@ def assert_rates_energy(df: pd.DataFrame) -> None:
     np.testing.assert_almost_equal(df["rate_join_mlflow"].min(), 1.0, decimal=0)
 
 
+def pivot_energy_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Pivots the DataFrame to have 'company' as rows, 'year'
+    as columns, and 'ene_sum' and 'ene_sum_no_match' as values.
+    Args:
+        df (pd.DataFrame): Input DataFrame containing 'company',
+                            'year', 'ene_sum', and 'ene_sum_no_match'.
+    Returns:
+        pd.DataFrame: A pivoted DataFrame with 'company' as rows and
+                        'year' as columns for 'ene_sum' and 'ene_sum_no_match'.
+    """
+    pivot_ene_sum = df.pivot(index="company", columns="year", values="ene_sum")
+    pivot_ene_sum_no_match = df.pivot(
+        index="company", columns="year", values="ene_sum_no_match"
+    )
+    pivoted_df = pd.concat(
+        {"ene_sum": pivot_ene_sum, "ene_sum_no_match": pivot_ene_sum_no_match},
+        axis=1,
+    )
+    return pivoted_df
+
+
+def save_plots(df: pd.DataFrame) -> None:
+    """
+    Saves plots of energy data for each company in the DataFrame.
+    Args:
+        df (pd.DataFrame): Input DataFrame containing 'company',
+                            'year', 'ene_sum', and 'ene_sum_no_match'.
+    """
+    output_dir = "plots/energy_data"
+    os.makedirs(output_dir, exist_ok=True)
+
+    for company in tqdm(df.index, desc="Ploting companies"):
+        plt.figure(figsize=(10, 6))
+        ene_sum_values = df.loc[company, "ene_sum"]
+        ene_sum_no_match_values = df.loc[company, "ene_sum_no_match"]
+
+        plt.plot(
+            pd.to_numeric(ene_sum_values.index),  # type: ignore
+            ene_sum_values.values,  # type: ignore
+            marker="o",
+            label="ene_sum",
+        )
+
+        plt.plot(
+            pd.to_numeric(ene_sum_no_match_values.index),  # type: ignore
+            ene_sum_no_match_values.values,  # type: ignore
+            marker="o",
+            label="ene_sum_no_match",
+        )
+
+        plt.xlabel("Year")
+        plt.ylabel("Values")
+        plt.title(f"Energy Data for {company}")
+        plt.legend()
+        plt.grid(True)
+
+        # Make the x and y axes stronger and black
+        ax = plt.gca()
+        ax.spines["bottom"].set_color("black")
+        ax.spines["bottom"].set_linewidth(2)
+        ax.spines["left"].set_color("black")
+        ax.spines["left"].set_linewidth(2)
+
+        plt.savefig(f"{output_dir}/{company}_energy_plot.png")
+        plt.close()
+
+
 def main():
     """
     Main function to prepare and test energy data.
@@ -292,8 +362,10 @@ def main():
     Raises:
         AssertionError: If any value in the "rate" column is greater than or equal to 1.1.
     """
-    refresh_view = True
+    refresh_view = False
     df = prepare_data_test_energy_sum(refresh_view)
     assert_rates_energy(df)
     df_grp = group_by_col(df)
-    return df, df_grp
+    pivoted_df = pivot_energy_data(df)
+    save_plots(pivoted_df)
+    return df, df_grp, pivoted_df
