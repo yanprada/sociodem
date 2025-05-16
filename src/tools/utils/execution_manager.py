@@ -97,8 +97,11 @@ class ExecutionManager:
                 processed_subcontracts.update(self.__expand_yearly_contracts(subc))
             else:
                 processed_subcontracts[subc["tableName"]] = subc
-                year_init, year_end = subc["queryYears"]
-                self.params["years"] = list(range(year_init, year_end + 1))
+                if isinstance(subc["queryYears"], list):
+                    year_init, year_end = subc["queryYears"]
+                    self.params["years"] = list(range(year_init, year_end + 1))
+                else:
+                    self.params["years"] = [subc["queryYears"]]
         return processed_subcontracts
 
     def __expand_yearly_contracts(self, contract):
