@@ -1,5 +1,5 @@
 """
-This script retrieves data from the Censo 2010 and 
+This script retrieves data from the Censo 2010 and
 Censo 2022 datasets and saves it as parquet files and to database.
 
 The script contains the following functions:
@@ -24,24 +24,21 @@ from src.tools.utils.reader import Reader
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import STATES, CRS_GLOBAL, CRS_IBGE
 from src.tools.utils.common import write_log, get_ml_flow_data
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.censo.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
 
-
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-CONTRACTS_BRONZE = execution_parameters["data_contracts"]["bronze"]
-CONTRACTS_RAW_DATA = execution_parameters["data_contracts"]["raw_data"]
+from src.databases.bronze.censo.config import (
+    manager,
+    CONTRACTS_BRONZE,
+    CONTRACTS_RAW,
+    EXPERIMENT_NAME,
+)
 
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 
-EXPERIMENT_ID = execution_parameters["mlflow_experiment"]
-mlflow.set_experiment(EXPERIMENT_ID)
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["dompp_2022"])
+@save_parquet_decorator(medallon="bronze")
 def get_dompp_per_state_2022(state, **kwargs):
     """
     Retrieves the DOMPP data for a specific state in 2022.
@@ -59,13 +56,13 @@ def get_dompp_per_state_2022(state, **kwargs):
     """
     reader = Reader()
     filepath = os.path.join(
-        CONTRACTS_RAW_DATA["dompp_2022"]["physicalPath"],
+        CONTRACTS_RAW["dompp_2022"]["physicalPath"],
         "".join([state, ".zip"]),
     )
     with zipfile.ZipFile(filepath, "r") as zip_ref:
         csv_filename = zip_ref.namelist()[0]
         with zip_ref.open(csv_filename) as csv_file:
-            df = reader.read_csv(csv_file, sep=";")
+            df = reader.read_csv(csv_file, sep=";")  # type: ignore
             df = (
                 df.groupby(df.columns.tolist(), as_index=False)
                 .size()
@@ -87,7 +84,8 @@ def get_dompp_2022():
     """
     for state in tqdm(STATES):
         with mlflow.start_run(run_name=state, nested=True):
-            df = get_dompp_per_state_2022(state)
+            kwargs = {"filename": state, "contract": CONTRACTS_BRONZE["dompp_2022"]}
+            df = get_dompp_per_state_2022(state, **kwargs)
             add_mlflow_metrics(df)
 
 
@@ -98,7 +96,7 @@ def upload_dompp_2022(run_name_id: str):
         run_name_id (str): The run name ID to check in the MLflow runs.
     """
     write_log("Processing dompp data...")
-    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_ID)
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_NAME)
     if run_name_id not in mlflow_runs_df["mlflow.runName"]:
         get_dompp_2022()
 
@@ -113,6 +111,34 @@ def add_mlflow_metrics(df: pd.DataFrame):
     mlflow.log_metric("num_rows", df.shape[0])
 
 
+@save_parquet_decorator(medallon="bronze")
+def get_censo_data(layer_key, **kwargs):
+    """
+    Retrieves the data from the Censo dataset.
+
+    Args:
+        layer_key (str): The key of the layer to use.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        pandas.DataFrame: A DataFrame containing the data.
+    """
+    reader = Reader()
+    dfs = []
+    for state in tqdm(STATES):
+        with mlflow.start_run(run_name=state, nested=True):
+            filepath = os.path.join(
+                CONTRACTS_RAW[layer_key]["physicalPath"],
+                "".join([state, ".zip"]),
+            )
+            df = reader.read_geofile(filepath)
+            df = df.to_crs(CRS_GLOBAL)
+            add_mlflow_metrics(df)
+            dfs.append(df)
+    dfs = pd.concat(dfs)
+    return dfs
+
+
 def upload_censo_data(layer_key: str, run_name_id: str):
     """
     Uploads municipalities data for the year 2010.
@@ -120,44 +146,17 @@ def upload_censo_data(layer_key: str, run_name_id: str):
     This function processes the municipalities data and checks if the data already exists.
     If the data does not exist, it calls the `get_mun_2010` function to retrieve it.
     """
-
-    @save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE[layer_key])
-    def get_censo_data(layer_key, **kwargs):
-        """
-        Retrieves the data from the Censo dataset.
-
-        Args:
-            layer_key (str): The key of the layer to use.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            pandas.DataFrame: A DataFrame containing the data.
-        """
-        reader = Reader()
-        dfs = []
-        for state in tqdm(STATES):
-            with mlflow.start_run(run_name=state, nested=True):
-                filepath = os.path.join(
-                    CONTRACTS_RAW_DATA[layer_key]["physicalPath"],
-                    "".join([state, ".zip"]),
-                )
-                df = reader.read_geofile(filepath)
-                df = df.to_crs(CRS_GLOBAL)
-                add_mlflow_metrics(df)
-                dfs.append(df)
-        dfs = pd.concat(dfs)
-        return dfs
-
     write_log(f"Processing {layer_key} data...")
-    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_ID)
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_NAME)
     if run_name_id not in mlflow_runs_df["mlflow.runName"]:
-        _ = get_censo_data(layer_key)
+        kwargs = {"filename": "all_states", "contract": CONTRACTS_BRONZE[layer_key]}
+        _ = get_censo_data(layer_key, **kwargs)
     else:
         write_log(f"{layer_key} data already exists.")
 
 
-@save_parquet_decorator(medallon="bronze", contract=CONTRACTS_BRONZE["states_2022"])
-def get_states_data():
+@save_parquet_decorator(medallon="bronze")
+def get_states_data(**kwargs):
     """
     Retrieves the geographical data for all states.
     """
@@ -165,7 +164,7 @@ def get_states_data():
     dfs = []
     for state in tqdm(STATES):
         filepath = os.path.join(
-            CONTRACTS_RAW_DATA["states_2022"]["physicalPath"],
+            CONTRACTS_RAW["states_2022"]["physicalPath"],
             "".join([state, ".geojson"]),
         )
         df = reader.read_geofile(filepath)
@@ -184,9 +183,10 @@ def upload_states_2022(run_name_id: str):
     steps and uses a Reader object to read the geojson files.
     """
     write_log("Processing states data...")
-    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_ID)
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_NAME)
     if run_name_id not in mlflow_runs_df["mlflow.runName"]:
-        get_states_data()
+        kwargs = {"filename": "all_states", "contract": CONTRACTS_BRONZE["states_2022"]}
+        _ = get_states_data(**kwargs)
 
 
 def main():
