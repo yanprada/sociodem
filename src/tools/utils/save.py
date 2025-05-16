@@ -2,11 +2,11 @@
 This module provides functions for saving data as Parquet files and storing them in a database.
 
 Functions:
-- save_parquet_decorator: Decorator function that saves the 
+- save_parquet_decorator: Decorator function that saves the
     output of a decorated function as a Parquet file.
 - save_in_db: Save the data to the database.
 - save_parquet: Save a DataFrame or Series as a Parquet file.
-- save_particionado: Save the DataFrame to a file, either as a 
+- save_particionado: Save the DataFrame to a file, either as a
     Parquet file or using Dask for partitioning.
 - converte_geometria: Convert geometries of type 'object' to string in a DataFrame.
 - save_as_dask: Partition a file with more than 100Mb into smaller partitions using Dask.
@@ -45,6 +45,8 @@ def save_parquet_decorator(
         def wrapper(*args, **kwargs):
             result = funcao(*args, **kwargs)
             contract = kwargs.get("contract", None)
+            if contract is None:
+                raise ValueError("Contract not provided in kwargs.")
             path = contract["physicalPath"].split(".")[0]
             if isinstance(result, (pd.DataFrame, pd.Series)):
                 if len(result) == 0:
@@ -82,8 +84,9 @@ def save_in_db(
         medallon (str): The medallon identifier.
         database_contract (dict): The contract specifying the database table structure.
     """
-    database_connection = DBConnection(medallon)
-    database_connection.add_table(df_data, database_contract)
+    conn = DBConnection(medallon)
+    conn.add_table(df_data, database_contract)
+    conn.close()
 
 
 def save_parquet(df_data: Union[pd.Series, pd.DataFrame], path: str, **kwargs) -> None:
@@ -132,7 +135,7 @@ def save_particionado(df_data: pd.DataFrame, path: str):
 
 
 def converte_geometria(
-    df_data: Union[pd.DataFrame, pd.Series]
+    df_data: Union[pd.DataFrame, pd.Series],
 ) -> Union[pd.DataFrame, pd.Series]:
     """
     Convert the geometries that are of type 'object' to string.
