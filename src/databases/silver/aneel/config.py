@@ -11,24 +11,36 @@ Attributes:
 
 import os
 
-from src.tools.data_contract.aneel_data_contract import get_aneel_contracts
-from src.tools.data_contract.validation_data_contract import (
-    get_validation_contracts,
-)
 from config.run_mode import DEBUG
 
+from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "silver-aneel-Xyej7oFhvhBWTR2"
+
+EXECUTION_ID = "silver-aneel-2025-05-14-13h27m50s"
+
 
 BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "aneel",
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
-        "aneel_bronze": get_aneel_contracts("bronze"),
-        "aneel_silver": get_aneel_contracts("silver"),
-        "validation": get_validation_contracts("silver", 0),
+        "aneel_bronze": ["bronze", "aneel", "energy"],
+        "aneel_silver": ["silver", "aneel", "energy"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
+    "materialized_views": {},
 }
+
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+manager = _manager_wrapper.manager
+
+
+CONTRACT_BRONZE_ENERGY = manager.execution_details["data_contracts"]["aneel_bronze"]
+CONTRACT_SILVER_ENERGY = manager.execution_details["data_contracts"]["aneel_silver"]
+
+YEARS = manager.execution_details["info"]["running_years"]
+
+EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]
+
+PATHS_MV = manager.execution_details["materialized_views"]
