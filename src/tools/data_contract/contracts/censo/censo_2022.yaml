@@ -1,0 +1,154 @@
+raw_data:
+  - contractName: districts_2022.yaml
+    tableName: districts_2022
+    schema:
+    physicalPath: raw_data/censo/layers/2022/distritos/
+    description: Municipality geometry layer from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: mun_2022.yaml
+    tableName: mun_2022
+    schema:
+    physicalPath: raw_data/censo/layers/2022/municipios/
+    description: Municipality geometry layer from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: sectors_2022.yaml
+    tableName: sectors_2022
+    schema: layers
+    physicalPath: raw_data/censo/layers/2022/setores_censitarios/
+    description: Census sectors geometry layer from the 2022 Census
+    queryYears: 2022
+    ifExists: replace
+
+  - contractName: subdistricts_2022.yaml
+    tableName: subdistricts_2022
+    schema:
+    physicalPath: raw_data/censo/layers/2022/subdistritos/
+    description: Municipality geometry layer from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: dompp_2022.yaml
+    tableName: dompp_2022
+    schema: layers
+    physicalPath: raw_data/censo/layers/2022/dompp/
+    description: Domicile mapped by lat/long from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: states_2022.yaml
+    tableName: states_2022
+    schema: layers
+    physicalPath: raw_data/censo/layers/2022/estados/
+    description: States geometry layer from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
+bronze:
+  - contractName: dompp_2022.yaml
+    tableName: dompp_2022
+    schema: layers
+    physicalPath: databases/bronze/censo/layers/2022/dompp/
+    description: Domicile mapped by lat/long from the 2022 Census (same table of raw_data)
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: sectors_2022.yaml
+    tableName: sectors_2022
+    schema: layers
+    physicalPath: databases/bronze/censo/layers/2022/setores_censitarios/
+    description: Census sectors geometry layer from the 2022 Census (same table of raw_data)
+    queryYears: 2022
+    ifExists: replace
+
+  - contractName: districts_2022.yaml
+    tableName: districts_2022
+    schema: layers
+    physicalPath: databases/bronze/censo/layers/2022/distritos/
+    description: Districts geometry layer from the 2022 Census (same table of raw_data)
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: mun_2022.yaml
+    tableName: mun_2022
+    schema: layers
+    physicalPath: databases/bronze/censo/layers/2022/municipios/
+    description: Municipality geometry layer from the 2022 Census (same table of raw_data)
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: subdistricts_2022.yaml
+    tableName: subdistricts_2022
+    schema: layers
+    physicalPath: databases/bronze/censo/layers/2022/subdistritos/
+    description: Subdistricts geometry layer from the 2022 Census (same table of raw_data)
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: states_2022.yaml
+    tableName: states_2022
+    schema: layers
+    physicalPath: databases/bronze/censo/layers/2022/estados/
+    description: States geometry layer from the 2022 Census (same table of raw_data)
+    queryYears: 2022
+    ifExists: append
+
+silver:
+  - contractName: mun_2022.yaml
+    tableName: mun_hex_2022
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/municipios/
+    description: Hexagon id in Municipality from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: dompp_2022.yaml
+    tableName: dompp_2022_hex_sc
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/dompp_hex/
+    description: Domicile grouped by hexagon
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: dompp_2022.yaml
+    tableName: dompp_2022_pct_hex_sc
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/dompp_pct_hex_sc/
+    description: Domicile percentage for each hexagon in the sector, but just for the hexagons that has domicile
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: sectors_2022.yaml
+    tableName: hex_participation_sc_2022
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
+    description: Hexagon participation in dompp census sector, for all hexagons in Brazil
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: sectors_2022.yaml
+    tableName: sectors_2022
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
+    description: Census sectors geometry layer from the 2022 Census
+    queryYears: 2022
+    ifExists: replace
+
+  - contractName: states_2022.yaml
+    tableName: dompp_2022_hex_sc
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/dompp_hex/
+    description: Domicile grouped by hexagon
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: states_2022.yaml
+    tableName: dompp_2022_pct_hex_sc
+    schema: layers
+    physicalPath: databases/silver/censo/layers/2022/dompp_pct_hex_sc/
+    description: Domicile percentage hexagon sc
+    queryYears: 2022
+    ifExists: append

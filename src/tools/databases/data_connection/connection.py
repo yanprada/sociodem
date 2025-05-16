@@ -290,6 +290,16 @@ class DBConnection(DBConnectionHandler):
         if not conn.dialect.has_schema(conn, schema_name):
             conn.execute(sqlalchemy.schema.CreateSchema(schema_name))
 
+    def create_schema(self, schema_name: str) -> None:
+        """
+        Create a schema in the database.
+
+        Args:
+            schema_name (str): The name of the schema to be created.
+        """
+        with self._DBConnectionHandler__engine.begin() as conn:
+            self.__create_schema(conn, schema_name)
+
     def __get_pk(self, contract):
         if "columns" not in contract:
             return None

@@ -4,7 +4,7 @@ This module contains a utility class for loading data from a database.
 Classes:
     Loader: A utility class for loading data from a database.
 
-    get_muns_cod(): Retrieves a list of distinct municipality codes 
+    get_muns_cod(): Retrieves a list of distinct municipality codes
         from the specified database table.
 
 """
@@ -14,12 +14,12 @@ import geopandas as gpd
 
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.utils.constants import CRS_GLOBAL, CRS_IBGE
+from src.tools.utils.constants import CRS_GLOBAL
 from src.tools.utils.common import get_db_path
-from src.tools.data_contract.censo_data_contract import get_censo_contracts
 from src.tools.data_contract.pois_data_contract import get_pois_contracts
+from src.databases.bronze.censo.config import CONTRACTS_BRONZE
 
-CONTRACT_CENSO_BRONZE = get_censo_contracts("bronze")
+CONTRACT_CENSO_BRONZE = CONTRACTS_BRONZE
 CONTRACT_POIS_BRONZE = get_pois_contracts("bronze")
 
 
@@ -44,7 +44,7 @@ class Loader:
         path = get_db_path(CONTRACT_CENSO_BRONZE["sectors_2010"])
         df = conn.query_database(f"SELECT cd_geocodi, geometry FROM {path}", geo=False)
         df["geometry"] = gpd.GeoSeries.from_wkb(df["geometry"])
-        df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_IBGE).to_crs(CRS_GLOBAL)
+        df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
         return df.rename(columns={"cd_geocodi": "cod_setor"})
 
     @staticmethod
@@ -56,7 +56,7 @@ class Loader:
         path = get_db_path(CONTRACT_CENSO_BRONZE["sectors_2022"])
         df = conn.query_database(f"SELECT cd_setor, geometry FROM {path}", geo=False)
         df["geometry"] = gpd.GeoSeries.from_wkb(df["geometry"])
-        df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_IBGE).to_crs(CRS_GLOBAL)
+        df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
         return df
 
     @staticmethod

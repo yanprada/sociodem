@@ -1,0 +1,33 @@
+raw_data:
+  contractName: contract_layers_mapbiomas.yaml
+  tableName: brasil_coverage_{year}
+  schema:
+  physicalPath: raw_data/mapbiomas/
+  description:
+  queryYears: [2016, 2023]
+  ifExists:
+
+bronze:
+  - contractName: contract_layers_mapbiomas.yaml
+    tableName: brasil_coverage_{year}
+    schema: land_use
+    physicalPath: databases/bronze/mapbiomas/brasil_coverage_{year}/
+    description:
+    queryYears: [2016, 2023]
+    ifExists: append
+
+  - tableName: grouped_by_hex_brasil_coverage_{year}
+    schema: land_use
+    physicalPath: databases/bronze/mapbiomas/grouped_by_hex_ids_{year}/
+    description:
+    queryYears: [2016, 2023]
+    ifExists: append
+
+silver:
+  contractName: contract_layers_mapbiomas.yaml
+  tableName: brasil_coverage
+  schema: land_use
+  physicalPath: databases/silver/mapbiomas/land_use/
+  description:
+  queryYears: [2016, 2023]
+  ifExists: append

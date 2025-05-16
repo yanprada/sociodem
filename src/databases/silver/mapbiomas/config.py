@@ -1,5 +1,5 @@
 """
-This module contains the configuration settings for the bronze 
+This module contains the configuration settings for the bronze
     database related to the Mapbiomas data.
 
 Attributes:
@@ -11,20 +11,32 @@ Attributes:
 """
 
 import os
-from src.tools.data_contract.mapbiomas_data_contract import get_mapbiomas_contracts
-from src.tools.data_contract.validation_data_contract import get_validation_partitions
+
 from config.run_mode import DEBUG
+
+from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
 EXECUTION_ID = None
 BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "mapbiomas",
     "config_path": os.path.abspath(__file__),
-    "data_contracts": [
-        get_mapbiomas_contracts("bronze"),
-        get_mapbiomas_contracts("silver"),
-        get_validation_partitions(),
-    ],
+    "data_contracts": {
+        "mapbiomas_bronze": ["bronze", "mapbiomas", "brazil_coverage"],
+        "mapbiomas_silver": ["silver", "mapbiomas", "brazil_coverage"],
+    },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
+    "materialized_views": {},
 }
+
+
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+manager = _manager_wrapper.manager
+
+CONTRACTS_BRONZE = manager.execution_details["data_contracts"]["mapbiomas_bronze"]
+CONTRACTS_SILVER = manager.execution_details["data_contracts"]["mapbiomas_silver"]
+
+YEARS = manager.execution_details["info"]["running_years"]
+
+EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]

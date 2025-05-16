@@ -82,30 +82,44 @@ class ExecutionManager:
         contract_result = dc.get_contract(*contract_params)
         if isinstance(contract_result, list):
             return self.__process_subcontracts(contract_result)
-        return {contract_result["tableName"]: contract_result}
+        if isinstance(contract_result, dict):
+            if "{year}" in contract_result["tableName"]:
+                new_contracts = {}
+                new_contracts.update(self.__expand_yearly_contracts(contract_result))
+                return new_contracts
+            return {contract_result["tableName"]: contract_result}
+        raise ValueError("Invalid contract format")
 
     def __process_subcontracts(self, subcontracts):
         processed_subcontracts = {}
         for subc in subcontracts:
             if "{year}" in subc["tableName"]:
-                processed_subcontracts.update(self.__expand_yearly_subcontracts(subc))
+                processed_subcontracts.update(self.__expand_yearly_contracts(subc))
             else:
                 processed_subcontracts[subc["tableName"]] = subc
-                year_init, year_end = subc["queryYears"]
-                self.params["years"] = list(range(year_init, year_end + 1))
+                if isinstance(subc["queryYears"], list):
+                    year_init, year_end = subc["queryYears"]
+                    self.params["years"] = list(range(year_init, year_end + 1))
+                else:
+                    self.params["years"] = [subc["queryYears"]]
         return processed_subcontracts
 
-    def __expand_yearly_subcontracts(self, subcontract):
-        expanded_subcontracts = {}
-        year_init, year_end = subcontract["queryYears"]
+    def __expand_yearly_contracts(self, contract):
+        expanded_contracts = {}
+        if "queryYears" not in contract:
+            raise ValueError(
+                "Invalid contract format, add queryYears to yearly contracts"
+            )
+        year_init, year_end = contract["queryYears"]
         self.params["years"] = list(range(year_init, year_end + 1))
         for year in range(year_init, year_end + 1):
-            subc_copy = self.__replace_year_in_subcontract(subcontract, year)
-            expanded_subcontracts[subc_copy["tableName"]] = subc_copy
-        return expanded_subcontracts
+            contract_copy = self.__replace_year_in_subcontract(contract, year)
 
-    def __replace_year_in_subcontract(self, subcontract, year):
-        subc_copy = subcontract.copy()
+            expanded_contracts[contract_copy["tableName"]] = contract_copy
+        return expanded_contracts
+
+    def __replace_year_in_subcontract(self, contract, year):
+        subc_copy = contract.copy()
         subc_copy["tableName"] = subc_copy["tableName"].replace("{year}", str(year))
         for key, value in subc_copy.items():
             if isinstance(value, str) and "{year}" in value:

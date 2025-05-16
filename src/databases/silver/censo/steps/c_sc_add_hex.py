@@ -8,6 +8,7 @@ Functions:
 
 """
 
+import os
 import logging
 import gc
 import mlflow
@@ -17,26 +18,24 @@ import geopandas as gpd
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.loader import Loader
-from src.tools.utils.execution_manager import ExecutionManager
 
 from src.tools.utils.common import get_db_path
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.h3 import add_h3_index_to_large_geom
 
-from src.databases.silver.censo.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+from src.databases.silver.censo.config import (
+    manager,
+    CONTRACTS_SILVER,
+    EXPERIMENT_NAME,
+)
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(module_name)
 
-manager.update_status("running_step_3")
 
-CONTRACT_SCS_CENSO_BRONZE = execution_parameters["data_contracts"]["censo_bronze"]
-CONTRACT_SCS_CENSO_SILVER = execution_parameters["data_contracts"]["censo_silver"]
-
-EXPERIMENT_NAME = "_".join([execution_parameters["mlflow_experiment"], "step_3"])
+EXPERIMENT_NAME = "_".join([EXPERIMENT_NAME, module_name])
 mlflow.set_experiment(EXPERIMENT_NAME)
 
 
@@ -45,12 +44,12 @@ def get_pct_dompp_hex_sc():
     Get the file from the physical path.
     """
     conn = DBConnection("silver")
-    path = get_db_path(CONTRACT_SCS_CENSO_SILVER["dompp_pct_2022"])
+    path = get_db_path(CONTRACTS_SILVER["dompp_2022_pct_hex_sc"])
     df = conn.query_database(f"SELECT * FROM {path}")
     return df
 
 
-@save_parquet_decorator("silver", CONTRACT_SCS_CENSO_SILVER["sectors_2022_hex"])
+@save_parquet_decorator("silver")
 def add_hex_from_geom(
     df: gpd.GeoDataFrame, df_pct_sc_hex: pd.DataFrame, **kwargs
 ) -> gpd.GeoDataFrame:
@@ -85,12 +84,13 @@ def main():
     with mlflow.start_run(run_name=date):
         for partition in tqdm(range(0, len(df_sc), batch), desc="Processing hexagons"):
             with mlflow.start_run(run_name=str(partition), nested=True):
-                kwargs = {"filename": str(partition)}
+                kwargs = {
+                    "filename": str(partition),
+                    "contract": CONTRACTS_SILVER["hex_participation_sc_2022"],
+                }
                 df = df_sc.iloc[partition : partition + batch]
                 df = add_hex_from_geom(df, df_pct_sc_hex, **kwargs)
                 mlflow.log_metric("num_sc", df["cd_setor"].nunique())
                 mlflow.log_metric("num_hex", df["hex_col"].nunique())
                 del df
                 gc.collect()
-    manager.update_status("finished_step_3")
-    manager.update_last_run()

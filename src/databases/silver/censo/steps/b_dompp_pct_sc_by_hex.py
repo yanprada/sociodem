@@ -2,20 +2,15 @@
 Creates a table with the percentage of different types of domiciles per hexagon per sector.
 """
 
+import os
+
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path
 
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.silver.censo.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+from src.databases.silver.censo.config import manager, CONTRACTS_SILVER
 
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-
-manager.update_status("running_step_2")
-
-
-CONTRACT_CENSO_SILVER = execution_parameters["data_contracts"]["censo_silver"]
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(module_name)
 
 
 def create_pct_dompp_hex_sc() -> None:
@@ -24,8 +19,8 @@ def create_pct_dompp_hex_sc() -> None:
     """
 
     conn = DBConnection("silver")
-    path = get_db_path(CONTRACT_CENSO_SILVER["dompp_2022"])
-    new_path = get_db_path(CONTRACT_CENSO_SILVER["dompp_pct_2022"])
+    path = get_db_path(CONTRACTS_SILVER["mun_hex_2022"])
+    new_path = get_db_path(CONTRACTS_SILVER["dompp_2022_pct_hex_sc"])
     query = f"""
     WITH dompp_data AS (
         SELECT 
@@ -84,5 +79,3 @@ def main():
     the percentage of different types of domiciles per hexagon per sector.
     """
     create_pct_dompp_hex_sc()
-    manager.update_status("finished_step_2")
-    manager.update_last_run()

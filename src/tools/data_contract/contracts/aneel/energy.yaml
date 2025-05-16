@@ -1,6 +1,6 @@
 raw_data:
   tableName: raw_data
-  schema: 
+  schema:
   physicalPath: raw_data/aneel/
   description: Raw data from aneel
   queryYears: [2017, 2023]
@@ -13,79 +13,50 @@ bronze:
     description: Energy infrastructure points of energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    
+
   - tableName: ucbt_{year}
     schema: infrastructure
     physicalPath: databases/bronze/aneel/ucbt_{year}/
     description: Energy infrastructure consumption for energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    
+
   - tableName: conj_{year}
     schema: infrastructure
     physicalPath: databases/bronze/aneel/conj_{year}/
     description: geometry area of influence of energy companies
     queryYears: [2017, 2023]
     ifExists: append
-    
+
   - tableName: aneel_join_{year}
     schema: infrastructure
     physicalPath: databases/bronze/aneel/aneel_join_{year}/
     description: Energy infrastructure consumption for energy companies that has a ponnot
     queryYears: [2017, 2023]
     ifExists: append
-    
+
   - tableName: ucbt_no_join_{year}
     schema: infrastructure
     physicalPath: databases/bronze/aneel/ucbt_no_join_{year}/
     description: Energy infrastructure consumption for energy companies that do not have a ponnot
     queryYears: [2017, 2023]
     ifExists: append
-    
-silver:
-  - tableName: aneel
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/mun/
-    description: Energy infrastructure points of energy companies, with energy consumption per type (residencial, commercial, industrial, ...)
-    queryYears: [2017, 2023]
-    ifExists: append
-    
-  - tableName: neighbors_lvl_{i}
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: grouped energy infrastructure points of energy companies based on a more granular level
-    queryYears: [2017, 2023]
-    ifExists: replace
-    
 
-  - tableName: aneel_temp_join
+silver:
+  - tableName: aneel_hexagon_{year}
     schema: infrastructure
-    physicalPath: databases/silver/aneel/temp/
-    description: Temporary join of energy infrastructure points of energy companies
-    queryYears: [2017, 2023]
-    ifExists: append
-    
-  - tableName: aneel_final_join
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/final_join/
-    description: Final join of energy infrastructure points of energy companies
-    queryYears: [2017, 2023]
-    ifExists: append
-    
-  - tableName: aneel_hexagon
-    schema: infrastructure
-    physicalPath: databases/silver/aneel/hexagon/
+    physicalPath: databases/silver/aneel/hexagon_{year}/
     description: Energy infrastructure points of energy companies per hexagon
     queryYears: [2017, 2023]
     ifExists: append
-    
-  - tableName: aneel_hexagon_grp
+
+  - tableName: aneel_hexagon_grp_{year}
     schema: infrastructure
-    physicalPath: databases/silver/aneel/hexagon_grp/
+    physicalPath: databases/silver/aneel/hexagon_grp_{year}/
     description: Energy infrastructure points of energy companies per hexagon
     queryYears: [2017, 2023]
     ifExists: append
-    
+
 gold:
   tableName: aneel
   schema: infrastructure
