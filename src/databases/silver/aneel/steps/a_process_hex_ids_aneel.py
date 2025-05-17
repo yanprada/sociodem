@@ -6,7 +6,6 @@ perform calculations on the data,
 and group the data by hexagon.
 """
 
-import ctypes
 import os
 from functools import lru_cache
 from itertools import product
@@ -25,7 +24,7 @@ import ipdb
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.constants import HEX_RESOLUTION, ANEEL_CLASSES
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.common import get_db_path, write_log
+from src.tools.utils.common import get_db_path, write_log, trim_memory
 
 
 from src.databases.silver.aneel.config import (
@@ -312,17 +311,6 @@ def process_batch(start: int, batch: int, path: str, year: int) -> str:
     del df
     gc.collect()
     return f"Saved batch {start} to {start + batch}"
-
-
-def trim_memory() -> int:
-    """
-    Trims the memory used by the process.
-    This function is used to free up memory that is no longer needed.
-    Returns:
-        int: The result of the malloc_trim function.
-    """
-    libc = ctypes.CDLL("libc.so.6")
-    return libc.malloc_trim(0)
 
 
 def get_batches_processed_db_data(path_db: str) -> Set[int]:
