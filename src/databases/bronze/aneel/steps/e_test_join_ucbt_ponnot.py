@@ -311,7 +311,7 @@ def save_plots(df: pd.DataFrame) -> None:
         df (pd.DataFrame): Input DataFrame containing 'company',
                             'year', 'ene_sum', and 'ene_sum_no_match'.
     """
-    output_dir = "plots/energy_data"
+    output_dir = "plots/aneel/energy_data_companies"
     os.makedirs(output_dir, exist_ok=True)
 
     for company in tqdm(df.index, desc="Ploting companies"):
