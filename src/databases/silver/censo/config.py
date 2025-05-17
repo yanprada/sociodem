@@ -16,8 +16,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "silver-censo-2025-05-06-09h57m29s"
-
+EXECUTION_ID = "silver-censo-2025-05-17-15h21m18s"
 BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "censo",
@@ -29,7 +28,10 @@ BASE_PARAMS = {
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
-    "materialized_views": {},
+    "materialized_views": {
+        "hex_unique_sc_2022": "hex_unique_sc_2022",
+        "hex_unique_sc_2022_sc_info": "hex_unique_sc_2022_sc_info",
+    },
 }
 
 _manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
