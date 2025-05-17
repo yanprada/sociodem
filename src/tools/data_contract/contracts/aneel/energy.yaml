@@ -56,6 +56,13 @@ silver:
     description: Energy infrastructure points of energy companies per hexagon
     queryYears: [2017, 2023]
     ifExists: append
+  
+  - tableName: aneel_sc_hexagon_{year}
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/sc_hexagon_{year}/
+    description: Energy infrastructure points of energy companies per hexagon
+    queryYears: [2017, 2023]
+    ifExists: append
 
 gold:
   tableName: aneel

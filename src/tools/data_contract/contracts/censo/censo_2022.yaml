@@ -97,34 +97,34 @@ bronze:
     ifExists: append
 
 silver:
-  - contractName: mun_2022.yaml
-    tableName: mun_hex_2022
+  - contractName: dompp_2022.yaml
+    tableName: dompp_per_hex_sc_2022
     schema: layers
-    physicalPath: databases/silver/censo/layers/2022/municipios/
-    description: Hexagon id in Municipality from the 2022 Census
+    physicalPath: databases/silver/censo/layers/2022/dompp_per_hex_sc_2022/
+    description: Dompp per Hexagon id per sector from the 2022 Census
     queryYears: 2022
     ifExists: append
 
   - contractName: dompp_2022.yaml
-    tableName: dompp_2022_hex_sc
+    tableName: pct_hex_dompp_in_sc_2022
     schema: layers
-    physicalPath: databases/silver/censo/layers/2022/dompp_hex/
-    description: Domicile grouped by hexagon
+    physicalPath: databases/silver/censo/layers/2022/pct_hex_dompp_in_sc_2022/
+    description: Domicile percentage for each hexagon in the sector compared to the sum of sector, but just for the hexagons that has domicile
     queryYears: 2022
     ifExists: append
 
   - contractName: dompp_2022.yaml
-    tableName: dompp_2022_pct_hex_sc
+    tableName: pct_hex_dompp_in_hex_2022
     schema: layers
-    physicalPath: databases/silver/censo/layers/2022/dompp_pct_hex_sc/
-    description: Domicile percentage for each hexagon in the sector, but just for the hexagons that has domicile
+    physicalPath: databases/silver/censo/layers/2022/pct_hex_dompp_in_hex_2022/
+    description: Domicile percentage for each hexagon in the sector compared to the sum of hexagon, but just for the hexagons that has domicile
     queryYears: 2022
     ifExists: append
 
-  - contractName: sectors_2022.yaml
+  - contractName: dompp_2022.yaml
     tableName: hex_participation_sc_2022
     schema: layers
-    physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
+    physicalPath: databases/silver/censo/layers/2022/hex_participation_sc_2022/
     description: Hexagon participation in dompp census sector, for all hexagons in Brazil
     queryYears: 2022
     ifExists: append
@@ -132,23 +132,7 @@ silver:
   - contractName: sectors_2022.yaml
     tableName: sectors_2022
     schema: layers
-    physicalPath: databases/silver/censo/layers/2022/setores_censitarios/
-    description: Census sectors geometry layer from the 2022 Census
+    physicalPath: databases/silver/censo/layers/2022/sectors_2022/
+    description: Sectors from the 2022 Census. The same as bronze table.
     queryYears: 2022
     ifExists: replace
-
-  - contractName: states_2022.yaml
-    tableName: dompp_2022_hex_sc
-    schema: layers
-    physicalPath: databases/silver/censo/layers/2022/dompp_hex/
-    description: Domicile grouped by hexagon
-    queryYears: 2022
-    ifExists: append
-
-  - contractName: states_2022.yaml
-    tableName: dompp_2022_pct_hex_sc
-    schema: layers
-    physicalPath: databases/silver/censo/layers/2022/dompp_pct_hex_sc/
-    description: Domicile percentage hexagon sc
-    queryYears: 2022
-    ifExists: append
