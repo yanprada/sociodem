@@ -172,7 +172,10 @@ def process_muns(muns: List[str], df_sc: gpd.GeoDataFrame) -> None:
     conn = DBConnection("bronze")
     for mun in tqdm(muns, desc="Processing batch"):
         with mlflow.start_run(run_name=str(mun), nested=True):
-            kwargs = {"filename": mun, "contract": CONTRACTS_SILVER["mun_hex_2022"]}
+            kwargs = {
+                "filename": mun,
+                "contract": CONTRACTS_SILVER["dompp_per_hex_sc_2022"],
+            }
             _ = process_mun(conn, mun, df_sc, **kwargs)
 
 
