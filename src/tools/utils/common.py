@@ -10,6 +10,7 @@ import os
 import random
 import string
 import logging
+import ctypes
 from functools import lru_cache
 import yaml
 import pandas as pd
@@ -322,3 +323,14 @@ def generate_random_string(length):
     """
     letters = string.ascii_letters + string.digits
     return "".join(random.choice(letters) for _ in range(length))
+
+
+def trim_memory() -> int:
+    """
+    Trims the memory used by the process.
+    This function is used to free up memory that is no longer needed.
+    Returns:
+        int: The result of the malloc_trim function.
+    """
+    libc = ctypes.CDLL("libc.so.6")
+    return libc.malloc_trim(0)
