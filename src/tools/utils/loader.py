@@ -17,7 +17,7 @@ from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.constants import CRS_GLOBAL
 from src.tools.utils.common import get_db_path
 from src.tools.data_contract.pois_data_contract import get_pois_contracts
-from src.databases.bronze.censo.config import CONTRACTS_BRONZE
+from src.databases.bronze.ibge.config import CONTRACTS_BRONZE
 
 CONTRACT_CENSO_BRONZE = CONTRACTS_BRONZE
 CONTRACT_POIS_BRONZE = get_pois_contracts("bronze")
