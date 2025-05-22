@@ -11,6 +11,7 @@ Functions:
 - main: Retrieves data from the bronze database, processes it, and returns a DataFrame.
 """
 
+import os
 from functools import lru_cache
 import gc
 import multiprocessing
@@ -23,20 +24,19 @@ from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.constants import MAPBIOMAS_CLASSES
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import write_log, get_db_path
-from src.tools.utils.execution_manager import ExecutionManager
-from src.databases.bronze.mapbiomas.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
-
-manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
-manager.update_status("running_step_1")
-
-CONTRACT_BRONZE = execution_parameters["data_contracts"][0]
-CONTRACT_SILVER = execution_parameters["data_contracts"][1]
-CONTRACT_PARTITIONS = execution_parameters["data_contracts"][2]
+from src.databases.silver.mapbiomas.config import (
+    manager,
+    CONTRACTS_SILVER,
+    CONTRACTS_BRONZE,
+    YEARS,
+)
 
 
-@save_parquet_decorator("silver", CONTRACT_SILVER["mapbiomas"])
+module_name = os.path.basename(__file__).replace(".py", "")
+manager.update_status(module_name)
+
+
+@save_parquet_decorator("silver")
 def save_mapbiomas_partition(df: pd.DataFrame, **kwargs):
     """
     Saves the MapBiomas partition DataFrame.
@@ -71,7 +71,10 @@ def save_mapbiomas(
     """
     large_partition = int(large_partition / external_batch)
     partition = int(partition / batch)
-    kwargs = {"filename": f"mapbiomas_{large_partition}_{partition}"}
+    kwargs = {
+        "filename": f"mapbiomas_{large_partition}_{partition}",
+        "contract": CONTRACTS_SILVER["grouped_by_hex_mapbiomas"],
+    }
     _ = save_mapbiomas_partition(df, **kwargs)
 
 
@@ -109,7 +112,7 @@ def add_missing_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def pivot_table(df: pd.DataFrame):
+def pivot_mapbiomas_table(df: pd.DataFrame):
     """
     This function pivots the DataFrame.
 
@@ -136,7 +139,7 @@ def load_mapbiomas(conn: DBConnection, condition: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The loaded data from the bronze database.
     """
-    contract_mapbiomas = CONTRACT_BRONZE["grouped_by_hex_mapbiomas"]
+    contract_mapbiomas = CONTRACTS_BRONZE["grouped_by_hex_mapbiomas"]
     path = get_db_path(contract_mapbiomas)
     query = f"SELECT * FROM {path} {condition}"
     return conn.query_database(query)
@@ -168,27 +171,34 @@ def get_hex_ids(batch: int, i: int) -> List[str]:
         List[str]: The list of all hex ids.
     """
     conn = DBConnection("bronze")
-    contract_unique_hex = CONTRACT_BRONZE["unique_hex_ids"]
+    contract_unique_hex = CONTRACTS_BRONZE["unique_hex_ids"]
     path = get_db_path(contract_unique_hex)
-    query = f"SELECT hex_col FROM {path}"
     range_col_ids = list(range(i, i + batch))
-    query_batch = f"{query} WHERE col_id in {tuple(range_col_ids)}"
-    return conn.query_database(query_batch)["hex_col"].tolist()
+    query_batch = f"SELECT hex_col FROM {path} WHERE col_id in {tuple(range_col_ids)}"
+    hex_list = conn.query_database(query_batch)["hex_col"].tolist()
+    conn.close()
+    return hex_list
 
 
 @lru_cache()
-def get_hex_len() -> int:
+def get_hex_len(year: int) -> int:
     """
     Retrieves the length of distinct hex values from the specified database connection.
+    Args:
+        year (int): The MapBiomas year being processed.
 
     Returns:
         The length of distinct hex values.
 
     """
     conn = DBConnection("bronze")
-    contract_unique_hex = CONTRACT_BRONZE["unique_hex_ids"]
+    contract_unique_hex = CONTRACTS_BRONZE[f"grouped_by_hex_brasil_coverage_{year}"]
     path = get_db_path(contract_unique_hex)
-    return int(conn.query_database(f"SELECT COUNT(*) FROM {path}")["count"].values[0])
+    hex_num = int(
+        conn.query_database(f"SELECT COUNT(*) FROM {path}")["count"].values[0]
+    )
+    conn.close()
+    return hex_num
 
 
 def process_batch(
@@ -210,10 +220,11 @@ def process_batch(
     df = load_mapbiomas(conn, condition)
     df = add_classes_mapbiomas(df)
     df = calculate_percentage(df)
-    df = pivot_table(df)
+    df = pivot_mapbiomas_table(df)
     save_mapbiomas(df, external_partition, i, batch, external_batch)
     del df
     gc.collect()
+    conn.close()
 
 
 def main():
@@ -222,32 +233,39 @@ def main():
     """
     batch = int(5e6)
     external_batch = int(5e6)
-    hex_len = get_hex_len()
-    for external_partition in tqdm(
-        range(0, hex_len, external_batch),
-        desc="Processing data in external batch",
-    ):
-        hex_ids = get_hex_ids(external_batch, external_partition)
-        num_cores = min(1, multiprocessing.cpu_count())
-        with concurrent.futures.ProcessPoolExecutor(max_workers=num_cores) as executor:
-            futures = [
-                executor.submit(
-                    process_batch, hex_ids, i, batch, external_batch, external_partition
-                )
-                for i in range(0, len(hex_ids), batch)
-            ]
+    for year in tqdm(YEARS, desc="Processing Years"):
+        hex_len = get_hex_len(year)
+        for external_partition in tqdm(
+            range(0, hex_len, external_batch),
+            desc="Processing data in external batch",
+        ):
+            hex_ids = get_hex_ids(external_batch, external_partition)
+            num_cores = min(1, multiprocessing.cpu_count())
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=num_cores
+            ) as executor:
+                futures = [
+                    executor.submit(
+                        process_batch,
+                        hex_ids,
+                        i,
+                        batch,
+                        external_batch,
+                        external_partition,
+                    )
+                    for i in range(0, len(hex_ids), batch)
+                ]
 
-            for future in tqdm(
-                concurrent.futures.as_completed(futures),
-                total=len(futures),
-                desc="Processing data in batch",
-            ):
-                try:
-                    future.result()
+                for future in tqdm(
+                    concurrent.futures.as_completed(futures),
+                    total=len(futures),
+                    desc="Processing data in batch",
+                ):
+                    try:
+                        future.result()
 
-                except Exception as e:
-                    write_log(e, "error")
-        del hex_ids
-        gc.collect()
-    manager.update_status("finished_step_1")
+                    except Exception as e:
+                        write_log(e, "error")
+            del hex_ids
+            gc.collect()
     manager.update_last_run()
