@@ -22,9 +22,9 @@ BASE_PARAMS = {
     "data_name": "ibge",
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
-        "bronze_data_2022": ["bronze", "ibge", "censo_2022"],
-        "bronze_data_2010": ["bronze", "ibge", "censo_2010"],
-        "silver_data_2022": ["silver", "ibge", "censo_2022"],
+        "bronze_data_2022": ["bronze", "ibge", "ibge_2022"],
+        "bronze_data_2010": ["bronze", "ibge", "ibge_2010"],
+        "silver_data_2022": ["silver", "ibge", "ibge_2022"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,

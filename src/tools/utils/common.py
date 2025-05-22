@@ -16,8 +16,6 @@ import yaml
 import pandas as pd
 from mlflow.tracking import MlflowClient
 
-from src.tools.data_contract.validation_data_contract import get_validation_partitions
-from src.tools.utils.save import add_partition_size_to_yaml
 from src.tools.databases.data_connection.connection import DBConnection
 
 logging.basicConfig(
@@ -25,8 +23,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-
-CONTRACT_PARTITIONS = get_validation_partitions()
 
 
 def write_log(message, level="info"):
@@ -86,30 +82,6 @@ def get_column_memory_usage(df: pd.DataFrame) -> dict:
     return column_memory_usage
 
 
-def check_data_consistency(path: str) -> dict:
-    """
-    Check the consistency of data in the given path.
-
-    Args:
-        path (str): The path to check for data consistency.
-
-    Returns:
-        dict: A dictionary containing subfolders as keys and a boolean value indicating
-              whether the number of files in the subfolder matches the expected number
-              of files.
-
-    """
-    subfolders = [
-        subfolder for subfolder in CONTRACT_PARTITIONS.keys() if path in subfolder
-    ]
-    data_wrong = {}
-    for subfolder in subfolders:
-        expected_num_files = CONTRACT_PARTITIONS[subfolder]
-        file_count = len(os.listdir(subfolder))
-        data_wrong[subfolder] = expected_num_files > file_count
-    return data_wrong
-
-
 def add_test_to_yaml(yaml_path: str, key: str, value: str) -> None:
     """
     Add key-value pair to a YAML file.
@@ -144,41 +116,6 @@ def get_test_yaml(yaml_path: str) -> dict:
     with open(yaml_path, "r", encoding="utf-8") as file:
         existing_data = yaml.safe_load(file)
     return existing_data
-
-
-def check_file_exists_in_disk(
-    filename: str, filepath: str, extension: str = ".parquet"
-) -> bool:
-    """
-    Check if a file exists in the given filepath.
-
-    Args:
-        filename (str): The name of the file.
-        filepath (str): The path to the directory where the file should be located.
-        extension (str, optional): The file extension. Defaults to ".parquet".
-
-    Returns:
-        bool: True if the file exists, False otherwise.
-    """
-    path_large_file = os.path.join(filepath, filename)
-    path_small_file = os.path.join(filepath, "".join([filename, extension]))
-    exist_small_file = os.path.exists(path_small_file)
-    exist_large_file = os.path.exists(path_large_file)
-    exist_file = exist_small_file or exist_large_file
-    if exist_large_file:
-        try:
-            num_partitions = CONTRACT_PARTITIONS["/".join([path_large_file, ""])]
-            num_files = len(os.listdir(path_large_file))
-        except KeyError:
-            num_files = len(os.listdir(path_large_file))
-            add_partition_size_to_yaml("/".join([path_large_file, ""]), num_files)
-            num_partitions = num_files
-        exist_file = num_partitions == num_files
-        if num_partitions < num_files:
-            raise ValueError(
-                f"Number of partitions is greater than number of files in {path_large_file}"
-            )
-    return exist_file
 
 
 @lru_cache(maxsize=10)

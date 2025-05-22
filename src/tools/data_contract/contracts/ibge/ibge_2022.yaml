@@ -96,8 +96,8 @@ bronze:
     queryYears: 2022
     ifExists: append
 
-  - contractName: censo_2022.yaml
-    tableName: censo_2022
+  - contractName: ibge_2022.yaml
+    tableName: ibge_2022
     schema: sociodemographic
     physicalPath: databases/bronze/ibge/sociodemographic/2022/ibge/
     description: Sociodemographic data from the 2022 Census

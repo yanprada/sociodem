@@ -31,23 +31,23 @@ def download_info_ibge_2010():
     retrieve the data.
     """
 
-    censo_request = HttpRequesterIBGE(2010)
-    download_layers_ibge_2010(censo_request)
+    ibge_request = HttpRequesterIBGE(2010)
+    download_layers_ibge_2010(ibge_request)
 
 
-def download_layers_ibge_2010(censo_request: HttpRequesterIBGE):
+def download_layers_ibge_2010(ibge_request: HttpRequesterIBGE):
     """
     Downloads layers for the IBGE 2010 dataset.
 
     Args:
-        censo_request (HttpRequesterIBGE): An instance of the HttpRequesterIBGE class.
+        ibge_request (HttpRequesterIBGE): An instance of the HttpRequesterIBGE class.
     """
     combinations = product(
         STATES.keys(),
         ["setores_censitarios", "subdistritos", "distritos", "municipios"],
     )
     path_to_save = CONTRACTS_RAW["mun_2010"]["physicalPath"]
-    censo_request.request_layers_from_page(combinations, path_to_save)
+    ibge_request.request_layers_from_page(combinations, path_to_save)
 
 
 def download_info_ibge_2022():
@@ -58,18 +58,18 @@ def download_info_ibge_2022():
     retrieve the data.
     """
 
-    censo_request = HttpRequesterIBGE(2022)
-    download_layers_ibge_2022(censo_request)
-    download_dompp_ibge_2022(censo_request)
-    download_states_ibge_2022(censo_request)
+    ibge_request = HttpRequesterIBGE(2022)
+    download_layers_ibge_2022(ibge_request)
+    download_dompp_ibge_2022(ibge_request)
+    download_states_ibge_2022(ibge_request)
 
 
-def download_layers_ibge_2022(censo_request: HttpRequesterIBGE):
+def download_layers_ibge_2022(ibge_request: HttpRequesterIBGE):
     """
     Downloads layers for the IBGE 2022.
 
     Args:
-        censo_request (HttpRequesterIBGE): An instance of the HttpRequesterIBGE class.
+        ibge_request (HttpRequesterIBGE): An instance of the HttpRequesterIBGE class.
 
     """
     combinations = product(
@@ -77,38 +77,38 @@ def download_layers_ibge_2022(censo_request: HttpRequesterIBGE):
         ["setores", "subdistritos", "distritos", "municipios"],
     )
     path_to_save = CONTRACTS_RAW["mun_2022"]["physicalPath"]
-    censo_request.request_layers_from_page(combinations, path_to_save)
+    ibge_request.request_layers_from_page(combinations, path_to_save)
 
 
-def download_dompp_ibge_2022(censo_request: HttpRequesterIBGE):
+def download_dompp_ibge_2022(ibge_request: HttpRequesterIBGE):
     """
     Downloads the DOMPP (Documento Oficial do Ministério da Educação) for the IBGE 2022.
 
-    This function sends a request to the censo_request object to download the DOMPP from
+    This function sends a request to the ibge_request object to download the DOMPP from
     the specified page.
     The function takes the following parameters:
-    - censo_request: An instance of the HttpRequesterIBGE class used to make the request.
+    - ibge_request: An instance of the HttpRequesterIBGE class used to make the request.
 
     Example usage:
-    censo_request = HttpRequesterIBGE()
-    download_dompp_ibge_2022(censo_request)
+    ibge_request = HttpRequesterIBGE()
+    download_dompp_ibge_2022(ibge_request)
 
-    :param censo_request: An instance of the HttpRequesterIBGE class.
-    :type censo_request: HttpRequesterIBGE
+    :param ibge_request: An instance of the HttpRequesterIBGE class.
+    :type ibge_request: HttpRequesterIBGE
     """
     path_to_save = CONTRACTS_RAW["dompp_2022"]["physicalPath"]
-    censo_request.request_dompp_from_page(STATES, path_to_save)
+    ibge_request.request_dompp_from_page(STATES, path_to_save)
 
 
-def download_states_ibge_2022(censo_request: HttpRequesterIBGE):
+def download_states_ibge_2022(ibge_request: HttpRequesterIBGE):
     """
     Downloads the states for the IBGE 2022 dataset.
 
     Args:
-        censo_request (HttpRequesterIBGE): An instance of the HttpRequesterIBGE class.
+        ibge_request (HttpRequesterIBGE): An instance of the HttpRequesterIBGE class.
     """
     path_to_save = "".join([CONTRACTS_RAW["mun_2022"]["physicalPath"], "estados/"])
-    censo_request.request_states_from_page(STATES, path_to_save)
+    ibge_request.request_states_from_page(STATES, path_to_save)
 
 
 def main():

@@ -24,7 +24,7 @@ BASE_PARAMS = {
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
         "raw_google": ["raw_data", "buildings", "google"],
-        "raw_state_ibge": ["raw_data", "ibge", "censo_2022"],
+        "raw_state_ibge": ["raw_data", "ibge", "ibge_2022"],
         "bronze_google": ["bronze", "buildings", "google"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",

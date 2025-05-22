@@ -1,9 +1,9 @@
 """
 This module contains functions for processing places in Brazil.
 
-The main function `main` reads the files in the specified path, 
+The main function `main` reads the files in the specified path,
 divides the workload among the available workers,
-and processes the files using the `process_files` function. 
+and processes the files using the `process_files` function.
 It also handles any exceptions that occur
 during the processing and logs them using the `write_log` function.
 
@@ -36,11 +36,11 @@ from config.run_mode import DEBUG
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 
 POIS_CONTRACTS = execution_parameters["data_contracts"]["pois_bronze"]
 
-MUN_CONTRACTS = execution_parameters["data_contracts"]["censo_bronze"]
+MUN_CONTRACTS = execution_parameters["data_contracts"]["ibge_bronze"]
 
 
 def read_files(file: str) -> pd.DataFrame:
