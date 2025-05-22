@@ -96,6 +96,14 @@ bronze:
     queryYears: 2022
     ifExists: append
 
+  - contractName: censo_2022.yaml
+    tableName: censo_2022
+    schema: sociodemographic
+    physicalPath: databases/bronze/censo/sociodemographic/2022/censo/
+    description: Sociodemographic data from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
 silver:
   - contractName: dompp_2022.yaml
     tableName: dompp_per_hex_sc_2022
