@@ -40,3 +40,5 @@ CONTRACTS_SILVER = manager.execution_details["data_contracts"]["mapbiomas_silver
 YEARS = manager.execution_details["info"]["running_years"]
 
 EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]
+
+PATHS_MV = manager.execution_details["materialized_views"]
