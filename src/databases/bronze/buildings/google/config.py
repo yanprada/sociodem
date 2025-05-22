@@ -24,7 +24,7 @@ BASE_PARAMS = {
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
         "raw_google": ["raw_data", "buildings", "google"],
-        "raw_state_censo": ["raw_data", "ibge", "censo_2022"],
+        "raw_state_ibge": ["raw_data", "ibge", "censo_2022"],
         "bronze_google": ["bronze", "buildings", "google"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
@@ -37,7 +37,7 @@ manager = _manager_wrapper.manager
 
 
 BUILDING_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_google"]
-STATE_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_state_censo"][
+STATE_CONTRACTS_RAW = manager.execution_details["data_contracts"]["raw_state_ibge"][
     "states_2022"
 ]
 BUILDING_CONTRACTS_BRONZE = manager.execution_details["data_contracts"]["bronze_google"]

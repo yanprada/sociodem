@@ -1,7 +1,7 @@
 # Script Execution Order
 
 1. `download_layers.py`
-2. `make_bronze_dataset_censo.py`
+2. `make_bronze_dataset_ibge.py`
 
 # Process Overview
 
