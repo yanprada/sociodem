@@ -112,7 +112,7 @@ def add_mlflow_metrics(df: pd.DataFrame):
 
 
 @save_parquet_decorator(medallon="bronze")
-def get_censo_data(layer_key, **kwargs):
+def get_ibge_data(layer_key, **kwargs):
     """
     Retrieves the data from the Censo dataset.
 
@@ -139,7 +139,7 @@ def get_censo_data(layer_key, **kwargs):
     return dfs
 
 
-def upload_censo_data(layer_key: str, run_name_id: str):
+def upload_ibge_data(layer_key: str, run_name_id: str):
     """
     Uploads municipalities data for the year 2010.
 
@@ -150,7 +150,7 @@ def upload_censo_data(layer_key: str, run_name_id: str):
     mlflow_runs_df = get_ml_flow_data(EXPERIMENT_NAME)
     if run_name_id not in mlflow_runs_df["mlflow.runName"]:
         kwargs = {"filename": "all_states", "contract": CONTRACTS_BRONZE[layer_key]}
-        _ = get_censo_data(layer_key, **kwargs)
+        _ = get_ibge_data(layer_key, **kwargs)
     else:
         write_log(f"{layer_key} data already exists.")
 
@@ -206,7 +206,7 @@ def main():
     ]:
         run_name_id = "-".join([layer_key, run_date])
         with mlflow.start_run(run_name=run_name_id):
-            upload_censo_data(layer_key, run_name_id)
+            upload_ibge_data(layer_key, run_name_id)
 
     run_name_id = "-".join(["dompp", run_date])
     with mlflow.start_run(run_name=run_name_id):

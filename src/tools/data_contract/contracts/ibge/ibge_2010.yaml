@@ -2,7 +2,7 @@ raw_data:
   - contractName: districts_2010.yaml
     tableName: districts_2010
     schema:
-    physicalPath: raw_data/censo/layers/2010/distritos/
+    physicalPath: raw_data/ibge/layers/2010/distritos/
     description: Municipality geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: append
@@ -10,7 +10,7 @@ raw_data:
   - contractName: mun_2010.yaml
     tableName: mun_2010
     schema:
-    physicalPath: raw_data/censo/layers/2010/municipios/
+    physicalPath: raw_data/ibge/layers/2010/municipios/
     description: Municipality geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: append
@@ -18,7 +18,7 @@ raw_data:
   - contractName: sectors_2010.yaml
     tableName: sectors_2010
     schema: layers
-    physicalPath: raw_data/censo/layers/2010/setores_censitarios/
+    physicalPath: raw_data/ibge/layers/2010/setores_censitarios/
     description: Census sectors geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: replace
@@ -26,7 +26,7 @@ raw_data:
   - contractName: subdistricts_2010.yaml
     tableName: subdistricts_2010
     schema:
-    physicalPath: raw_data/censo/layers/2010/subdistritos/
+    physicalPath: raw_data/ibge/layers/2010/subdistritos/
     description: Municipality geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: append
@@ -35,7 +35,7 @@ bronze:
   - contractName: districts_2010.yaml
     tableName: districts_2010
     schema: layers
-    physicalPath: databases/bronze/censo/layers/2010/distritos/
+    physicalPath: databases/bronze/ibge/layers/2010/distritos/
     description: Municipality geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: replace
@@ -43,7 +43,7 @@ bronze:
   - contractName: mun_2010.yaml
     tableName: mun_2010
     schema: layers
-    physicalPath: databases/bronze/censo/layers/2010/municipios/
+    physicalPath: databases/bronze/ibge/layers/2010/municipios/
     description: Municipality geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: replace
@@ -51,7 +51,7 @@ bronze:
   - contractName: sectors_2010.yaml
     tableName: sectors_2010
     schema: layers
-    physicalPath: databases/bronze/censo/layers/2010/setores_censitarios/
+    physicalPath: databases/bronze/ibge/layers/2010/setores_censitarios/
     description: Census sectors geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: replace
@@ -59,7 +59,7 @@ bronze:
   - contractName: subdistricts_2010.yaml
     tableName: subdistricts_2010
     schema: layers
-    physicalPath: databases/bronze/censo/layers/2010/subdistritos/
+    physicalPath: databases/bronze/ibge/layers/2010/subdistritos/
     description: Municipality geometry layer from the 2010 Census
     queryYears: 2010
     ifExists: replace

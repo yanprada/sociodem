@@ -2,7 +2,7 @@
 This module provides the DataContract class for managing data contracts.
 
 The DataContract class is responsible for loading and retrieving data contracts
-from YAML files stored in a specified directory structure. Each contract is 
+from YAML files stored in a specified directory structure. Each contract is
 organized by agent and table name.
 
 Classes:
@@ -10,8 +10,8 @@ Classes:
 
 Usage example:
     data_contract = DataContract()
-    contract_data = data_contract.get_contract(meddalon="example_meddalon", 
-                                                agent="example_agent", 
+    contract_data = data_contract.get_contract(meddalon="example_meddalon",
+                                                agent="example_agent",
                                                 table_name="example_table"
                                                 )
 
@@ -52,7 +52,7 @@ class DataContract:
 
         Args:
             meddalon (str): The meddalon value (bronze, silver or gold).
-            agent (str): The agent name (censo, aneel, buildings, etc).
+            agent (str): The agent name (ibge, aneel, buildings, etc).
             table_name (str): The table name.
 
         Returns:

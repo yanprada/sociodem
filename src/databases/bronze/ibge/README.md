@@ -11,17 +11,17 @@ First, we download the layers information from IBGE. After downloading, we index
 
 In the `layers` schema of the PostgreSQL database, we will create and maintain five tables:
 
-1. **`dompp_censo_2022`**: 
+1. **`dompp_ibge_2022`**: 
    - **Description**: Contains household information as points located in Brazil.
 
-2. **`mun_censo_2010`**: 
+2. **`mun_ibge_2010`**: 
    - **Description**: Contains municipalities geometries for 2010.
 
-3. **`mun_censo_2022`**: 
+3. **`mun_ibge_2022`**: 
    - **Description**: Contains municipalities geometries for 2022.
 
-4. **`sc_censo_2010`**: 
+4. **`sc_ibge_2010`**: 
    - **Description**: Contains sector geometries for 2010.
 
-5. **`sc_censo_2022`**: 
+5. **`sc_ibge_2022`**: 
    - **Description**: Contains sector geometries for 2022.

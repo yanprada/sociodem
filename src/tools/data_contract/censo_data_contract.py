@@ -13,7 +13,7 @@ from easydict import EasyDict
 from src.tools.utils.data_contract import get_contract
 
 
-def get_censo_raw_contracts():
+def get_ibge_raw_contracts():
     """
     Retrieves the CENSO contracts for different companies.
 
@@ -22,30 +22,28 @@ def get_censo_raw_contracts():
             The keys are the names of the companies and the values are the corresponding contracts.
     """
     contract_districts_2010 = get_contract(
-        "censo/contract_districts_censo_2010.yaml", "raw_data"
+        "ibge/contract_districts_ibge_2010.yaml", "raw_data"
     )
     contract_districts_2022 = get_contract(
-        "censo/contract_districts_censo_2022.yaml", "raw_data"
+        "ibge/contract_districts_ibge_2022.yaml", "raw_data"
     )
     contract_subdistricts_2010 = get_contract(
-        "censo/contract_subdistricts_censo_2010.yaml", "raw_data"
+        "ibge/contract_subdistricts_ibge_2010.yaml", "raw_data"
     )
     contract_subdistricts_2022 = get_contract(
-        "censo/contract_subdistricts_censo_2022.yaml", "raw_data"
+        "ibge/contract_subdistricts_ibge_2022.yaml", "raw_data"
     )
-    contract_mun_2010 = get_contract("censo/contract_mun_censo_2010.yaml", "raw_data")
-    contract_mun_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "raw_data")
+    contract_mun_2010 = get_contract("ibge/contract_mun_ibge_2010.yaml", "raw_data")
+    contract_mun_2022 = get_contract("ibge/contract_mun_ibge_2022.yaml", "raw_data")
     contract_sector_2010 = get_contract(
-        "censo/contract_sectors_censo_2010.yaml", "raw_data"
+        "ibge/contract_sectors_ibge_2010.yaml", "raw_data"
     )
     contract_sector_2022 = get_contract(
-        "censo/contract_sectors_censo_2022.yaml", "raw_data"
+        "ibge/contract_sectors_ibge_2022.yaml", "raw_data"
     )
-    contract_dompp_2022 = get_contract(
-        "censo/contract_dompp_censo_2022.yaml", "raw_data"
-    )
+    contract_dompp_2022 = get_contract("ibge/contract_dompp_ibge_2022.yaml", "raw_data")
     contract_states_2022 = get_contract(
-        "censo/contract_states_censo_2022.yaml", "raw_data"
+        "ibge/contract_states_ibge_2022.yaml", "raw_data"
     )
     contracts = {
         "districts_2010": contract_districts_2010,
@@ -62,7 +60,7 @@ def get_censo_raw_contracts():
     return EasyDict(contracts)
 
 
-def get_censo_bronze_contracts():
+def get_ibge_bronze_contracts():
     """
     Retrieves the CENSO contracts for different companies.
 
@@ -71,30 +69,28 @@ def get_censo_bronze_contracts():
             The keys are the names of the companies and the values are the corresponding contracts.
     """
     contract_districts_2010 = get_contract(
-        "censo/contract_districts_censo_2010.yaml", "bronze"
+        "ibge/contract_districts_ibge_2010.yaml", "bronze"
     )
     contract_districts_2022 = get_contract(
-        "censo/contract_districts_censo_2022.yaml", "bronze"
+        "ibge/contract_districts_ibge_2022.yaml", "bronze"
     )
     contract_subdistricts_2010 = get_contract(
-        "censo/contract_subdistricts_censo_2010.yaml", "bronze"
+        "ibge/contract_subdistricts_ibge_2010.yaml", "bronze"
     )
     contract_subdistricts_2022 = get_contract(
-        "censo/contract_subdistricts_censo_2022.yaml", "bronze"
+        "ibge/contract_subdistricts_ibge_2022.yaml", "bronze"
     )
-    contract_mun_2010 = get_contract("censo/contract_mun_censo_2010.yaml", "bronze")
-    contract_mun_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "bronze")
+    contract_mun_2010 = get_contract("ibge/contract_mun_ibge_2010.yaml", "bronze")
+    contract_mun_2022 = get_contract("ibge/contract_mun_ibge_2022.yaml", "bronze")
 
     contract_sector_2010 = get_contract(
-        "censo/contract_sectors_censo_2010.yaml", "bronze"
+        "ibge/contract_sectors_ibge_2010.yaml", "bronze"
     )
     contract_sector_2022 = get_contract(
-        "censo/contract_sectors_censo_2022.yaml", "bronze"
+        "ibge/contract_sectors_ibge_2022.yaml", "bronze"
     )
-    contract_dompp_2022 = get_contract("censo/contract_dompp_censo_2022.yaml", "bronze")
-    contract_states_2022 = get_contract(
-        "censo/contract_states_censo_2022.yaml", "bronze"
-    )
+    contract_dompp_2022 = get_contract("ibge/contract_dompp_ibge_2022.yaml", "bronze")
+    contract_states_2022 = get_contract("ibge/contract_states_ibge_2022.yaml", "bronze")
     contracts = {
         "districts_2010": contract_districts_2010,
         "districts_2022": contract_districts_2022,
@@ -110,7 +106,7 @@ def get_censo_bronze_contracts():
     return EasyDict(contracts)
 
 
-def get_censo_silver_contracts():
+def get_ibge_silver_contracts():
     """
     Retrieves the CENSO contracts for different companies.
 
@@ -118,10 +114,10 @@ def get_censo_silver_contracts():
         contracts (dict): A dictionary containing the ANEEL contracts for different companies.
             The keys are the names of the companies and the values are the corresponding contracts.
     """
-    contract_dompp_2022 = get_contract("censo/contract_dompp_censo_2022.yaml", "silver")
-    contract_mun_2022 = get_contract("censo/contract_mun_censo_2022.yaml", "silver")
+    contract_dompp_2022 = get_contract("ibge/contract_dompp_ibge_2022.yaml", "silver")
+    contract_mun_2022 = get_contract("ibge/contract_mun_ibge_2022.yaml", "silver")
     contract_sector_2022 = get_contract(
-        "censo/contract_sectors_censo_2022.yaml", "silver"
+        "ibge/contract_sectors_ibge_2022.yaml", "silver"
     )
     contracts = {
         "dompp_2022": contract_dompp_2022[0],
@@ -133,7 +129,7 @@ def get_censo_silver_contracts():
     return EasyDict(contracts)
 
 
-def get_censo_contracts(medallon: str):
+def get_ibge_contracts(medallon: str):
     """
     Retrieves the ANEEL contracts for different companies.
 
@@ -145,9 +141,9 @@ def get_censo_contracts(medallon: str):
             The keys are the names of the companies and the values are the corresponding contracts.
     """
     if medallon == "raw_data":
-        return get_censo_raw_contracts()
+        return get_ibge_raw_contracts()
     if medallon == "bronze":
-        return get_censo_bronze_contracts()
+        return get_ibge_bronze_contracts()
     if medallon == "silver":
-        return get_censo_silver_contracts()
+        return get_ibge_silver_contracts()
     return get_contract("contract_template.yaml", medallon)

@@ -20,13 +20,13 @@ EXECUTION_ID = None
 
 BASE_PARAMS = {
     "medallon": "bronze",
-    "data_name": "censo",
+    "data_name": "ibge",
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
-        "raw_data_2010": ["raw_data", "censo", "censo_2010"],
-        "raw_data_2022": ["raw_data", "censo", "censo_2022"],
-        "bronze_data_2022": ["bronze", "censo", "censo_2022"],
-        "bronze_data_2010": ["bronze", "censo", "censo_2010"],
+        "raw_data_2010": ["raw_data", "ibge", "censo_2010"],
+        "raw_data_2022": ["raw_data", "ibge", "censo_2022"],
+        "bronze_data_2022": ["bronze", "ibge", "censo_2022"],
+        "bronze_data_2010": ["bronze", "ibge", "censo_2010"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,

@@ -16,15 +16,15 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "silver-censo-2025-05-17-15h21m18s"
+EXECUTION_ID = "silver-ibge-2025-05-17-15h21m18s"
 BASE_PARAMS = {
     "medallon": "silver",
-    "data_name": "censo",
+    "data_name": "ibge",
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
-        "bronze_data_2022": ["bronze", "censo", "censo_2022"],
-        "bronze_data_2010": ["bronze", "censo", "censo_2010"],
-        "silver_data_2022": ["silver", "censo", "censo_2022"],
+        "bronze_data_2022": ["bronze", "ibge", "censo_2022"],
+        "bronze_data_2010": ["bronze", "ibge", "censo_2010"],
+        "silver_data_2022": ["silver", "ibge", "censo_2022"],
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,

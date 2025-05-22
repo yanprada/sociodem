@@ -223,7 +223,7 @@ class HttpRequesterCenso:
         )
 
     @retry(tries=5, delay=1, backoff=2)
-    def request_censo_from_page(self, destination_path: str) -> None:
+    def request_ibge_from_page(self, destination_path: str) -> None:
         """
         Requests censo from a web page and saves the response to a file.
 
