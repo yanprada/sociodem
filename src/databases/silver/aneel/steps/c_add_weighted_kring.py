@@ -23,7 +23,7 @@ from src.tools.utils.save import save_parquet_decorator
 from src.databases.silver.aneel.config import manager, CONTRACT_SILVER_ENERGY, YEARS
 
 
-from src.databases.silver.censo.config import (
+from src.databases.silver.ibge.config import (
     PATHS_MV as PATHS_MV_CENSO,
     CONTRACTS_SILVER as CONTRACTS_SILVER_CENSO,
 )
