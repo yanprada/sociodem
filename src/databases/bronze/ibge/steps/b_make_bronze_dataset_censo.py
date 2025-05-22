@@ -25,7 +25,7 @@ from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.constants import STATES, CRS_GLOBAL, CRS_IBGE
 from src.tools.utils.common import write_log, get_ml_flow_data
 
-from src.databases.bronze.censo.config import (
+from src.databases.bronze.ibge.config import (
     manager,
     CONTRACTS_BRONZE,
     CONTRACTS_RAW,

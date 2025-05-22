@@ -7,20 +7,20 @@ import os
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path
 
-from src.databases.silver.censo.config import manager, CONTRACTS_SILVER
+from src.databases.silver.ibge.config import manager, CONTRACTS_SILVER
 
 module_name = os.path.basename(__file__).replace(".py", "")
 manager.update_status(module_name)
 
 
-def create_pct_hex_dompp_in_hex() -> None:
+def create_pct_dompp_hex_sc() -> None:
     """
     Creates a table with the percentage of different types of domiciles per hexagon per sector.
     """
 
     conn = DBConnection("silver")
     path = get_db_path(CONTRACTS_SILVER["dompp_per_hex_sc_2022"])
-    new_path = get_db_path(CONTRACTS_SILVER["pct_hex_dompp_in_hex_2022"])
+    new_path = get_db_path(CONTRACTS_SILVER["pct_hex_dompp_in_sc_2022"])
     query = f"""
     WITH dompp_data AS (
         SELECT 
@@ -39,7 +39,7 @@ def create_pct_hex_dompp_in_hex() -> None:
     ),
     grouped_data AS (
         SELECT 
-            hex_col, 
+            cd_setor, 
             SUM(dompp_total_domicilio_coletivo) AS total_domicilio_coletivo,
             SUM(dompp_total_domicilio_particular) AS total_domicilio_particular,
             SUM(dompp_total_edificio_em_construcao) AS total_edificio_em_construcao,
@@ -49,7 +49,7 @@ def create_pct_hex_dompp_in_hex() -> None:
             SUM(dompp_total_estabelecimento_saude) AS total_estabelecimento_saude,
             SUM(dompp_total_outros_estabelecimentos) AS total_outros_estabelecimentos
         FROM dompp_data
-        GROUP BY hex_col
+        GROUP BY cd_setor
     ),
     merged_data AS (
         SELECT 
@@ -65,7 +65,7 @@ def create_pct_hex_dompp_in_hex() -> None:
             COALESCE(dompp_data.dompp_total_outros_estabelecimentos / NULLIF(grouped_data.total_outros_estabelecimentos, 0), 0) AS pct_dompp_total_outros_estabelecimentos
         FROM dompp_data 
         LEFT JOIN grouped_data
-        ON dompp_data.hex_col = grouped_data.hex_col
+        ON dompp_data.cd_setor = grouped_data.cd_setor
     )
     SELECT * FROM merged_data;
     """
@@ -78,4 +78,4 @@ def main():
     Call function create_pct_dompp_hex_sc, that creates a table with
     the percentage of different types of domiciles per hexagon per sector.
     """
-    create_pct_hex_dompp_in_hex()
+    create_pct_dompp_hex_sc()

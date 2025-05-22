@@ -39,7 +39,7 @@ from src.tools.utils.constants import (
 )
 from src.tools.utils.save import save_parquet_decorator
 
-from src.databases.silver.censo.config import (
+from src.databases.silver.ibge.config import (
     manager,
     EXPERIMENT_NAME,
     CONTRACTS_SILVER,

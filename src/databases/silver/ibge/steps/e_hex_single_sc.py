@@ -7,7 +7,7 @@ from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path, write_log
 from src.tools.utils.save import save_parquet_decorator
 
-from src.databases.silver.censo.config import (
+from src.databases.silver.ibge.config import (
     manager,
     CONTRACTS_SILVER,
     CONTRACTS_BRONZE,

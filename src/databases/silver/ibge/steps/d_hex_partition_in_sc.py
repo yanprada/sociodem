@@ -23,7 +23,7 @@ from src.tools.utils.common import get_db_path
 from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.h3 import add_h3_index_to_large_geom
 
-from src.databases.silver.censo.config import (
+from src.databases.silver.ibge.config import (
     manager,
     CONTRACTS_SILVER,
     EXPERIMENT_NAME,

@@ -13,7 +13,7 @@ from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterCenso,
 )
 from src.tools.utils.constants import STATES
-from src.databases.bronze.censo.config import (
+from src.databases.bronze.ibge.config import (
     manager,
     CONTRACTS_RAW,
 )
