@@ -124,6 +124,10 @@ class HttpRequesterCenso:
                 "https://servicodados.ibge.gov.br/api/v3/malhas/estados/{state}"
                 "?formato=application/vnd.geo+json"
             )
+            self.__url_censo = (
+                "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados"
+                "por_Setores_Censitarios/Agregados_por_Setor_csv/"
+            )
         else:
             raise ValueError("Year must be 2010 or 2022")
 
@@ -141,13 +145,18 @@ class HttpRequesterCenso:
             f.write(response.content)
 
     def __save_file(
-        self, response: requests.Response, filename: str, as_zip=True
+        self, response: requests.Response, filename: str, as_zip=True, as_geojson=True
     ) -> None:
         if response.status_code == 200:
             if as_zip:
                 self.__save_response_as_zip(response, filename)
-            else:
+            if as_geojson:
                 filename = filename + ".geojson"
+                self.__make_dir(filename)
+                with open(filename, "wb") as f:
+                    f.write(response.content)
+            else:
+                filename = filename + ".csv"
                 self.__make_dir(filename)
                 with open(filename, "wb") as f:
                     f.write(response.content)
@@ -212,6 +221,29 @@ class HttpRequesterCenso:
             ),
             timeout=10,
         )
+
+    @retry(tries=5, delay=1, backoff=2)
+    def request_censo_from_page(self, destination_path: str) -> None:
+        """
+        Requests censo from a web page and saves the response to a file.
+
+        Args:
+            destination_path (str): The path where the files will be saved.
+        """
+        destination_dir = os.path.abspath(destination_path)
+
+        filename = os.path.join(destination_dir)
+        if not os.path.exists(f"{filename}.csv"):
+            write_log(f"Requesting Censo {self.year}.")
+            response = requests.get(self.__url_censo, timeout=10)
+            # import ipdb
+
+            # ipdb.set_trace()
+            self.__save_file(response, filename, as_zip=False, as_geojson=False)
+        else:
+            write_log(
+                f"File {filename} already exists in destination.", level="warning"
+            )
 
     @retry(tries=5, delay=1, backoff=2)
     def request_states_from_page(
