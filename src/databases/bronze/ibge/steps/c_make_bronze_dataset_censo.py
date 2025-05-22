@@ -1,11 +1,11 @@
 """
-This script retrieves data from the Censo 2010 and
-Censo 2022 datasets and saves it as parquet files and to database.
+This script retrieves data from the IBGE 2010 and
+IBGE 2022 datasets and saves it as parquet files and to database.
 
 The script contains the following functions:
-- get_mun_2010: Retrieves the municipalities data from the Censo 2010 dataset.
-- get_mun_2022: Retrieves the municipalities data from the Censo 2022 dataset.
-- get_sectors_2010: Retrieves the census sectors data from the Censo 2010 dataset.
+- get_mun_2010: Retrieves the municipalities data from the IBGE 2010 dataset.
+- get_mun_2022: Retrieves the municipalities data from the IBGE 2022 dataset.
+- get_sectors_2010: Retrieves the census sectors data from the IBGE 2010 dataset.
 - main: The main function that executes the script.
 
 Note: The script assumes the existence of certain contract files and directories.
@@ -80,7 +80,7 @@ def get_dompp_per_state_2022(state, **kwargs):
 
 def get_dompp_2022():
     """
-    Retrieves the DOMPP data from the Censo 2022 dataset.
+    Retrieves the DOMPP data from the IBGE 2022 dataset.
     """
     for state in tqdm(STATES):
         with mlflow.start_run(run_name=state, nested=True):
@@ -114,7 +114,7 @@ def add_mlflow_metrics(df: pd.DataFrame):
 @save_parquet_decorator(medallon="bronze")
 def get_ibge_data(layer_key, **kwargs):
     """
-    Retrieves the data from the Censo dataset.
+    Retrieves the data from the IBGE dataset.
 
     Args:
         layer_key (str): The key of the layer to use.
