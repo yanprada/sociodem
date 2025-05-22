@@ -56,11 +56,18 @@ silver:
     description: Energy infrastructure points of energy companies per hexagon
     queryYears: [2017, 2023]
     ifExists: append
-  
-  - tableName: aneel_sc_hexagon_{year}
+
+  - tableName: aneel_kring_hexagon_grp_{year}
     schema: infrastructure
-    physicalPath: databases/silver/aneel/sc_hexagon_{year}/
-    description: Energy infrastructure points of energy companies per hexagon
+    physicalPath: databases/silver/aneel/kring_hexagon_grp_{year}/
+    description: Energy consumption in hexagons with a kriging interpolation
+    queryYears: [2017, 2023]
+    ifExists: append
+
+  - tableName: aneel_no_mun_{year}
+    schema: infrastructure
+    physicalPath: databases/silver/aneel/no_mun{year}/
+    description: Municipalities that do not have a ponnot
     queryYears: [2017, 2023]
     ifExists: append
 
