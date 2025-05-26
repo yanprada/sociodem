@@ -41,7 +41,7 @@ mlflow.set_experiment(EXPERIMENT_NAME)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
 YEAR = 2019
-STATE = "AL"
+STATE = "MG"
 
 
 def process_image(file_path: str) -> gpd.GeoDataFrame:
