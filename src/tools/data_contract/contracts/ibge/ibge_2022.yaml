@@ -47,6 +47,14 @@ raw_data:
     queryYears: 2022
     ifExists: append
 
+  - contractName: censo_2022.yaml
+    tableName: censo_2022
+    schema: sociodemographic
+    physicalPath: raw_data/ibge/sociodemographic/2022/censo/
+    description: Sociodemographic data from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
 bronze:
   - contractName: dompp_2022.yaml
     tableName: dompp_2022
@@ -96,13 +104,30 @@ bronze:
     queryYears: 2022
     ifExists: append
 
-  - contractName: ibge_2022.yaml
-    tableName: ibge_2022
+  - contractName: censo_2022.yaml
+    tableName: censo_2022_{kwargs}
     schema: sociodemographic
-    physicalPath: databases/bronze/ibge/sociodemographic/2022/ibge/
+    physicalPath: databases/bronze/ibge/sociodemographic/2022/censo/
     description: Sociodemographic data from the 2022 Census
     queryYears: 2022
     ifExists: append
+    kwargs:
+      [
+        alfabetizacao_BR,
+        basico_BR_20250417,
+        caracteristicas_domicilio1_BR,
+        caracteristicas_domicilio2_BR_20250417,
+        caracteristicas_domicilio3_BR_20250417,
+        cor_ou_raca_BR,
+        demografia_BR,
+        domicilios_indigenas_BR,
+        domicilios_quilombolas_BR,
+        obitos_BR,
+        parentesco_BR,
+        pessoas_indigenas_BR,
+        pessoas_quilombolas_BR,
+        renda_responsavel_BR_csv,
+      ]
 
 silver:
   - contractName: dompp_2022.yaml
@@ -144,3 +169,19 @@ silver:
     description: Sectors from the 2022 Census. The same as bronze table.
     queryYears: 2022
     ifExists: replace
+
+  - contractName: dompp_sc.yaml
+    tableName: hex_unique_sc_2022
+    schema: layers
+    physicalPath: databases/silver/ibge/layers/2022/hex_unique_sc_2022/
+    description: Unique hexagons in the census sector
+    queryYears: 2022
+    ifExists: append
+
+  - contractName: dompp_sc.yaml
+    tableName: hex_unique_sc_2022_sc_info
+    schema: layers
+    physicalPath: databases/silver/ibge/layers/2022/hex_unique_sc_2022_sc_info/
+    description: Unique hexagons in the census sector with sector information
+    queryYears: 2022
+    ifExists: append
