@@ -679,8 +679,9 @@ class DBConnection(DBConnectionHandler):
             table_name (str): The name of the table on which to create the index.
             columns (list): A list of column names on which the index should be created.
         """
+        table_name_idx = table_name.replace('"', "").replace(" ", "")
         query = f"""
-                    CREATE INDEX IF NOT EXISTS {table_name}_idx_{"_".join(columns)}
+                    CREATE INDEX IF NOT EXISTS {table_name_idx}_idx_{"_".join(columns)}
                     ON {schema}.{table_name} 
                     ({", ".join(columns)})
                     """
