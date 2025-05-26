@@ -211,7 +211,7 @@ def get_db_path(contract: dict) -> str:
     Returns:
         str: The path of the database table.
     """
-    return ".".join([contract["schema"], contract["tableName"]])
+    return f"""{contract["schema"]}."{contract["tableName"]}" """
 
 
 def add_year_to_contract(contract: dict, year: int) -> dict:
