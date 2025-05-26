@@ -16,7 +16,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = None
+EXECUTION_ID = "bronze-ibge-2025-05-23-11h54m35s"
 
 BASE_PARAMS = {
     "medallon": "bronze",
