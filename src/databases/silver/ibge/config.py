@@ -16,7 +16,7 @@ from config.run_mode import DEBUG
 
 from src.tools.utils.execution_manager import ExecutionManagerWrapper
 
-EXECUTION_ID = "silver-ibge-2025-05-17-15h21m18s"
+EXECUTION_ID = "silver-ibge-2025-05-24-11h28m28s"
 BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "ibge",
@@ -28,10 +28,7 @@ BASE_PARAMS = {
     },
     "run_mode": "single_file" if DEBUG else "pipeline",
     "last_run": None,
-    "materialized_views": {
-        "hex_unique_sc_2022": "hex_unique_sc_2022",
-        "hex_unique_sc_2022_sc_info": "hex_unique_sc_2022_sc_info",
-    },
+    "materialized_views": {},
 }
 
 _manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
