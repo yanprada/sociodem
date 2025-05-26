@@ -87,6 +87,10 @@ class ExecutionManager:
                 new_contracts = {}
                 new_contracts.update(self.__expand_yearly_contracts(contract_result))
                 return new_contracts
+            if "kwargs" in contract_result.keys():
+                new_contracts = {}
+                new_contracts.update(self.__expand_kwargs_contracts(contract_result))
+                return new_contracts
             return {contract_result["tableName"]: contract_result}
         raise ValueError("Invalid contract format")
 
@@ -95,6 +99,8 @@ class ExecutionManager:
         for subc in subcontracts:
             if "{year}" in subc["tableName"]:
                 processed_subcontracts.update(self.__expand_yearly_contracts(subc))
+            if "kwargs" in subc.keys():
+                processed_subcontracts.update(self.__expand_kwargs_contracts(subc))
             else:
                 processed_subcontracts[subc["tableName"]] = subc
                 if isinstance(subc["queryYears"], list):
@@ -103,6 +109,13 @@ class ExecutionManager:
                 else:
                     self.params["years"] = [subc["queryYears"]]
         return processed_subcontracts
+
+    def __expand_kwargs_contracts(self, contract):
+        expanded_contracts = {}
+        for value in contract["kwargs"]:
+            contract_copy = self.__replace_value_in_subcontract(contract, value)
+            expanded_contracts[contract_copy["tableName"]] = contract_copy
+        return expanded_contracts
 
     def __expand_yearly_contracts(self, contract):
         expanded_contracts = {}
@@ -124,6 +137,16 @@ class ExecutionManager:
         for key, value in subc_copy.items():
             if isinstance(value, str) and "{year}" in value:
                 subc_copy[key] = value.replace("{year}", str(year))
+        return subc_copy
+
+    def __replace_value_in_subcontract(self, contract, k_value):
+        subc_copy = contract.copy()
+        subc_copy["tableName"] = subc_copy["tableName"].replace(
+            "{kwargs}", str(k_value)
+        )
+        for key, value in subc_copy.items():
+            if isinstance(value, str) and "{kwargs}" in value:
+                subc_copy[key] = value.replace("{kwargs}", str(k_value))
         return subc_copy
 
     def __create_execution_id(self, overwrite: bool):
