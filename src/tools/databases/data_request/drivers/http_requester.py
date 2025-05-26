@@ -8,6 +8,8 @@ import duckdb as db
 from tqdm import tqdm
 import requests
 import pandas as pd
+from bs4 import BeautifulSoup
+
 from retry import retry
 from src.tools.utils.common import write_log
 from src.tools.utils.constants import BBOX_BRAZIL, OVERTURE_RELEASE_VERSION
@@ -82,7 +84,7 @@ class HttpRequesterAneel:
                 )
 
 
-class HttpRequesterCenso:
+class HttpRequesterIBGE:
     """
     Http request class to download data from Aneel
     """
@@ -93,7 +95,7 @@ class HttpRequesterCenso:
             self.__base_url_layers = (
                 "https://geoftp.ibge.gov.br/organizacao_do_territorio/"
                 "malhas_territoriais/malhas_de_setores_censitarios__"
-                "divisoes_intramunicipais/censo_2010/"
+                "divisoes_intramunicipais/ibge_2010/"
                 "setores_censitarios_shp/"
             )
             self.__url_layers = "{base_url}{state}/{state}_{level}.zip"
@@ -106,12 +108,9 @@ class HttpRequesterCenso:
             self.__base_url_layers = (
                 "https://geoftp.ibge.gov.br/organizacao_do_territorio/"
                 "malhas_territoriais/malhas_de_setores_censitarios__"
-                "divisoes_intramunicipais/censo_2022_preliminar/"
+                "divisoes_intramunicipais/censo_2022/"
             )
-            self.__url_layers = (
-                "{base_url}{level}/shp/UF/{state}/"
-                "{state}_Malha_Preliminar{level_upper}_2022.zip"
-            )
+            self.__url_layers = "{base_url}{level}/shp/UF/{state}_{level}_CD2022.zip"
             self.__url_dompp = (
                 "https://ftp.ibge.gov.br/Cadastro_Nacional_de_Enderecos_para_Fins_Estatisticos/"
                 "Censo_Demografico_2022/Coordenadas_enderecos/UF/{state_code}_{state}.zip"
@@ -125,8 +124,13 @@ class HttpRequesterCenso:
                 "?formato=application/vnd.geo+json"
             )
             self.__url_censo = (
-                "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados"
-                "por_Setores_Censitarios/Agregados_por_Setor_csv/"
+                "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/"
+                "Agregados_por_Setores_Censitarios/Agregados_por_Setor_csv/"
+            )
+            self.__url_censo_renda = (
+                "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/"
+                "Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/"
+                "Agregados_por_setores_renda_responsavel_BR_csv.zip"
             )
         else:
             raise ValueError("Year must be 2010 or 2022")
@@ -145,24 +149,19 @@ class HttpRequesterCenso:
             f.write(response.content)
 
     def __save_file(
-        self, response: requests.Response, filename: str, as_zip=True, as_geojson=True
+        self, response: requests.Response, filename: str, as_zip=True
     ) -> None:
         if response.status_code == 200:
             if as_zip:
                 self.__save_response_as_zip(response, filename)
-            if as_geojson:
-                filename = filename + ".geojson"
-                self.__make_dir(filename)
-                with open(filename, "wb") as f:
-                    f.write(response.content)
             else:
-                filename = filename + ".csv"
+                filename = filename + ".geojson"
                 self.__make_dir(filename)
                 with open(filename, "wb") as f:
                     f.write(response.content)
         else:
             raise requests.exceptions.HTTPError(
-                f"Error {response.status_code} in request"
+                f"Error {response.status_code} in request for {filename}"
             )
 
     @retry(tries=5, delay=1, backoff=2)
@@ -198,13 +197,15 @@ class HttpRequesterCenso:
             level_upper = ""
         else:
             level_upper = "".join(["_", level.capitalize()[:-1]])
+
+        url = self.__url_layers.format(
+            base_url=self.__base_url_layers,
+            level=level,
+            state=state,
+            level_upper=level_upper,
+        )
         return requests.get(
-            self.__url_layers.format(
-                base_url=self.__base_url_layers,
-                level=level,
-                state=state,
-                level_upper=level_upper,
-            ),
+            url,
             timeout=10,
         )
 
@@ -223,7 +224,7 @@ class HttpRequesterCenso:
         )
 
     @retry(tries=5, delay=1, backoff=2)
-    def request_ibge_from_page(self, destination_path: str) -> None:
+    def request_censo_from_page(self, destination_path: str) -> None:
         """
         Requests censo from a web page and saves the response to a file.
 
@@ -232,18 +233,29 @@ class HttpRequesterCenso:
         """
         destination_dir = os.path.abspath(destination_path)
 
-        filename = os.path.join(destination_dir)
-        if not os.path.exists(f"{filename}.csv"):
-            write_log(f"Requesting Censo {self.year}.")
-            response = requests.get(self.__url_censo, timeout=10)
-            # import ipdb
-
-            # ipdb.set_trace()
-            self.__save_file(response, filename, as_zip=False, as_geojson=False)
-        else:
-            write_log(
-                f"File {filename} already exists in destination.", level="warning"
-            )
+        response = requests.get(self.__url_censo, timeout=10)
+        soup = BeautifulSoup(response.content, "html.parser")
+        links = [
+            a["href"]
+            for tr in soup.find_all("tr")
+            for a in tr.find_all("a", href=True)
+            if ".zip" in a["href"]
+        ]
+        links = links + ["Agregados_por_setores_renda_responsavel_BR_csv.zip"]
+        for link in tqdm(links, desc="Downloading census tables"):
+            filename = os.path.join(destination_dir, link).replace(".zip", "")
+            if not os.path.exists(f"{filename}.zip"):
+                write_log(f"Requesting Censo {self.year} table {link} .")
+                if link == "Agregados_por_setores_renda_responsavel_BR_csv.zip":
+                    url = self.__url_censo_renda
+                else:
+                    url = self.__url_censo + link
+                response = requests.get(url, timeout=10)
+                self.__save_file(response, filename, as_zip=True)
+            else:
+                write_log(
+                    f"File {filename} already exists in destination.", level="warning"
+                )
 
     @retry(tries=5, delay=1, backoff=2)
     def request_states_from_page(
