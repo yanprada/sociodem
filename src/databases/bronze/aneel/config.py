@@ -13,7 +13,7 @@ import os
 
 from config.run_mode import DEBUG
 
-from src.tools.utils.execution_manager import ExecutionManagerWrapper
+from src.tools.managers.execution_manager import ExecutionManagerWrapper
 
 # main run = "bronze-aneel-2025-03-13-15h51m53s"
 

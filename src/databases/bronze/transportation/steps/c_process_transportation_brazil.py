@@ -1,9 +1,9 @@
 """
 This module contains functions for processing places in Brazil.
 
-The main function `main` reads the files in the specified path, 
+The main function `main` reads the files in the specified path,
 divides the workload among the available workers,
-and processes the files using the `process_files` function. 
+and processes the files using the `process_files` function.
 It also handles any exceptions that occur
 during the processing and logs them using the `write_log` function.
 
@@ -29,14 +29,14 @@ from src.tools.utils.common import generate_random_string, get_db_path
 from src.tools.utils.constants import CRS_GLOBAL
 from src.tools.databases.data_connection.connection import DBConnection
 
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.bronze.transportation.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 
 TRANSPORT_CONTRACTS = execution_parameters["data_contracts"]["transportation_bronze"]
 

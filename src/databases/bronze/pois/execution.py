@@ -3,7 +3,7 @@ This module contains the pipeline for processing buildings data.
 """
 
 from src.databases.bronze.pois.config import EXECUTION_ID, BASE_PARAMS
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.bronze.pois.steps import (
     a_download_places,
     b_process_places_bbox,

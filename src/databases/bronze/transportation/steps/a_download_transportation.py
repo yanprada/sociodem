@@ -1,5 +1,5 @@
 """
-This script is used to download files from an S3 bucket with 
+This script is used to download files from an S3 bucket with
 a given prefix.
 
 """
@@ -11,14 +11,14 @@ from src.tools.databases.data_request.drivers.http_requester import (
 )
 
 
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.bronze.transportation.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 
 TRANSPORT_CONTRACTS = execution_parameters["data_contracts"]["transportation_bronze"]
 

@@ -17,7 +17,7 @@ from src.tools.utils.constants import BUILDING_PARTITIONS, CRS_GLOBAL
 from src.tools.utils.reader import Reader
 from src.tools.utils.loader import Loader
 from src.tools.utils.h3 import add_h3_index_to_small_geom
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
@@ -28,7 +28,7 @@ CONTRACT_RAW_DATA = execution_parameters["data_contracts"]["raw_data"]
 CONTRACT_BRONZE = execution_parameters["data_contracts"]["bronze"]
 
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 
 
 def set_crs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:

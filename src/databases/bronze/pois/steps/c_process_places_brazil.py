@@ -29,7 +29,7 @@ from src.tools.utils.save import save_parquet_decorator
 from src.tools.utils.common import generate_random_string, get_db_path
 from src.tools.utils.constants import CRS_GLOBAL, HEX_RESOLUTION
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.bronze.pois.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 

@@ -1,13 +1,13 @@
 """
-This script reads parquet files from a specified path, 
-filters the data based on a bounding box, and saves the filtered 
+This script reads parquet files from a specified path,
+filters the data based on a bounding box, and saves the filtered
 data as parquet files.
 
 The script contains the following functions:
-- read_files(file): Reads the parquet files from the specified 
+- read_files(file): Reads the parquet files from the specified
     path and returns the data.
 - save_file(df, **kwargs): Saves the DataFrame in the specified path.
-- main(): Reads files from a specified bucket and prefix, filters 
+- main(): Reads files from a specified bucket and prefix, filters
     the data, and saves the filtered files.
 """
 
@@ -22,14 +22,14 @@ from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterOvertureMaps,
 )
 from src.tools.utils.save import save_parquet_decorator
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.bronze.pois.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 
 manager = ExecutionManager(BASE_PARAMS)
 execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
 module_name = os.path.basename(__file__).replace(".py", "")
-manager.update_status(execution_parameters, module_name)
+manager.update_status(module_name)
 
 POIS_CONTRACTS = execution_parameters["data_contracts"]["pois_bronze"]
 

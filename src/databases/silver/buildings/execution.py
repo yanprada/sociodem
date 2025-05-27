@@ -3,7 +3,7 @@ This module contains the pipeline for processing buildings data.
 """
 
 from src.databases.silver.buildings.config import EXECUTION_ID, BASE_PARAMS
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 
 from src.databases.silver.buildings.steps import a_join_google_omf
 from config.run_mode import DEBUG

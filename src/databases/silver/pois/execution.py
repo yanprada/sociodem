@@ -3,7 +3,7 @@ This module contains the pipeline for processing buildings data.
 """
 
 from src.databases.silver.pois.config import EXECUTION_ID, BASE_PARAMS
-from src.tools.utils.execution_manager import ExecutionManager
+from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.silver.pois.steps import a_create_places_hex
 from config.run_mode import DEBUG
 

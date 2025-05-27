@@ -14,7 +14,7 @@ import os
 
 from config.run_mode import DEBUG
 
-from src.tools.utils.execution_manager import ExecutionManagerWrapper
+from src.tools.managers.execution_manager import ExecutionManagerWrapper
 
 EXECUTION_ID = "silver-ibge-2025-05-24-11h28m28s"
 BASE_PARAMS = {
