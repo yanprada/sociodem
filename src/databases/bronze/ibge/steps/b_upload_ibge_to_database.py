@@ -22,8 +22,8 @@ from tqdm import tqdm
 import unidecode
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.managers.reader_manager import Reader
-from src.tools.managers.saver_manager import save_parquet_decorator
+from src.tools.managers.reader import Reader
+from src.tools.managers.saver import save_parquet_decorator
 from src.tools.utils.constants import STATES, CRS_GLOBAL, CRS_IBGE
 from src.tools.utils.common import write_log, get_ml_flow_data, get_db_path
 

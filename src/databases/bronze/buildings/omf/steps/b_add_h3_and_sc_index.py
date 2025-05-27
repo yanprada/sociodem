@@ -12,12 +12,12 @@ import os
 import geopandas as gpd
 from tqdm import tqdm
 
-from src.tools.managers.saver_manager import save_parquet_decorator
+from src.tools.managers.saver import save_parquet_decorator
 from src.tools.utils.constants import BUILDING_PARTITIONS, CRS_GLOBAL
-from src.tools.managers.reader_manager import Reader
-from src.tools.managers.loader_manager import Loader
+from src.tools.managers.reader import Reader
+from src.tools.managers.loader import Loader
 from src.tools.utils.h3 import add_h3_index_to_small_geom
-from src.tools.managers.execution_manager import ExecutionManager
+from src.tools.managers.execution import ExecutionManager
 from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 

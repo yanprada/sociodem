@@ -22,7 +22,7 @@ from tqdm import tqdm
 from src.tools.databases.data_connection.connection import DBConnection
 
 from src.tools.utils.constants import MAPBIOMAS_CLASSES
-from src.tools.managers.saver_manager import save_parquet_decorator
+from src.tools.managers.saver import save_parquet_decorator
 from src.tools.utils.common import write_log, get_db_path
 from src.databases.silver.mapbiomas.config import (
     manager,

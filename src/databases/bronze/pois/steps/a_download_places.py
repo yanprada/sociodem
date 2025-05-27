@@ -9,7 +9,7 @@ import os
 from src.tools.databases.data_request.drivers.http_requester import (
     HttpRequesterOvertureMaps,
 )
-from src.tools.managers.execution_manager import ExecutionManager
+from src.tools.managers.execution import ExecutionManager
 from src.databases.bronze.pois.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 

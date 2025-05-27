@@ -7,7 +7,7 @@ and filter the DataFrame by the year 2023.
 import os
 import pandas as pd
 
-from src.tools.managers.reader_manager import Reader
+from src.tools.managers.reader import Reader
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 from src.databases.bronze.aneel.config import (
     manager,

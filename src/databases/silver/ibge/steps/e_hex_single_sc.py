@@ -5,7 +5,7 @@ import pandas as pd
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import get_db_path, write_log
-from src.tools.managers.saver_manager import save_parquet_decorator
+from src.tools.managers.saver import save_parquet_decorator
 
 from src.databases.silver.ibge.config import manager, CONTRACTS_SILVER, CONTRACTS_BRONZE
 

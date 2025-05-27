@@ -37,7 +37,7 @@ import numpy as np
 from shapely import wkb
 import geopandas as gpd
 
-from src.tools.managers.reader_manager import Reader
+from src.tools.managers.reader import Reader
 from src.tools.utils.common import write_log, get_db_path
 from src.tools.databases.data_connection.connection import DBConnection
 from src.databases.bronze.aneel.config import (

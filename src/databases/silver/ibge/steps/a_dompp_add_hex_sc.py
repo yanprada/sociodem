@@ -29,7 +29,7 @@ from tqdm import tqdm
 from dask.distributed import Client, LocalCluster, as_completed
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.managers.loader_manager import Loader
+from src.tools.managers.loader import Loader
 
 from src.tools.utils.common import get_db_path, write_log
 from src.tools.utils.h3 import create_hex_col_from_dot
@@ -37,7 +37,7 @@ from src.tools.utils.constants import (
     DOMPP_CLASSES,
     CRS_GLOBAL,
 )
-from src.tools.managers.saver_manager import save_parquet_decorator
+from src.tools.managers.saver import save_parquet_decorator
 
 from src.databases.silver.ibge.config import (
     manager,

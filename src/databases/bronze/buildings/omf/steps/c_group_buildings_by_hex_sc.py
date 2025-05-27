@@ -7,7 +7,7 @@ import os
 
 from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import write_log, get_db_path
-from src.tools.managers.execution_manager import ExecutionManager
+from src.tools.managers.execution import ExecutionManager
 from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
 from config.run_mode import DEBUG
 

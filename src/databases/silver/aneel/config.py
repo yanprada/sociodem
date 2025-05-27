@@ -13,7 +13,7 @@ import os
 
 from config.run_mode import DEBUG
 
-from src.tools.managers.execution_manager import ExecutionManagerWrapper
+from src.tools.managers.execution import ExecutionManagerWrapper
 
 
 EXECUTION_ID = "silver-aneel-2025-05-18-15h46m31s"

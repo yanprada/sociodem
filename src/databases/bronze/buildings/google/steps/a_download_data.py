@@ -19,9 +19,9 @@ Functions:
 import os
 from tqdm import tqdm
 
-from src.tools.managers.reader_manager import Reader
+from src.tools.managers.reader import Reader
 from src.tools.utils.constants import CRS_GLOBAL
-from src.tools.managers.saver_manager import save_parquet_decorator
+from src.tools.managers.saver import save_parquet_decorator
 
 
 from src.databases.bronze.buildings.google.config import (
