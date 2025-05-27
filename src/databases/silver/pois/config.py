@@ -1,5 +1,5 @@
 """
-This module contains the configuration settings for the bronze 
+This module contains the configuration settings for the bronze
     database related to the Buildings data.
 
 Attributes:
@@ -14,7 +14,6 @@ import os
 
 from src.tools.data_contract.pois_data_contract import get_pois_contracts
 
-from config.run_mode import DEBUG
 
 EXECUTION_ID = "silver-pois-EuKrqaMAD1JmO5c"
 
@@ -23,6 +22,6 @@ BASE_PARAMS = {
     "data_name": "pois",
     "config_path": os.path.abspath(__file__),
     "data_contracts": [get_pois_contracts("bronze"), get_pois_contracts("silver")],
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
 }

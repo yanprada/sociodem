@@ -13,10 +13,10 @@ from src.tools.databases.data_request.drivers.http_requester import (
 
 from src.tools.managers.execution import ExecutionManager
 from src.databases.bronze.transportation.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+
 
 manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, overwrite=True)
 module_name = os.path.basename(__file__).replace(".py", "")
 manager.update_status(module_name)
 

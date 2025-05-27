@@ -19,10 +19,10 @@ from src.tools.managers.loader import Loader
 from src.tools.utils.h3 import add_h3_index_to_small_geom
 from src.tools.managers.execution import ExecutionManager
 from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+
 
 manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, overwrite=True)
 
 CONTRACT_RAW_DATA = execution_parameters["data_contracts"]["raw_data"]
 CONTRACT_BRONZE = execution_parameters["data_contracts"]["bronze"]

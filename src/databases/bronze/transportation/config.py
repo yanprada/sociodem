@@ -15,7 +15,6 @@ import os
 from src.tools.data_contract.transport_data_contract import get_transportation_contracts
 from src.tools.data_contract.ibge_data_contract import get_ibge_contracts
 
-from config.run_mode import DEBUG
 
 EXECUTION_ID = None
 
@@ -27,6 +26,6 @@ BASE_PARAMS = {
         "transportation_bronze": get_transportation_contracts("bronze"),
         "ibge_bronze": get_ibge_contracts("bronze"),
     },
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
 }

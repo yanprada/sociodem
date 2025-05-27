@@ -9,10 +9,10 @@ from src.tools.managers.loader import Loader
 from src.tools.managers.saver import save_parquet_decorator
 from src.tools.managers.execution import ExecutionManager
 from src.databases.silver.pois.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
+
 
 manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, overwrite=True)
 manager.update_status("running_step_1")
 
 CONTRACT_BRONZE = execution_parameters["data_contracts"][0]

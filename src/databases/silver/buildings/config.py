@@ -1,5 +1,5 @@
 """
-This module contains the configuration settings for the bronze 
+This module contains the configuration settings for the bronze
     database related to the Buildings data.
 
 Attributes:
@@ -13,7 +13,7 @@ Attributes:
 import os
 
 from src.tools.data_contract.buildings_data_contract import get_buildings_contracts
-from config.run_mode import DEBUG
+
 
 EXECUTION_ID = None
 
@@ -24,6 +24,6 @@ BASE_PARAMS = {
     "data_contracts": [
         get_buildings_contracts("silver"),
     ],
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
 }

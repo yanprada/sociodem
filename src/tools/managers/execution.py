@@ -337,9 +337,9 @@ class ExecutionManager:
 class ExecutionManagerWrapper:
     """Classe wrapper para gerenciar instâncias únicas de ExecutionManager."""
 
-    def __init__(self, base_params, execution_id, debug):
+    def __init__(self, base_params, execution_id, overwrite):
         self._manager = ExecutionManager(base_params)
-        self._manager.initialize_execution(execution_id, debug)
+        self._manager.initialize_execution(execution_id, overwrite)
 
     @property
     def manager(self):

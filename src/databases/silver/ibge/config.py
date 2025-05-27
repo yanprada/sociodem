@@ -12,7 +12,6 @@ Attributes:
 
 import os
 
-from config.run_mode import DEBUG
 
 from src.tools.managers.execution import ExecutionManagerWrapper
 
@@ -26,12 +25,12 @@ BASE_PARAMS = {
         "bronze_data_2010": ["bronze", "ibge", "ibge_2010"],
         "silver_data_2022": ["silver", "ibge", "ibge_2022"],
     },
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
     "materialized_views": {},
 }
 
-_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, overwrite=True)
 manager = _manager_wrapper.manager
 
 CONTRACT_BRONZE_2010 = manager.execution_details["data_contracts"]["bronze_data_2010"]

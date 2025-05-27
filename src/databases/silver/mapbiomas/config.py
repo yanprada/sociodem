@@ -12,7 +12,6 @@ Attributes:
 
 import os
 
-from config.run_mode import DEBUG
 
 from src.tools.managers.execution import ExecutionManagerWrapper
 
@@ -25,13 +24,13 @@ BASE_PARAMS = {
         "mapbiomas_bronze": ["bronze", "mapbiomas", "brazil_coverage"],
         "mapbiomas_silver": ["silver", "mapbiomas", "brazil_coverage"],
     },
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
     "materialized_views": {},
 }
 
 
-_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, overwrite=True)
 manager = _manager_wrapper.manager
 
 CONTRACTS_BRONZE = manager.execution_details["data_contracts"]["mapbiomas_bronze"]

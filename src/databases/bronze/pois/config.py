@@ -15,7 +15,6 @@ import os
 from src.tools.data_contract.pois_data_contract import get_pois_contracts
 from src.tools.data_contract.ibge_data_contract import get_ibge_contracts
 
-from config.run_mode import DEBUG
 
 EXECUTION_ID = "bronze-pois-Ioz9Kgv4r8LFXUD"
 
@@ -27,6 +26,6 @@ BASE_PARAMS = {
         "pois_bronze": get_pois_contracts("bronze"),
         "ibge_bronze": get_ibge_contracts("bronze"),
     },
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
 }

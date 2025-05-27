@@ -9,11 +9,10 @@ from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.common import write_log, get_db_path
 from src.tools.managers.execution import ExecutionManager
 from src.databases.bronze.buildings.omf.config import EXECUTION_ID, BASE_PARAMS
-from config.run_mode import DEBUG
 
 
 manager = ExecutionManager(BASE_PARAMS)
-execution_parameters = manager.get_execution_details(EXECUTION_ID, DEBUG)
+execution_parameters = manager.get_execution_details(EXECUTION_ID, overwrite=True)
 
 CONTRACT_BRONZE = execution_parameters["data_contracts"]["bronze"]
 

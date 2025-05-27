@@ -11,7 +11,6 @@ Attributes:
 
 import os
 
-from config.run_mode import DEBUG
 
 from src.tools.managers.execution import ExecutionManagerWrapper
 
@@ -29,7 +28,7 @@ BASE_PARAMS = {
         "aneel_raw": ["raw_data", "aneel", "energy"],
         "aneel_company_ids": ["raw_data", "aneel", "company_ids"],
     },
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
     "materialized_views": {
         "common": "{path}_companies_already_processed_v2",
@@ -38,7 +37,7 @@ BASE_PARAMS = {
     },
 }
 
-_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, overwrite=True)
 manager = _manager_wrapper.manager
 
 

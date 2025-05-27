@@ -11,7 +11,6 @@ Attributes:
 
 import os
 
-from config.run_mode import DEBUG
 
 from src.tools.managers.execution import ExecutionManagerWrapper
 
@@ -25,12 +24,12 @@ BASE_PARAMS = {
         "aneel_bronze": ["bronze", "aneel", "energy"],
         "aneel_silver": ["silver", "aneel", "energy"],
     },
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
     "materialized_views": {},
 }
 
-_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, overwrite=True)
 manager = _manager_wrapper.manager
 
 

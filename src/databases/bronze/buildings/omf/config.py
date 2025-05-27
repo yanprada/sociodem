@@ -12,7 +12,6 @@ Attributes:
 
 import os
 
-from config.run_mode import DEBUG
 
 from src.tools.managers.execution import ExecutionManagerWrapper
 
@@ -26,11 +25,11 @@ BASE_PARAMS = {
         "omf_raw_data": ["raw_data", "buildings", "omf"],
         "omf_bronze": ["bronze", "buildings", "omf"],
     },
-    "run_mode": "single_file" if DEBUG else "pipeline",
+    "run_mode": "dev",
     "last_run": None,
 }
 
-_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, DEBUG)
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, overwrite=True)
 manager = _manager_wrapper.manager
 
 
