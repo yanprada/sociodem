@@ -25,7 +25,7 @@ import geopandas as gpd
 
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.utils.reader import Reader
+from src.tools.managers.reader_manager import Reader
 from src.tools.managers.saver_manager import save_parquet_decorator
 from src.tools.utils.common import (
     check_file_exists_in_db,

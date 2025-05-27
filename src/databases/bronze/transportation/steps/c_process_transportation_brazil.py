@@ -23,7 +23,7 @@ import pandas as pd
 import geopandas as gpd
 
 
-from src.tools.utils.reader import Reader
+from src.tools.managers.reader_manager import Reader
 from src.tools.managers.saver_manager import save_parquet_decorator
 from src.tools.utils.common import generate_random_string, get_db_path
 from src.tools.utils.constants import CRS_GLOBAL

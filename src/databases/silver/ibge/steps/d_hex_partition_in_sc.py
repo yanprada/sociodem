@@ -17,7 +17,7 @@ import pandas as pd
 import geopandas as gpd
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.utils.loader import Loader
+from src.tools.managers.loader_manager import Loader
 
 from src.tools.utils.common import get_db_path
 from src.tools.managers.saver_manager import save_parquet_decorator

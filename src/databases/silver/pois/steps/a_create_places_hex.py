@@ -5,7 +5,7 @@ This module contains functions for creating and processing Places data in the si
 from typing import List
 import pandas as pd
 
-from src.tools.utils.loader import Loader
+from src.tools.managers.loader_manager import Loader
 from src.tools.managers.saver_manager import save_parquet_decorator
 from src.tools.managers.execution_manager import ExecutionManager
 from src.databases.silver.pois.config import EXECUTION_ID, BASE_PARAMS

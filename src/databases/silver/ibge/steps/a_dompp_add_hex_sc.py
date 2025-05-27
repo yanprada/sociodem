@@ -29,7 +29,7 @@ from tqdm import tqdm
 from dask.distributed import Client, LocalCluster, as_completed
 
 from src.tools.databases.data_connection.connection import DBConnection
-from src.tools.utils.loader import Loader
+from src.tools.managers.loader_manager import Loader
 
 from src.tools.utils.common import get_db_path, write_log
 from src.tools.utils.h3 import create_hex_col_from_dot

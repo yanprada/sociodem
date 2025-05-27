@@ -1,5 +1,5 @@
 """
-This module provides functions to load ANEEL IDs from a CSV file, 
+This module provides functions to load ANEEL IDs from a CSV file,
 split the tags column into multiple columns,
 and filter the DataFrame by the year 2023.
 """
@@ -7,7 +7,7 @@ and filter the DataFrame by the year 2023.
 import os
 import pandas as pd
 
-from src.tools.utils.reader import Reader
+from src.tools.managers.reader_manager import Reader
 from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
 from src.databases.bronze.aneel.config import (
     manager,
