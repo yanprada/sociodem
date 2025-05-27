@@ -20,7 +20,7 @@ from src.tools.databases.data_connection.connection import DBConnection
 from src.tools.utils.loader import Loader
 
 from src.tools.utils.common import get_db_path
-from src.tools.utils.save import save_parquet_decorator
+from src.tools.managers.saver_manager import save_parquet_decorator
 from src.tools.utils.h3 import add_h3_index_to_large_geom
 
 from src.databases.silver.ibge.config import (

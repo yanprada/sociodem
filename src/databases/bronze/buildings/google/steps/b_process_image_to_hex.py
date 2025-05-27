@@ -28,7 +28,7 @@ from pyproj import Transformer
 
 from src.tools.utils.constants import HEX_RESOLUTION, CRS_GLOBAL
 from src.tools.utils.common import write_log
-from src.tools.utils.save import save_parquet_decorator
+from src.tools.managers.saver_manager import save_parquet_decorator
 from src.databases.bronze.buildings.google.config import (
     manager,
     BUILDING_CONTRACTS_BRONZE,

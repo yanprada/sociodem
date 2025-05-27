@@ -12,7 +12,7 @@ import os
 import geopandas as gpd
 from tqdm import tqdm
 
-from src.tools.utils.save import save_parquet_decorator
+from src.tools.managers.saver_manager import save_parquet_decorator
 from src.tools.utils.constants import BUILDING_PARTITIONS, CRS_GLOBAL
 from src.tools.utils.reader import Reader
 from src.tools.utils.loader import Loader
