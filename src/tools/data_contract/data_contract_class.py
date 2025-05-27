@@ -20,6 +20,7 @@ Usage example:
 import os
 import yaml
 
+
 SOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "contracts")
 
 
@@ -65,7 +66,13 @@ class DataContract:
                 return self.__get_contract(meddalon, path)
         raise FileNotFoundError(f"Contract not found: {table_name}")
 
-    def public_method(self):
+    def post_contract(self, contract: dict, path: str = None):
         """
-        This is a public method.
+        Overrides the contract column datatypes and saves the updated data to a YAML file.
+
+        Args:
+            contract (dict): The dictionary containing the contract column datatypes.
+            path (str, optional): The path to save the contract.
         """
+        with open(path, "w", encoding="utf-8") as file:
+            yaml.dump(contract, file)
