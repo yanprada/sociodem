@@ -330,7 +330,7 @@ def generate_grouped_columns(df: pd.DataFrame) -> pd.DataFrame:
             clas_sub,
             pn_con,
             
-            -- Sum & Mean of energy-related columns
+            -- Sum & Mean of energy-related columns (ignoring zeros)
             {energy_columns},
 
             -- Aggregations for 'dat_con'
@@ -345,9 +345,15 @@ def generate_grouped_columns(df: pd.DataFrame) -> pd.DataFrame:
         GROUP BY 1, 2, 3, 4, 5, 6, 7
         """
         energy_cols = [col for col in df.columns if col.startswith("ene_")]
+        # The mean calculation is done by dividing the sum of non-zero values
+        # by the count of non-zero values. This is done because of the nature of the data,
+        # where zero values are common and should not be included in the mean calculation.
         energy_agg = ", ".join(
             [
-                f"SUM({col}) AS {col}_sum, AVG({col}) AS {col}_mean"
+                f"SUM({col}) AS {col}_sum, "
+                f"SUM(CASE WHEN {col} != 0 THEN {col} ELSE NULL END) /"
+                f"COUNT(CASE WHEN {col} != 0 THEN {col} ELSE NULL END) AS {col}_mean, "
+                f"MEDIAN({col}) AS {col}_median"
                 for col in energy_cols
             ]
         )
