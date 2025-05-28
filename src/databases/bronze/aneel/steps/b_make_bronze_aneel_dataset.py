@@ -511,7 +511,7 @@ def assert_sum_energy_db_and_mlflow_are_equal(conn: DBConnection, results: dict)
                 """
     ).squeeze()
     np.testing.assert_almost_equal(
-        sum_energy_db, results["metrics"]["sum_energy"], decimal=0
+        sum_energy_db, results["metrics"]["sum_energy"], decimal=0  # type: ignore
     )
 
 
@@ -566,7 +566,9 @@ def assert_lenth_are_equal(conn: DBConnection, results: dict):
         f"""SELECT count(*) FROM {path} where company_file= '{company_id}'"""
     ).squeeze()
 
-    np.testing.assert_almost_equal(length_db, results["metrics"]["num_rows"], decimal=0)
+    np.testing.assert_almost_equal(
+        length_db, results["metrics"]["num_rows"], decimal=0  # type: ignore
+    )
 
 
 def process_small_files(files: list, max_num_cores: int, parallel: bool = True) -> None:
