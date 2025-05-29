@@ -22,12 +22,12 @@ from dask.distributed import Client, LocalCluster, progress
 from dask import dataframe as dd
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import Polygon
 from pyproj import Transformer
 
 
 from src.tools.utils.constants import HEX_RESOLUTION, CRS_GLOBAL
 from src.tools.utils.common import write_log
+from src.tools.utils.h3 import get_h3_geom
 from src.tools.managers.saver import save_parquet_decorator
 from src.databases.bronze.buildings.google.config import (
     manager,
@@ -41,7 +41,7 @@ mlflow.set_experiment(EXPERIMENT_NAME)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
 YEAR = 2019
-STATE = "MG"
+STATE = "MS"
 
 
 def process_image(file_path: str) -> gpd.GeoDataFrame:
@@ -94,19 +94,29 @@ def add_hexagons(lats_lons, building_counts):
     Adds hexagon indices to latitude and longitude coordinates and aggregates building counts.
     Ensures consistent CRS handling.
     """
-    h3_indices = np.vectorize(h3.geo_to_h3)(
-        lats_lons[:, 1], lats_lons[:, 0], HEX_RESOLUTION
-    )
-    df = pd.DataFrame({"h3_index": h3_indices, "building_count": building_counts})
-    df = df[df["building_count"] > 0]
-    grouped = df.groupby("h3_index")["building_count"].sum().reset_index()
+    # Filter out zero counts upfront to reduce processing
+    valid_mask = building_counts > 0
+    if not valid_mask.any():
+        return gpd.GeoDataFrame(
+            columns=["h3_index", "building_count", "geometry"], crs=CRS_GLOBAL
+        )
 
-    geometries = grouped["h3_index"].apply(  # type: ignore
-        lambda h: Polygon(h3.h3_to_geo_boundary(h, geo_json=True))  # type: ignore
-    )
-    gdf = gpd.GeoDataFrame(grouped, geometry=geometries, crs=CRS_GLOBAL)
+    valid_coords = lats_lons[valid_mask]
+    valid_counts = building_counts[valid_mask]
 
-    return gdf
+    # Vectorized H3 index generation
+    h3_indices = np.vectorize(h3.latlng_to_cell, otypes=[object])(
+        valid_coords[:, 1], valid_coords[:, 0], HEX_RESOLUTION
+    )
+
+    # Direct aggregation using pandas groupby
+    df = pd.DataFrame({"h3_index": h3_indices, "building_count": valid_counts})
+    grouped = df.groupby("h3_index", as_index=False)["building_count"].sum()
+
+    # Batch geometry creation
+    geometries = grouped["h3_index"].apply(get_h3_geom).tolist()
+
+    return gpd.GeoDataFrame(grouped, geometry=geometries, crs=CRS_GLOBAL)
 
 
 @save_parquet_decorator(medallon="bronze")

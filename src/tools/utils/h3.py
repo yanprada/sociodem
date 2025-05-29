@@ -3,7 +3,7 @@ This module provides utility functions for working with H3 indexes and GeoDataFr
 
 Functions:
 - flatten_multipolygon(multipolygon: dict) -> dict: Flattens a MultiPolygon into a Polygon.
-- add_h3_index_to_geopandas(gdf: gpd.GeoDataFrame) -> 
+- add_h3_index_to_geopandas(gdf: gpd.GeoDataFrame) ->
     gpd.GeoDataFrame: Adds H3 index to a GeoDataFrame.
 """
 
@@ -55,10 +55,10 @@ def add_h3_index_to_small_geom(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         temp = mapping(g)
         temp["coordinates"] = [[[j[1], j[0]] for j in i] for i in temp["coordinates"]]
         temp = flatten_multipolygon(temp)
-        h3_index = list(h3.polyfill(temp, HEX_RESOLUTION))
+        h3_index = list(h3.polygon_to_cells(temp, HEX_RESOLUTION))
         if not h3_index:
             centroid = g.centroid
-            h3_index = [h3.geo_to_h3(centroid.y, centroid.x, HEX_RESOLUTION)]
+            h3_index = [h3.latlng_to_cell(centroid.y, centroid.x, HEX_RESOLUTION)]
         if len(h3_index) > 1:
             idx = random.randint(0, len(h3_index) - 1)
             h3_index = [list(h3_index)[idx]]
@@ -88,10 +88,10 @@ def process_in_batches(gdf: gpd.GeoDataFrame, key: str) -> Tuple[List[str], List
         temp = mapping(g)
         temp["coordinates"] = [[[j[1], j[0]] for j in i] for i in temp["coordinates"]]
         temp = flatten_multipolygon(temp)
-        hex_ids = list(h3.polyfill(temp, HEX_RESOLUTION))
+        hex_ids = list(h3.polygon_to_cells(temp, HEX_RESOLUTION))
         if not hex_ids:
             centroid = g.centroid
-            hex_ids = [h3.geo_to_h3(centroid.y, centroid.x, HEX_RESOLUTION)]
+            hex_ids = [h3.latlng_to_cell(centroid.y, centroid.x, HEX_RESOLUTION)]
         cod_sc = [k] * len(hex_ids)
         hex_list.extend(hex_ids)
         cod_list.extend(cod_sc)
@@ -104,7 +104,7 @@ def process_in_batches(gdf: gpd.GeoDataFrame, key: str) -> Tuple[List[str], List
 
 def add_h3_index_to_large_geom(
     gdf: gpd.GeoDataFrame, key: str, paralel: bool = False
-) -> gpd.GeoDataFrame:
+) -> pd.DataFrame:
     """
     Adds H3 index to a GeoDataFrame.
 
@@ -112,7 +112,7 @@ def add_h3_index_to_large_geom(
     gdf (gpd.GeoDataFrame): The input GeoDataFrame.
 
     Returns:
-    gpd.GeoDataFrame: The GeoDataFrame with H3 index added.
+    pd.DataFrame: The DataFrame with H3 index added.
     """
     if paralel:
         hex_list = []
@@ -128,21 +128,21 @@ def add_h3_index_to_large_geom(
         for future in tqdm(
             as_completed(futures), total=len(futures), desc="Adding H3 index"
         ):
-            result_hex, result_cod = future.result()
+            result_hex, result_cod = future.result()  # type: ignore
             hex_list.extend(result_hex)
             cod_list.extend(result_cod)
         client.close()
     else:
         hex_list, cod_list = process_in_batches(gdf, key)
     dfh = pd.DataFrame({"hex_col": hex_list, key: cod_list})
-    gdf = pd.DataFrame(gdf.drop(columns="geometry"))
+    gdf = pd.DataFrame(gdf.drop(columns="geometry"))  # type: ignore
     return pd.merge(dfh, gdf, on=key)
 
 
 def get_h3_geom(h3_index: str) -> Polygon:
     """Convert an H3 index to a Shapely Polygon."""
-    boundary = h3.h3_to_geo_boundary(h3_index, geo_json=True)
-    polygon = Polygon(boundary)
+    boundary = h3.cell_to_boundary(h3_index)
+    polygon = Polygon([(lon, lat) for lat, lon in boundary])
     return polygon
 
 
@@ -157,7 +157,9 @@ def create_hex_col_from_dot(df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         DataFrame: The DataFrame with the new column.
     """
     df["hex_col"] = df.apply(
-        lambda row: h3.geo_to_h3(row["latitude"], row["longitude"], HEX_RESOLUTION),
+        lambda row: h3.latlng_to_cell(
+            row["latitude"], row["longitude"], HEX_RESOLUTION
+        ),
         axis=1,
     )
     return df
@@ -178,7 +180,7 @@ def kring_smoothing(df, hex_col, metric_col, k):
     dfk.index = dfk[hex_col]
     dfs = (
         dfk[hex_col]
-        .apply(lambda x: pd.Series(list(h3.k_ring(x, k))))
+        .apply(lambda x: pd.Series(list(h3.grid_ring(x, k))))
         .stack()
         .to_frame("hexk")
         .reset_index(1, drop=True)
@@ -191,8 +193,8 @@ def kring_smoothing(df, hex_col, metric_col, k):
         .reset_index()
         .rename(index=str, columns={"hexk": hex_col})
     )
-    dfs["lat"] = dfs[hex_col].apply(lambda x: h3.h3_to_geo(x)[0])
-    dfs["lng"] = dfs[hex_col].apply(lambda x: h3.h3_to_geo(x)[1])
+    dfs["lat"] = dfs[hex_col].apply(lambda x: h3.cell_to_latlng(x)[0])
+    dfs["lng"] = dfs[hex_col].apply(lambda x: h3.cell_to_latlng(x)[1])
     return dfs
 
 
@@ -227,7 +229,7 @@ def weighted_kring_smoothing(df, hex_col, metric_col, coef):
         temp2.append(
             (
                 df_agg["hexk"]
-                .apply(lambda x, k_var=k_var: pd.Series(list(h3.hex_ring(x, k_var))))
+                .apply(lambda x, k_var=k_var: pd.Series(list(h3.grid_ring(x, k_var))))
                 .stack()
                 .to_frame("hexk")
                 .reset_index(1, drop=True)
