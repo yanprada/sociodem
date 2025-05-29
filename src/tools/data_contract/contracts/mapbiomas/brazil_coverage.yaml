@@ -23,11 +23,17 @@ bronze:
     queryYears: [2016, 2023]
     ifExists: append
 
+  - tableName: unique_hex_{year}
+    schema: land_use
+    physicalPath: databases/bronze/mapbiomas/unique_hex_{year}/
+    description:
+    queryYears: [2016, 2023]
+    ifExists: replace
 silver:
-  contractName: contract_layers_mapbiomas.yaml
-  tableName: brasil_coverage
-  schema: land_use
-  physicalPath: databases/silver/mapbiomas/land_use/
-  description:
-  queryYears: [2016, 2023]
-  ifExists: append
+  - contractName: contract_layers_mapbiomas.yaml
+    tableName: brasil_coverage_{year}
+    schema: land_use
+    physicalPath: databases/silver/mapbiomas/land_use/{year}/
+    description:
+    queryYears: [2016, 2023]
+    ifExists: append
