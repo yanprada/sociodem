@@ -32,9 +32,9 @@ from src.databases.silver.mapbiomas.config import (
 )
 
 
-dask.config.set({"distributed.worker.memory.target": 0.8})
-dask.config.set({"distributed.worker.memory.spill": 0.9})
-dask.config.set({"distributed.worker.memory.pause": 0.95})
+dask.config.set({"distributed.worker.memory.target": 0.8})  # type: ignore
+dask.config.set({"distributed.worker.memory.spill": 0.9})  # type: ignore
+dask.config.set({"distributed.worker.memory.pause": 0.95})  # type: ignore
 
 
 @save_parquet_decorator("silver")
