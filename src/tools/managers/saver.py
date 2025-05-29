@@ -84,9 +84,8 @@ def save_in_db(
         medallon (str): The medallon identifier.
         database_contract (dict): The contract specifying the database table structure.
     """
-    conn = DBConnection(medallon)
-    conn.add_table(df_data, database_contract)
-    conn.close()
+    with DBConnection(medallon) as conn:
+        conn.add_table(df_data, database_contract)
 
 
 def save_parquet(df_data: Union[pd.Series, pd.DataFrame], path: str, **kwargs) -> None:
