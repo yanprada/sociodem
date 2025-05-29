@@ -6,7 +6,7 @@ and managing a database connection using SQLAlchemy.
 """
 
 import warnings
-
+import gc
 from typing import List, Tuple, Union, Optional
 from decouple import config
 from sqlalchemy import create_engine, text
@@ -129,7 +129,7 @@ class PySparkConnection:
         if self.spark is not None:
             self.spark.stop()
         self.spark = (
-            SparkSession.builder.appName("DBConnection")
+            SparkSession.builder.appName("DBConnection")  # type:ignore
             .config(
                 "spark.driver.extraClassPath", "/home/yan/.spark/postgresql-42.7.3.jar"
             )
@@ -211,7 +211,7 @@ class DBConnectionHandler:
             exc_val (Exception): The exception raised, if any.
             exc_tb (traceback): The traceback of the exception raised, if any.
         """
-        self.session.close()
+        self.session.close()  # type:ignore
         self.__engine = None
 
     def __create_database_engine(self):
@@ -242,7 +242,7 @@ class DBConnectionHandler:
         """
         Close the database engine.
         """
-        self.__engine.dispose()
+        self.__engine.dispose()  # type:ignore
 
 
 class DBConnection(DBConnectionHandler):
@@ -275,7 +275,7 @@ class DBConnection(DBConnectionHandler):
         max_overflow: Optional[int] = 20,
         pool_timeout: Optional[int] = 60,
     ) -> None:
-        super().__init__(database, pool_size, max_overflow, pool_timeout)
+        super().__init__(database, pool_size, max_overflow, pool_timeout)  # type:ignore
 
     def __create_schema(
         self, conn: sqlalchemy.engine.Connection, schema_name: str
@@ -297,7 +297,7 @@ class DBConnection(DBConnectionHandler):
         Args:
             schema_name (str): The name of the schema to be created.
         """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             self.__create_schema(conn, schema_name)
 
     def __get_pk(self, contract):
@@ -322,7 +322,7 @@ class DBConnection(DBConnectionHandler):
             table_name (str): The name of the table to which the primary key will be added.
             primary_key (str): The name of the column that will be set as the primary key.
         """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             result = conn.execute(
                 text(
                     f"""SELECT constraint_name 
@@ -363,7 +363,7 @@ class DBConnection(DBConnectionHandler):
             foreign_keys (List[tuple[str, str]]): Tuple containing the column name
                                 and the path of the foreging key in the database.
         """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             for fk_col, fk_path in foreign_keys:
                 result = conn.execute(
                     text(
@@ -394,7 +394,7 @@ class DBConnection(DBConnectionHandler):
         table_name: str,
         not_null_columns: List[tuple[str, str]],
     ):
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             for col in not_null_columns:
                 result = conn.execute(
                     text(
@@ -486,7 +486,7 @@ class DBConnection(DBConnectionHandler):
         """
         schema_name, table_name = names
 
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             self.__create_schema(conn, schema_name)
             try:
                 if isinstance(table, gpd.GeoDataFrame):
@@ -494,7 +494,7 @@ class DBConnection(DBConnectionHandler):
                         table_name,
                         conn,
                         schema=schema_name,
-                        if_exists=action_if_table_exists,
+                        if_exists=action_if_table_exists,  # type:ignore
                         index=False,
                     )
                 else:
@@ -522,7 +522,7 @@ class DBConnection(DBConnectionHandler):
         Returns:
             bool: True if the table exists, False otherwise
         """
-        with self._DBConnectionHandler__engine.connect() as conn:
+        with self._DBConnectionHandler__engine.connect() as conn:  # type:ignore
             result = conn.execute(
                 text(
                     f"""
@@ -581,7 +581,7 @@ class DBConnection(DBConnectionHandler):
         self.__save_table(table, (schema, temp_table_name), "replace")
 
     def __update_table(self, schema: str, table_name: str, match_columns: list):
-        with self._DBConnectionHandler__engine.connect() as conn:
+        with self._DBConnectionHandler__engine.connect() as conn:  # type:ignore
             trans = conn.begin()
             try:
                 original_row_count = conn.execute(
@@ -619,7 +619,7 @@ class DBConnection(DBConnectionHandler):
                 raise e
 
     def __drop_table(self, schema: str, table_name: str):
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             try:
                 # Drop the temporary table
                 drop_query = f"DROP TABLE IF EXISTS {schema}.{table_name}"
@@ -647,7 +647,7 @@ class DBConnection(DBConnectionHandler):
             list: A list of rows returned by the query if it returns rows, otherwise None.
         """
         try:
-            with self._DBConnectionHandler__engine.begin() as conn:
+            with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
                 result = conn.execute(text(query))
                 if result.returns_rows:
                     return result.fetchall()
@@ -667,7 +667,7 @@ class DBConnection(DBConnectionHandler):
         query = f"""
                     DROP INDEX IF EXISTS {schema}.{table_name}_idx
                     """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             conn.execute(text(query))
 
     def create_index(self, schema: str, table_name: str, columns: list):
@@ -685,7 +685,7 @@ class DBConnection(DBConnectionHandler):
                     ON {schema}.{table_name} 
                     ({", ".join(columns)})
                     """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             conn.execute(text(query))
 
     def create_pk(self, schema: str, table: str, column: str):
@@ -700,7 +700,7 @@ class DBConnection(DBConnectionHandler):
         query = f"""ALTER TABLE {schema}.{table}
         ADD COLUMN {column} SERIAL PRIMARY KEY
         """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             conn.execute(text(query))
 
     def add_table(
@@ -748,7 +748,7 @@ class DBConnection(DBConnectionHandler):
         names = (contract["schema"], contract["tableName"])
 
         # Save the table in a single operation
-        self.__save_table(table_copy, names, action_if_table_exists)
+        self.__save_table(table_copy, names, action_if_table_exists)  # type:ignore
 
         # Update table keys after saving
         self.__update_table_keys(names, primary_key, foreign_keys, not_null_columns)
@@ -765,7 +765,7 @@ class DBConnection(DBConnectionHandler):
             Exception: If there's an error during database operation.
         """
         schema, table_name = names
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             try:
                 conn.execute(
                     text(f"DELETE FROM {schema}.{table_name} WHERE {condition}")
@@ -815,7 +815,7 @@ class DBConnection(DBConnectionHandler):
         CREATE TABLE IF NOT EXISTS {path_new_table} AS
         {query}
         """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             try:
                 conn.execute(text(creation_query))
             except Exception as e:
@@ -837,7 +837,7 @@ class DBConnection(DBConnectionHandler):
         CREATE MATERIALIZED VIEW IF NOT EXISTS {path_new_table} AS
         {query}
         """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             try:
                 conn.execute(text(creation_query))
             except Exception as e:
@@ -859,7 +859,7 @@ class DBConnection(DBConnectionHandler):
         CREATE VIEW IF NOT EXISTS {path_new_table} AS
         {query}
         """
-        with self._DBConnectionHandler__engine.begin() as conn:
+        with self._DBConnectionHandler__engine.begin() as conn:  # type:ignore
             try:
                 conn.execute(text(creation_query))
             except Exception as e:
@@ -867,29 +867,88 @@ class DBConnection(DBConnectionHandler):
                 raise e
 
     def query_database(
-        self, query: str, geo: bool = False, display: bool = False
+        self,
+        query: str,
+        geo: bool = False,
+        display: bool = False,
+        max_memory_mb: int = 20_000,  # 20 GB
     ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
         """
-        Executes a query on the database and returns the result as a DataFrame.
-
-        Parameters:
-            - query (str): The SQL query to be executed.
-            - geo (bool): A flag indicating whether the query results contain geometry data.
-            - display (bool): A flag indicating whether to display a progress bar.
-
+        Executes a SQL query and returns the result as a DataFrame or GeoDataFrame.
+        Args:
+            query (str): The SQL query to be executed.
+            geo (bool): If True, returns a GeoDataFrame with geometry column.
+            display (bool): If True, displays progress messages during execution.
+            max_memory_mb (int): Maximum memory usage in MB before consolidating chunks.
         Returns:
-            Union[pd.DataFrame, gpd.GeoDataFrame]: The result of the query as a DataFrame.
+            Union[pd.DataFrame, gpd.GeoDataFrame]: The result of the query as a
+                                                    DataFrame  or GeoDataFrame.
+        Raises:
+            Exception: If there's an error during the query execution.
+        Note:
+            This method handles large queries by processing them in chunks to avoid memory issues.
         """
-        with self._DBConnectionHandler__engine.connect() as conn:
+
+        with self._DBConnectionHandler__engine.connect() as conn:  # type:ignore
             conn = conn.execution_options(stream_results=True)
             try:
-                df = pd.read_sql_query(text(query), conn, chunksize=1000)
-                if display:
-                    df = pd.concat(list(tqdm(df, desc="Loading data", unit=" rows")))
+                chunk_iterator = pd.read_sql_query(text(query), conn, chunksize=1000)
+
+                chunks = []
+                total_rows = 0
+                current_memory_mb = 0
+
+                for chunk in chunk_iterator:
+                    chunks.append(chunk)
+                    total_rows += len(chunk)
+
+                    # Estimar uso de memória do chunk
+                    chunk_memory_mb = chunk.memory_usage(deep=True).sum() / (
+                        1024 * 1024
+                    )
+                    current_memory_mb += chunk_memory_mb
+
+                    # Se atingir limite de memória, concatenar intermediariamente
+                    if current_memory_mb > max_memory_mb:
+                        if display:
+                            print(
+                                f"Consolidando {len(chunks)} chunks ({total_rows} registros)..."
+                            )
+
+                        # Concatenar e substituir lista por DataFrame único
+                        intermediate_df = pd.concat(chunks, ignore_index=True)
+                        chunks = [intermediate_df]
+                        current_memory_mb = intermediate_df.memory_usage(
+                            deep=True
+                        ).sum() / (1024 * 1024)
+
+                        # Forçar limpeza de memória
+
+                        gc.collect()
+
+                        if display:
+                            print(f"Memória consolidada: {current_memory_mb:.2f} MB")
+
+                # Concatenação final
+                if chunks:
+                    df = (
+                        pd.concat(chunks, ignore_index=True)
+                        if len(chunks) > 1
+                        else chunks[0]
+                    )
                 else:
-                    df = pd.concat(list(df))
-                if geo:
+                    df = pd.DataFrame()
+
+                # Limpeza final
+                del chunks
+
+                gc.collect()
+
+                if geo and not df.empty:
                     df = gpd.GeoDataFrame(df, geometry="geometry", crs=CRS_GLOBAL)
+
                 return df
-            except:
+
+            except Exception as e:
+                print(f"Erro na query: {e}")
                 return pd.DataFrame()
