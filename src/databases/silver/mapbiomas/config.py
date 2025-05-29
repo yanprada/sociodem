@@ -15,7 +15,7 @@ import os
 
 from src.tools.managers.execution import ExecutionManagerWrapper
 
-EXECUTION_ID = None
+EXECUTION_ID = "silver-mapbiomas-2025-05-28-15h39m46s"
 BASE_PARAMS = {
     "medallon": "silver",
     "data_name": "mapbiomas",
