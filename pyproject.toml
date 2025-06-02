@@ -65,6 +65,8 @@ folium = "^0.19.6"
 cartopy = "^0.24.1"
 contextily = "^1.6.2"
 pympler = "^1.1"
+jenkspy = "^0.4.1"
+seaborn = "^0.13.2"
 
 
 [build-system]
