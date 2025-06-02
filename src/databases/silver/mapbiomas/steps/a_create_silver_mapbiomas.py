@@ -8,7 +8,7 @@ Functions:
 - pivot_table: Pivots the DataFrame.
 - load_mapbiomas: Loads data from the bronze database.
 - add_classes_mapbiomas: Transforms the 'value' column in the DataFrame to MapBiomas classes names.
-- main: Retrieves data from the bronze database, processes it, and returns a DataFrame.
+- main: Retrieves data from the bronze database, processes it, and returns a DataFrame.m
 """
 
 import os
@@ -91,8 +91,9 @@ def calculate_percentage(df: pd.DataFrame):
         each value per hex_col.
     """
     total_counts_per_hex_col = df.groupby("hex_col")["total_count"].transform("sum")
-    df["pct"] = round((df["total_count"] / total_counts_per_hex_col) * 100, 2).astype(
-        "float64"
+    # transformamos em int16 para economizar memória
+    df["pct"] = (
+        ((df["total_count"] / total_counts_per_hex_col) * 100).round().astype("int16")
     )
     return df.drop(columns="total_count")
 
@@ -110,7 +111,7 @@ def add_missing_columns(df: pd.DataFrame) -> pd.DataFrame:
     for col in MAPBIOMAS_CLASSES.values():
         if col not in df.columns:
             df[col] = 0
-        df[col] = df[col].astype("float64")
+        df[col] = df[col].astype("int16")
     return df
 
 
@@ -310,6 +311,9 @@ def main():
     batch = int(5e6)
     minibatch = int(batch / 10)
     for year in tqdm(YEARS, desc="Processing Years"):
+        if year < 2020:
+            write_log(f"Skipping year {year} as it is not supported.")
+            continue
         hex_len = get_hex_counts(year)
         create_hex_unique_ids_table(year)
         # Ensure that there is the table and schema in the database
@@ -320,6 +324,8 @@ def main():
             range(minibatch, hex_len, batch),
             desc="Processing data in batch",
         ):
+            if int(external_partition / minibatch) <= 641:
+                continue
             hex_ids = get_hex_ids(year, external_partition, batch)
             num_cores = min(6, multiprocessing.cpu_count())
             cluster = LocalCluster(
