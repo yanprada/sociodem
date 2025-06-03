@@ -14,5 +14,7 @@ dist
 *.tif
 *.pbf
 *.geojson
+*.png
+*.gif
 build/
 mlruns/
