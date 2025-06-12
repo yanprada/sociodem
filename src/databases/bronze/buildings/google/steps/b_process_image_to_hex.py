@@ -26,7 +26,7 @@ from pyproj import Transformer
 
 
 from src.tools.utils.constants import HEX_RESOLUTION, CRS_GLOBAL
-from src.tools.utils.common import write_log
+from src.tools.utils.common import write_log, trim_memory
 from src.tools.utils.h3 import get_h3_geom
 from src.tools.managers.saver import save_parquet_decorator
 from src.databases.bronze.buildings.google.config import (
@@ -41,7 +41,6 @@ mlflow.set_experiment(EXPERIMENT_NAME)
 
 RUN_TIME = time.strftime("%Y-%m-%d %H:%M:%S")
 YEAR = 2019
-STATE = "MS"
 
 
 def process_image(file_path: str) -> gpd.GeoDataFrame:
@@ -127,7 +126,7 @@ def save_results(batch_df, **kwargs):
     return batch_df
 
 
-def process_and_save(file_path, batch_number):
+def process_and_save(file_path, batch_number, state):
     """
     Processes a single file and saves the results.
     """
@@ -137,7 +136,7 @@ def process_and_save(file_path, batch_number):
         if result.empty:
             return 0, 0
         result["year"] = int(YEAR)
-        result["state"] = STATE
+        result["state"] = state
         kwargs = {
             "filename": f"batch_{batch_number}_{os.path.basename(file_path)}",
             "contract": BUILDING_CONTRACTS_BRONZE[f"google_{YEAR}"],
@@ -216,10 +215,7 @@ def categorize_files_by_size(
 
 
 def process_files_in_parallel(
-    name: str,
-    file_paths: List[str],
-    n_workers: int,
-    memory_limit: str,
+    name: str, file_paths: List[str], n_workers: int, memory_limit: str, state: str
 ):
     """
     Processes a list of files in parallel using Dask.
@@ -228,6 +224,7 @@ def process_files_in_parallel(
         file_paths (List[str]): List of file paths to be processed.
         n_workers (int): Number of worker processes to use.
         memory_limit (str): Memory limit for each worker process.
+        state (str): State identifier for the processed files.
     Returns:
         int: Total number of processed rows.
     """
@@ -243,8 +240,7 @@ def process_files_in_parallel(
             )
             futures = ddf.apply(
                 lambda row: process_and_save(
-                    row["file_path"],
-                    row.name // (len(file_paths) // n_workers),
+                    row["file_path"], row.name // (len(file_paths) // n_workers), state
                 ),
                 axis=1,
                 meta=[("processed_rows", "int64"), ("building_count", "int64")],
@@ -288,7 +284,7 @@ def log_mlflow_metrics(results):
     )  # type: ignore
 
 
-def move_files_location():
+def move_files_location(state: str):
     """
     Updates the folder structure for building contracts by renaming and moving
     the existing folder and creating a new folder at the old path.
@@ -298,14 +294,14 @@ def move_files_location():
     3. If the old path exists, renames and moves the folder to the new path.
     4. Creates a new folder at the old path.
     5. Logs the actions performed.
-    Note: The function assumes that `BUILDING_CONTRACTS_RAW`, `STATE`, `os`, and `write_log`
+    Note: The function assumes that `BUILDING_CONTRACTS_RAW`,`os`, and `write_log`
     are defined elsewhere in the code.
     Raises:
         OSError: If an error occurs while renaming or creating directories.
     """
     old_path = BUILDING_CONTRACTS_BRONZE[f"google_{YEAR}"]["physicalPath"]
     new_path = old_path.replace(str(YEAR), f"process/{YEAR}")
-    new_path = os.path.join(new_path, STATE)
+    new_path = os.path.join(new_path, state)
     if os.path.exists(old_path):
         os.rename(old_path, new_path)
         write_log(f"Renamed and moved folder from {old_path} to {new_path}")
@@ -317,38 +313,43 @@ def main():
     """
     Main function to process image files into hex format using Dask for parallelization.
     """
-    module_name = os.path.basename(__file__).replace(".py", "")
-    manager.update_status(module_name)
-    results_total = pd.Series()
-    with mlflow.start_run(run_name=f"{STATE}_{YEAR}_{RUN_TIME}"):
-        path = os.path.join(
-            BUILDING_CONTRACTS_RAW[f"google_{YEAR}"]["physicalPath"], STATE
-        )
-        files = get_remaining_files(path)
-        nano_files, xsm_files, small_files, medium_files, large_files, xl_files = (
-            categorize_files_by_size(files)
-        )
-        for name, file_group, n_workers, memory_limit in [
-            ("xlarge", xl_files, 8, "6GB"),
-            ("large", large_files, 15, "5GB"),
-            ("medium", medium_files, 18, "5GB"),
-            ("small", small_files, 22, "5GB"),
-            ("xsmall", xsm_files, 22, "5GB"),
-            ("nano", nano_files, 22, "5GB"),
-        ]:
-            if file_group:
-                n_workers = min(n_workers, len(file_group))
-                write_log(
-                    f"Processing {name} {len(file_group)} files with {n_workers} workers"
-                )
-                results = process_files_in_parallel(
-                    name, file_group, n_workers, memory_limit
-                )
-                results_total = pd.concat([results_total, results], ignore_index=True)
-        log_mlflow_metrics(results_total)
+    states = ["PA", "PB", "PE", "PI", "PR"]
+    for state in states:
+        module_name = os.path.basename(__file__).replace(".py", "")
+        manager.update_status(module_name)
+        results_total = pd.Series()
+        with mlflow.start_run(run_name=f"{state}_{YEAR}_{RUN_TIME}"):
+            path = os.path.join(
+                BUILDING_CONTRACTS_RAW[f"google_{YEAR}"]["physicalPath"], state
+            )
+            files = get_remaining_files(path)
+            nano_files, xsm_files, small_files, medium_files, large_files, xl_files = (
+                categorize_files_by_size(files)
+            )
+            for name, file_group, n_workers, memory_limit in [
+                ("xlarge", xl_files, 8, "6GB"),
+                ("large", large_files, 15, "5GB"),
+                ("medium", medium_files, 18, "5GB"),
+                ("small", small_files, 22, "5GB"),
+                ("xsmall", xsm_files, 22, "5GB"),
+                ("nano", nano_files, 22, "5GB"),
+            ]:
+                if file_group:
+                    n_workers = min(n_workers, len(file_group))
+                    write_log(
+                        f"Processing {name} {len(file_group)} files with {n_workers} workers"
+                    )
+                    results = process_files_in_parallel(
+                        name, file_group, n_workers, memory_limit, state
+                    )
+                    results_total = pd.concat(
+                        [results_total, results], ignore_index=True
+                    )
+            log_mlflow_metrics(results_total)
 
-    # Rename the folder to the state and move to another path
-    move_files_location()
+        # Rename the folder to the state and move to another path
+        move_files_location(state)
+        trim_memory()
 
 
 if __name__ == "__main__":
