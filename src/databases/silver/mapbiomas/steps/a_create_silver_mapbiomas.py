@@ -33,8 +33,8 @@ from src.databases.silver.mapbiomas.config import (
 
 
 dask.config.set({"distributed.worker.memory.target": 0.8})  # type: ignore
-dask.config.set({"distributed.worker.memory.spill": 0.9})  # type: ignore
-dask.config.set({"distributed.worker.memory.pause": 0.95})  # type: ignore
+dask.config.set({"distributed.worker.memory.spill": 0.85})  # type: ignore
+dask.config.set({"distributed.worker.memory.pause": 0.9})  # type: ignore
 
 
 @save_parquet_decorator("silver")
@@ -300,6 +300,28 @@ def get_hex_counts(year: int) -> int:
     return hex_count
 
 
+def partitions_saved(year: int, external_partition: int) -> bool:
+    """
+    Check if the partitions are already saved in the database.
+
+    Args:
+        year (int): The MapBiomas year being processed.
+        external_partition (int): The external partition number.
+
+    Returns:
+        bool: True if the partitions are already saved, False otherwise.
+    """
+    path_saved = CONTRACTS_SILVER[f"brasil_coverage_{year}"]["physicalPath"]
+    if not os.path.exists(path_saved):
+        return False
+    files = [
+        int(f.split("_")[1])
+        for f in os.listdir(path_saved)
+        if os.path.isfile(os.path.join(path_saved, f))
+    ]
+    return external_partition in files
+
+
 def main():
     """
     This function retrieves data from the "bronze" database, processes it, and returns a DataFrame.
@@ -311,8 +333,8 @@ def main():
     batch = int(5e6)
     minibatch = int(batch / 10)
     for year in tqdm(YEARS, desc="Processing Years"):
-        if year < 2020:
-            write_log(f"Skipping year {year} as it is not supported.")
+        if year <= 2022:
+            write_log(f"Skipping year {year} as it is already processed.")
             continue
         hex_len = get_hex_counts(year)
         create_hex_unique_ids_table(year)
@@ -324,10 +346,14 @@ def main():
             range(minibatch, hex_len, batch),
             desc="Processing data in batch",
         ):
-            if int(external_partition / minibatch) <= 641:
+            if partitions_saved(year, int(external_partition / minibatch)):
+                write_log(
+                    f"{year} external partition {int(external_partition / minibatch)}"
+                    "already saved."
+                )
                 continue
             hex_ids = get_hex_ids(year, external_partition, batch)
-            num_cores = min(6, multiprocessing.cpu_count())
+            num_cores = min(4, multiprocessing.cpu_count())
             cluster = LocalCluster(
                 n_workers=num_cores, threads_per_worker=1, processes=True
             )
@@ -356,3 +382,5 @@ def main():
                     except Exception as e:
                         write_log(e, "error")
             cluster.close()
+            trim_memory()
+        trim_memory()
