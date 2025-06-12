@@ -67,6 +67,7 @@ contextily = "^1.6.2"
 pympler = "^1.1"
 jenkspy = "^0.4.1"
 seaborn = "^0.13.2"
+fastapi = "^0.115.12"
 
 
 [build-system]
