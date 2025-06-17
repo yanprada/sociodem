@@ -12,20 +12,32 @@ Attributes:
 
 import os
 
-from src.tools.data_contract.pois_data_contract import get_pois_contracts
-from src.tools.data_contract.ibge_data_contract import get_ibge_contracts
+
+from src.tools.managers.execution import ExecutionManagerWrapper
 
 
-EXECUTION_ID = "bronze-pois-Ioz9Kgv4r8LFXUD"
+EXECUTION_ID = "bronze-pois-2025-06-16-11h34m45s"
 
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "pois",
     "config_path": os.path.abspath(__file__),
     "data_contracts": {
-        "pois_bronze": get_pois_contracts("bronze"),
-        "ibge_bronze": get_ibge_contracts("bronze"),
+        "pois_raw": ["raw_data", "pois", "places"],
+        "pois_bronze": ["bronze", "pois", "places"],
     },
     "run_mode": "dev",
     "last_run": None,
+    "materialized_views": {},
 }
+
+
+_manager_wrapper = ExecutionManagerWrapper(BASE_PARAMS, EXECUTION_ID, overwrite=True)
+manager = _manager_wrapper.manager
+
+CONTRACTS_BRONZE = manager.execution_details["data_contracts"]["pois_bronze"]
+CONTRACTS_RAW = manager.execution_details["data_contracts"]["pois_raw"]
+
+YEARS = manager.execution_details["info"]["running_years"]
+
+EXPERIMENT_NAME = manager.execution_details["mlflow_experiment"]
