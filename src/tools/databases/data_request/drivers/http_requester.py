@@ -439,6 +439,10 @@ class HttpRequesterOvertureMaps:
             if os.path.getsize(download_file_path) == 0:
                 os.remove(download_file_path)
                 break
+            df = pd.read_parquet(download_file_path)
+            if df.empty:
+                os.remove(download_file_path)
+                break
             offset += self.lines_per_file
             file_count += 1
 
@@ -470,16 +474,12 @@ class HttpRequesterOvertureMaps:
         """
         cols = [
             "id",
-            "ST_AsText(ST_GeomFromWKB(geometry)) as geometry",
-            "subtype",
-            "JSON(names) as names",
-            "JSON(sources) as sources",
-            "class",
-            "level",
-            "has_parts",
-            "height",
-            "num_floors",
-            "min_height",
-            "min_floor",
+            "ST_AsText(ST_GeomFromWKB(geometry)) AS geometry",
+            "confidence",
+            "brand",
+            "names",
+            "addresses",
+            'categories."primary" AS category_primary',
+            "categories.alternate AS category_alternate",
         ]
         self.download_data(cols)
