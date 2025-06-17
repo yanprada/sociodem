@@ -1,0 +1,34 @@
+raw_data:
+  - tableName: pois
+    schema: places
+    physicalPath: raw_data/pois/files/
+    description: points of interest
+    queryYears: 
+    ifExists: 
+ 
+
+  - tableName: pois_categories
+    schema: places
+    physicalPath: raw_data/pois/categories/pois_categories.csv
+    description: points of interest general categories classification
+    queryYears: 
+    ifExists: 
+  
+bronze:
+  contractName: contract_pois.yaml
+  tableName: pois
+  schema: places
+  physicalPath: databases/bronze/pois/processed/
+  description: 
+  queryYears: 
+  ifExists: append
+  
+silver:
+  contractName: contract_pois.yaml
+  tableName: pois
+  schema: places
+  physicalPath: databases/silver/pois/processed/
+  description: 
+  queryYears: 
+  ifExists: replace
+  
