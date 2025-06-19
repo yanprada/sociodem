@@ -16,8 +16,7 @@ import os
 from src.tools.managers.execution import ExecutionManagerWrapper
 
 
-EXECUTION_ID = "bronze-pois-2025-06-16-11h34m45s"
-
+EXECUTION_ID = "bronze-pois-2025-06-18-10h22m19s"
 BASE_PARAMS = {
     "medallon": "bronze",
     "data_name": "pois",
