@@ -1,6 +1,20 @@
-# 🧠 SocioDemographic ELT Pipeline
+# SocioDemographic ELT Pipeline
 
-This project implements a scalable, modular ELT (Extract → Load → Transform) pipeline for processing and enriching geospatial and sociodemographic datasets from diverse sources. The goal is to unify, clean, and structure raw data into high-quality, analysis-ready datasets supporting urban, environmental, and socioeconomic research and applications.
+## 📘 About
+
+This project is a modular ETL (Extract, Transform, Load) pipeline designed to process, clean, and integrate heterogeneous geospatial and sociodemographic data from both public and foundational sources. It supports scalable analytics and machine learning tasks across urban, environmental, and socioeconomic domains in Brazil.
+
+By combining temporal and spatial datasets — such as land use maps, census microdata, energy consumption, infrastructure, and building growth — the pipeline enables the creation of rich, analysis-ready datasets for applications in:
+
+- Urban planning and housing policy  
+- Environmental impact analysis  
+- Socioeconomic inequality studies  
+- Infrastructure and energy demand modeling  
+- Retail expansion and site selection  
+- Machine learning models with spatial context (hex-based grids)
+
+The pipeline adopts a layered architecture (`bronze → silver → gold`) that ensures data provenance, transparency, and reproducibility. It is designed for researchers, data scientists, and policy makers who need high-quality geospatial data with socioeconomic depth.
+
 
 ---
 
@@ -15,7 +29,7 @@ The pipeline integrates and processes data from the following sources:
 
 ### 🛰 Environmental & Land Use
 
-- **[MapBiomas](https://mapbiomas.org/)**: Annual land use and land cover maps for Brazil (2000–present)
+- **[MapBiomas](https://mapbiomas.org/)**: Annual land use and land cover maps for Brazil (2016–present)
 
 ### 🗺️ Infrastructure & Points of Interest
 
