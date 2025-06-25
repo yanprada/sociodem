@@ -1,5 +1,5 @@
-# SocioDemographic ELT Pipeline
-
+# SocioDemographic Atlas
+---
 ## 📘 About
 
 This project is a modular ETL (Extract, Transform, Load) pipeline designed to process, clean, and integrate heterogeneous geospatial and sociodemographic data from both public and foundational sources. It supports scalable analytics and machine learning tasks across urban, environmental, and socioeconomic domains in Brazil.
@@ -15,11 +15,25 @@ By combining temporal and spatial datasets — such as land use maps, census mic
 
 The pipeline adopts a layered architecture (`bronze → silver → gold`) that ensures data provenance, transparency, and reproducibility. It is designed for researchers, data scientists, and policy makers who need high-quality geospatial data with socioeconomic depth.
 
-
 ---
 
 ## 📂 Project Structure
-
+```bash
+.
+├── src/                     # Source code for data processing
+│   ├── bronze/              # Raw data ingestion (original format, minimal processing)
+│   ├── silver/              # Cleansed, standardized, and georeferenced datasets
+│   └── gold/                # Final analytical datasets with enriched features
+│
+├── api/                    # External data (excluded via .gitignore)
+│   ├── raw/                 # Original files (e.g., zipped shapefiles, CSVs)
+│   ├── interim/             # Intermediate files during transformation
+│   └── processed/           # Final outputs (e.g., Parquet, GeoParquet)
+│
+├── .gitignore               # Specifies untracked files to ignore
+├── requirements.txt         # Python dependencies
+├── README.md                # Project documentation
+└── LICENSE                  # Project license
 
 ---
 
