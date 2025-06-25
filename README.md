@@ -1,5 +1,4 @@
 # SocioDemographic Atlas
----
 ## 📘 About
 
 This project is a modular ETL (Extract, Transform, Load) pipeline designed to process, clean, and integrate heterogeneous geospatial and sociodemographic data from both public and foundational sources. It supports scalable analytics and machine learning tasks across urban, environmental, and socioeconomic domains in Brazil.
@@ -15,7 +14,6 @@ By combining temporal and spatial datasets — such as land use maps, census mic
 
 The pipeline adopts a layered architecture (`bronze → silver → gold`) that ensures data provenance, transparency, and reproducibility. It is designed for researchers, data scientists, and policy makers who need high-quality geospatial data with socioeconomic depth.
 
----
 
 ## 📂 Project Structure
 ```bash
@@ -34,8 +32,8 @@ The pipeline adopts a layered architecture (`bronze → silver → gold`) that e
 ├── requirements.txt         # Python dependencies
 ├── README.md                # Project documentation
 └── LICENSE                  # Project license
+```
 
----
 
 ## 🌍 Data Sources
 
@@ -72,7 +70,7 @@ The pipeline integrates and processes data from the following sources:
   - Yearly building footprints (2016–2023)
   - Temporal insights on urban expansion
 
----
+
 
 ## ⚙️ ELT Workflow
 
@@ -100,7 +98,7 @@ The pipeline follows a structured three-stage process:
 - Aggregate features to hexagonal grids (e.g., H3 resolution levels)
 - Ready for machine learning models or dashboards
 
----
+
 
 ## 🛠️ Technologies
 
@@ -110,7 +108,7 @@ The pipeline follows a structured three-stage process:
 - **ETL Orchestration**: Can integrate with `Airflow`, `Prefect` or custom runners
 - **Versioning**: Git + `.gitignore` support for raw/notebook exclusions
 
----
+
 
 ## 🚀 Getting Started
 
@@ -119,3 +117,4 @@ Clone the repository:
 ```bash
 git clone https://github.com/your-org/sociodem-elt.git
 cd sociodem-elt
+```
