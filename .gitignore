@@ -15,5 +15,6 @@ dist
 *.geojson
 *.png
 *.gif
+references/h3/*.ipynb
 build/
 mlruns/
