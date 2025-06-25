@@ -18,8 +18,8 @@ DATABASE_URL = os.getenv(
 engine = create_async_engine(DATABASE_URL, echo=True)
 
 # Create a session factory
-async_session = sessionmaker(
-    bind=engine,
+async_session = sessionmaker(  # type: ignore
+    bind=engine,  # type: ignore
     class_=AsyncSession,
     expire_on_commit=False,
 )
@@ -28,5 +28,5 @@ async_session = sessionmaker(
 # Dependency for routes
 async def get_db():
     """Dependency to get a database session."""
-    async with async_session() as session:
+    async with async_session() as session:  # type: ignore
         yield session
