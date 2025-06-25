@@ -9,7 +9,6 @@ dist
 *.csv
 *.parquet
 *.zip
-*.pdf
 *.xls
 *.tif
 *.pbf
