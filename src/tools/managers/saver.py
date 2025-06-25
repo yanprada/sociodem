@@ -19,7 +19,7 @@ import yaml
 import pandas as pd
 import dask.dataframe as dd
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 
 
 def save_parquet_decorator(

@@ -9,7 +9,7 @@ import os
 from itertools import product
 
 
-from src.tools.databases.data_request.drivers.http_requester import (
+from src.tools.managers.http_requester import (
     HttpRequesterIBGE,
 )
 from src.tools.utils.constants import STATES

@@ -28,7 +28,7 @@ from shapely import Point
 from tqdm import tqdm
 from dask.distributed import Client, LocalCluster, as_completed
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.tools.managers.loader import Loader
 
 from src.tools.utils.common import get_db_path, write_log

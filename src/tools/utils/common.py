@@ -16,7 +16,7 @@ import yaml
 import pandas as pd
 from mlflow.tracking import MlflowClient
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 
 logging.basicConfig(
     level=logging.INFO,

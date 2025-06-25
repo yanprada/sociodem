@@ -8,7 +8,7 @@ import os
 import pandas as pd
 
 from src.tools.managers.reader import Reader
-from src.tools.databases.data_request.drivers.http_requester import HttpRequesterAneel
+from src.tools.managers.http_requester import HttpRequesterAneel
 from src.databases.bronze.aneel.config import (
     manager,
     CONTRACT_RAW_IDS,

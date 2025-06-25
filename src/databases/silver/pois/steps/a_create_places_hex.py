@@ -9,7 +9,7 @@ import pandas as pd
 
 from src.tools.managers.loader import Loader
 from src.tools.managers.saver import save_parquet_decorator
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.tools.utils.common import get_db_path
 from src.tools.utils.constants import CRS_GLOBAL
 from src.tools.utils.h3 import get_h3_geom

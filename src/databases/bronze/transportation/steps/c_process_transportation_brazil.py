@@ -27,7 +27,7 @@ from src.tools.managers.reader import Reader
 from src.tools.managers.saver import save_parquet_decorator
 from src.tools.utils.common import generate_random_string, get_db_path
 from src.tools.utils.constants import CRS_GLOBAL
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 
 from src.tools.managers.execution import ExecutionManager
 from src.databases.bronze.transportation.config import EXECUTION_ID, BASE_PARAMS

@@ -7,7 +7,7 @@ are used to process and analyze census data.
 
 import os
 
-# from src.tools.databases.data_connection.connection import DBConnection
+# from src.tools.managers.db_connector import DBConnection
 # from src.tools.utils.common import write_log, get_db_path
 
 from src.databases.bronze.ibge.config import (

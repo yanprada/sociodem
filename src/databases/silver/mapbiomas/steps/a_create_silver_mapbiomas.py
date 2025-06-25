@@ -19,7 +19,7 @@ import dask
 from dask.distributed import Client, LocalCluster, as_completed
 import pandas as pd
 from tqdm import tqdm
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 
 from src.tools.utils.constants import MAPBIOMAS_CLASSES
 from src.tools.managers.saver import save_parquet_decorator

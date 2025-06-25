@@ -33,7 +33,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.tools.utils.common import get_db_path, write_log
 from src.databases.bronze.aneel.common import get_data_processed_from_mlflow
 from src.databases.bronze.aneel.config import CONTRACT_BRONZE_ENERGY, YEARS, PATHS_MV

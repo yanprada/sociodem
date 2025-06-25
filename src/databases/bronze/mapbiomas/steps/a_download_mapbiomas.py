@@ -9,7 +9,7 @@ for the specified range of years using the contract defined in CONTRACT.
 
 import os
 
-from src.tools.databases.data_request.drivers.http_requester import (
+from src.tools.managers.http_requester import (
     HttpRequesterMapbiomas,
 )
 

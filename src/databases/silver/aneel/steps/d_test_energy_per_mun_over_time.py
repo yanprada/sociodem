@@ -9,7 +9,7 @@ from tqdm import tqdm
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 
 from src.tools.utils.common import get_db_path, write_log
 from src.databases.silver.aneel.config import manager, CONTRACT_SILVER_ENERGY, YEARS

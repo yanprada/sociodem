@@ -16,7 +16,7 @@ by hex IDs, and performs further processing.
 import os
 from tqdm import tqdm
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.tools.utils.common import get_db_path, write_log
 
 from src.databases.silver.aneel.config import manager, CONTRACT_SILVER_ENERGY, YEARS

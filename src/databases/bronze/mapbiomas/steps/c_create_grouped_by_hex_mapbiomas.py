@@ -9,7 +9,7 @@ and stores the result in the 'bronze' table.
 import os
 from tqdm import tqdm
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.tools.utils.common import get_db_path
 
 from src.databases.bronze.mapbiomas.config import manager, CONTRACTS_BRONZE, YEARS

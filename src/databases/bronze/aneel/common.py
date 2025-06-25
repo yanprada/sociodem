@@ -21,7 +21,7 @@ from tqdm import tqdm
 import pandas as pd
 
 from src.tools.utils.common import write_log, get_db_path, get_ml_flow_data
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.databases.bronze.aneel.config import (
     CONTRACT_RAW_ENERGY,
     CONTRACT_BRONZE_ENERGY,

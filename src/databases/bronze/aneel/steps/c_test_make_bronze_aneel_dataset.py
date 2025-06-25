@@ -39,7 +39,7 @@ import geopandas as gpd
 
 from src.tools.managers.reader import Reader
 from src.tools.utils.common import write_log, get_db_path
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.databases.bronze.aneel.config import (
     YEARS,
     CONTRACT_RAW_ENERGY,

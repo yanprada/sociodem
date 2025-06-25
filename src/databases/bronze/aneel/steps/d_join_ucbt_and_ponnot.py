@@ -25,7 +25,7 @@ from typing import List
 from tqdm import tqdm
 import pandas as pd
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 
 from src.tools.utils.common import write_log, check_file_exists_in_db, get_db_path
 from src.databases.bronze.aneel.common import split_file_sizes

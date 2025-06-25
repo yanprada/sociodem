@@ -6,7 +6,7 @@ a given prefix.
 
 import os
 
-from src.tools.databases.data_request.drivers.http_requester import (
+from src.tools.managers.http_requester import (
     HttpRequesterOvertureMaps,
 )
 from src.databases.bronze.pois.config import (

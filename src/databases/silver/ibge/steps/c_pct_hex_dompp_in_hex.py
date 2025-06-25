@@ -4,7 +4,7 @@ Creates a table with the percentage of different types of domiciles per hexagon 
 
 import os
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.tools.utils.common import get_db_path
 
 from src.databases.silver.ibge.config import manager, CONTRACTS_SILVER

@@ -16,7 +16,7 @@ from tqdm import tqdm
 import pandas as pd
 import geopandas as gpd
 
-from src.tools.databases.data_connection.connection import DBConnection
+from src.tools.managers.db_connector import DBConnection
 from src.tools.managers.loader import Loader
 
 from src.tools.utils.common import get_db_path

@@ -8,7 +8,7 @@ The module includes the following functions:
 
 import os
 
-from src.tools.databases.data_request.drivers.http_requester import (
+from src.tools.managers.http_requester import (
     HttpRequesterOvertureMaps,
 )
 from src.databases.bronze.buildings.omf.config import manager, CONTRACT_RAW_OMF

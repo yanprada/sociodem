@@ -18,10 +18,12 @@ Usage example:
 """
 
 import os
+from typing import Union
 import yaml
 
-
-SOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "contracts")
+SOURCE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "contracts"
+)
 
 
 class DataContract:
@@ -66,7 +68,7 @@ class DataContract:
                 return self.__get_contract(meddalon, path)
         raise FileNotFoundError(f"Contract not found: {table_name}")
 
-    def post_contract(self, contract: dict, path: str = None):
+    def post_contract(self, contract: dict, path: Union[None, str] = None):
         """
         Overrides the contract column datatypes and saves the updated data to a YAML file.
 
@@ -74,5 +76,6 @@ class DataContract:
             contract (dict): The dictionary containing the contract column datatypes.
             path (str, optional): The path to save the contract.
         """
-        with open(path, "w", encoding="utf-8") as file:
-            yaml.dump(contract, file)
+        if path is not None:
+            with open(path, "w", encoding="utf-8") as file:
+                yaml.dump(contract, file)

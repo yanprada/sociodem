@@ -18,7 +18,7 @@ import pandas as pd
 from shapely import wkb
 
 
-from src.tools.databases.data_request.drivers.http_requester import (
+from src.tools.managers.http_requester import (
     HttpRequesterOvertureMaps,
 )
 from src.tools.managers.saver import save_parquet_decorator

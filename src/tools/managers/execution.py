@@ -17,8 +17,8 @@ import fileinput
 from datetime import datetime
 
 from src.tools.utils.common import write_log
-from src.tools.databases.data_connection.connection import MongoDBConnection
-from src.tools.data_contract.data_contract_class import DataContract
+from src.tools.managers.db_connector import MongoDBConnection
+from src.tools.managers.data_contract import DataContract
 
 
 class ExecutionManager:
