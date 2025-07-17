@@ -208,7 +208,7 @@ def query_first_join(conn: DBConnection, year: str, pk_key: str) -> None:
         FROM {path_temp_ucbt} u
         INNER JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id 
-        AND u.dist = p.dist
+        AND u.dist::text = p.dist
         AND u.conj = p.conj
         AND u.mun = p.mun;
     """
@@ -255,7 +255,7 @@ def query_second_join(conn: DBConnection, year: str, pk_key: str) -> None:
         FROM {path_temp_ucbt} u
         INNER JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id
-        AND u.dist = p.dist
+        AND u.dist::text = p.dist
         AND u.conj = p.conj;
     """
     conn.execute_query(sql_query)
@@ -301,7 +301,7 @@ def query_third_join(conn: DBConnection, year: str, pk_key: str) -> None:
         FROM {path_temp_ucbt} u
         INNER JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id
-        AND u.dist = p.dist
+        AND u.dist::text = p.dist
         AND u.mun = p.mun;
     """
     conn.execute_query(sql_query)
@@ -337,7 +337,7 @@ def query_fourth_join(conn: DBConnection, year: str, pk_key: str) -> None:
         FROM {path_temp_ucbt} u
         RIGHT JOIN {path_temp_ponnot} p
         ON u.pn_con = p.cod_id 
-        AND u.dist = p.dist
+        AND u.dist::text = p.dist
     """
     conn.execute_query(sql_query)
     delete_rows_in_table(
