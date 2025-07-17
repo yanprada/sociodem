@@ -86,11 +86,11 @@ class HttpRequesterAneel:
 
 class HttpRequesterIBGE:
     """
-    Http request class to download data from Aneel
+    Http request class to download data from IBGE
     """
 
-    def __init__(self, year: int) -> None:
-        self.year = int(year)
+    def __init__(self, year: Optional[Union[int, None]]) -> None:
+        self.year = year
         if self.year == 2010:
             self.__base_url_layers = (
                 "https://geoftp.ibge.gov.br/organizacao_do_territorio/"
@@ -100,6 +100,7 @@ class HttpRequesterIBGE:
             )
             self.__url_layers = "{base_url}{state}/{state}_{level}.zip"
             self.__url_dompp = None
+            self.__url_grade_estatistica = None
             self.__url_mun = (
                 "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/"
                 "malhas_municipais/municipio_2010/{state_lower}/{state_lower}_municipios.zip"
@@ -131,6 +132,11 @@ class HttpRequesterIBGE:
                 "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/"
                 "Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/"
                 "Agregados_por_setores_renda_responsavel_BR_csv.zip"
+            )
+            self.__url_grade_estatistica = (
+                "https://geoftp.ibge.gov.br/recortes_para_fins_estatisticos/grade_estatistica"
+                "/censo_2022/grade_estatistica/"
+                "grade_id{idx}.zip"
             )
         else:
             raise ValueError("Year must be 2010 or 2022")
@@ -252,6 +258,34 @@ class HttpRequesterIBGE:
                     url = self.__url_censo + link
                 response = requests.get(url, timeout=10)
                 self.__save_file(response, filename, as_zip=True)
+            else:
+                write_log(
+                    f"File {filename} already exists in destination.", level="warning"
+                )
+
+    def request_grade_from_page(self, idx_list, path_to_save):
+        """
+        Requests grade from a web page and saves the response to a file.
+
+        Args:
+            idx_list (List[str]): A list of indices for the grade files.
+            path_to_save (str): The path where the files will be saved.
+        """
+        destination_dir = os.path.abspath(path_to_save)
+        for idx in tqdm(idx_list, desc="Downloading grade files"):
+            filename = os.path.join(destination_dir, f"grade_id{idx}")
+            if not os.path.exists(f"{filename}.zip"):
+                write_log(f"Requesting grade {idx}.")
+                response = requests.get(
+                    self.__url_grade_estatistica.format(idx=idx), timeout=2
+                )
+                if response.status_code == 200:
+                    self.__save_file(response, filename, as_zip=True)
+                else:
+                    write_log(
+                        f"Failed to download grade {idx}. Status code: {response.status_code}",
+                        level="error",
+                    )
             else:
                 write_log(
                     f"File {filename} already exists in destination.", level="warning"
