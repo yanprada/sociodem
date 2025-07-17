@@ -362,7 +362,7 @@ def main():
     Raises:
         AssertionError: If any value in the "rate" column is greater than or equal to 1.1.
     """
-    refresh_view = False
+    refresh_view = True
     df = prepare_data_test_energy_sum(refresh_view)
     assert_rates_energy(df)
     df_grp = group_by_col(df)
