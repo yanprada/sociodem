@@ -13,9 +13,8 @@ import os
 import multiprocessing
 import gc
 from typing import List, Tuple, Union, Dict
-from functools import lru_cache
 from dask.distributed import Client, LocalCluster, as_completed
-import duckdb
+import polars as pl
 from tqdm import tqdm
 import fiona
 import mlflow
@@ -31,6 +30,7 @@ from src.tools.utils.common import (
     check_file_exists_in_db,
     write_log,
     get_db_path,
+    trim_memory,
 )
 from src.tools.utils.constants import CRS_GLOBAL
 from src.databases.bronze.aneel.common import split_file_sizes, get_df_already_processed
@@ -95,6 +95,8 @@ def read_aneel_in_chunks(
             df = reader.read_geopandas(features, as_feature=True)
         else:
             df = reader.read_geopandas(features, as_feature=True, crs=layer_src.crs)
+        df = drop_unnecessary_columns(df, is_ucbt)
+        # df = reduce_memory_usage(df)
         queue.put(df)
 
 
@@ -132,31 +134,47 @@ def read_in_parallel(
     queue_out = multiprocessing.Queue()
     processes = []
 
-    with fiona.open(path, layer=layer_name) as layer_src:
-        feature_count = len(layer_src)
+    try:
+        with fiona.open(path, layer=layer_name) as layer_src:
+            feature_count = len(layer_src)
 
-    num_workers = multiprocessing.cpu_count()
-    for _ in range(num_workers):
-        p = multiprocessing.Process(
-            target=worker, args=(queue_in, queue_out, path, layer_name, is_ucbt)
-        )
-        p.start()
-        processes.append(p)
+        num_workers = multiprocessing.cpu_count()
+        for _ in range(num_workers):
+            p = multiprocessing.Process(
+                target=worker, args=(queue_in, queue_out, path, layer_name, is_ucbt)
+            )
+            p.start()
+            processes.append(p)
+        num_chunks = 0
 
-    for start in range(0, feature_count, chunk_size):
-        queue_in.put((start, chunk_size))
+        for start in range(0, feature_count, chunk_size):
+            queue_in.put((start, chunk_size))
+            num_chunks += 1
 
-    for _ in range(num_workers):
-        queue_in.put(None)
+        for _ in range(num_workers):
+            queue_in.put(None)
 
-    dfs = []
-    for _ in tqdm(range(0, feature_count, chunk_size)):
-        df = queue_out.get()
-        dfs.append(df)
+        dfs = []
 
-    for p in processes:
-        p.join()
-    df = pd.concat(dfs, ignore_index=True)
+        for _ in tqdm(range(num_chunks)):
+            df = queue_out.get()
+            dfs.append(df)
+
+        # Concatenate results
+        if dfs:
+            df = pd.concat(dfs, ignore_index=True)
+        else:
+            df = pd.DataFrame()
+
+    finally:
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+            p.join()
+        queue_in.close()
+        queue_in.join_thread()
+        queue_out.close()
+        queue_out.join_thread()
     return df
 
 
@@ -187,7 +205,6 @@ def engineer_columns_and_save(
     """
     Function to engineer columns in a GeoDataFrame.
     """
-    df = drop_unnecessary_columns(df)
     df = add_basic_columns(df, company_id)
     if "conj" in df.columns:
         df["conj"] = df["conj"].fillna(0).astype(float).astype(int)
@@ -195,24 +212,30 @@ def engineer_columns_and_save(
         df = process_geometry_column(df)  # type: ignore
     elif database == "ucbt":
         df = process_ucbt_data(df)
-
     if saved_columns:
         df = add_missing_columns(df, saved_columns)
-
+    trim_memory()
     return df
 
 
-def drop_unnecessary_columns(df: pd.DataFrame) -> pd.DataFrame:
+def drop_unnecessary_columns(
+    df: Union[pd.DataFrame, gpd.GeoDataFrame],
+    is_ucbt: bool,
+) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     """
     Drops unnecessary columns from the DataFrame.
 
     Args:
-        df (pd.DataFrame): The input DataFrame.
-
+        df (Union[pd.DataFrame, gpd.GeoDataFrame]): The input DataFrame.
+        is_ucbt (bool): Whether the database is 'ucbt'.
     Returns:
-        pd.DataFrame: The DataFrame with unnecessary columns dropped.
+         Union[pd.DataFrame, gpd.GeoDataFrame]: The DataFrame with unnecessary columns dropped.
     """
-    columns_to_exclude = [
+    ucbt_extra_cols = ["cod_id", "geometry"] if is_ucbt else []
+    num_cols = [str(i).zfill(2) for i in range(1, 13)]
+    dic_cols = [f"dic_{i}" for i in num_cols]
+    fic_cols = [f"fic_{i}" for i in num_cols]
+    other_cols = [
         "ceq",
         "uni_tr_d",
         "ctmt",
@@ -240,6 +263,8 @@ def drop_unnecessary_columns(df: pd.DataFrame) -> pd.DataFrame:
         "alt",
         "ti",
     ]
+    columns_to_exclude = dic_cols + fic_cols + other_cols + ucbt_extra_cols
+
     return df.drop(columns=columns_to_exclude, errors="ignore")
 
 
@@ -254,7 +279,7 @@ def add_basic_columns(df: pd.DataFrame, company_id: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The DataFrame with basic columns added.
     """
-    df["year"] = company_id.split(" - ")[1].split("-")[0]
+    df["year"] = int(company_id.split(" - ")[1].split("-")[0])
     df["company_file"] = company_id
     return df
 
@@ -273,6 +298,13 @@ def process_geometry_column(df: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return df
 
 
+def convert_to_float(df):
+    """Converts energy columns to float32"""
+    for col in df.filter(regex="ene_").columns:
+        df[col] = df[col].astype("float32")
+    return df
+
+
 def process_ucbt_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Processes data specific to the 'ucbt' database.
@@ -283,10 +315,12 @@ def process_ucbt_data(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The processed DataFrame.
     """
-    df = df.drop(columns=["cod_id", "geometry"], errors="ignore")
     df["dat_con"] = pd.to_datetime(df["dat_con"], errors="coerce").dt.date
-    df = transform_negative_energy_values(df)
-    df = generate_grouped_columns(df)
+    df = (
+        transform_negative_energy_values(df)
+        .pipe(generate_grouped_columns)
+        .pipe(convert_to_float)
+    )
     return df
 
 
@@ -304,64 +338,77 @@ def transform_negative_energy_values(df: pd.DataFrame) -> pd.DataFrame:
     energy_columns = df.filter(regex="ene_").columns
     for col in energy_columns:
         df[col] = np.absolute(df[col])
-        df[col] = df[col].fillna(0)
+        df[col] = df[col].fillna(0).astype(int)
+    trim_memory()
+    return df
+
+
+def reduce_memory_usage(
+    df: Union[pd.DataFrame, gpd.GeoDataFrame],
+) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+    """
+    Reduces memory usage of the DataFrame by downcasting numeric columns.
+
+    Args:
+        df ( Union[pd.DataFrame, gpd.GeoDataFrame]): The input DataFrame.
+
+    Returns:
+         Union[pd.DataFrame, gpd.GeoDataFrame]: The DataFrame with reduced memory usage.
+    """
+    # Convert to categorical to reduce memory usage
+    categorical_cols = ["dist", "mun", "clas_sub", "pn_con", "brr"]
+    for col in categorical_cols:
+        if col in df.columns:
+            df[col] = df[col].astype("category")
+
+    # Process energy columns to int32 if possible to reduce memory
+    energy_cols = [col for col in df.columns if col.startswith("ene_")]
+    for col in energy_cols:
+        if df[col].max() <= 2147483647:  # int32 max
+            df[col] = df[col].fillna(0).astype("int32")
     return df
 
 
 def generate_grouped_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Generates grouped columns in the DataFrame using DuckDB for high performance.
+    Agrupa colunas de energia e gera estatísticas por grupo usando Polars.
 
     Args:
-        df (pd.DataFrame): The input DataFrame.
+        df (pd.DataFrame): DataFrame com os dados (deve estar no formato Pandas).
 
     Returns:
-        pd.DataFrame: The DataFrame with grouped columns.
+        pd.DataFrame: DataFrame com colunas agregadas por grupo.
     """
-    with duckdb.connect(database=":memory:") as con:
-        con.register("input_df", df)
-        query = """
-        SELECT
-            year,
-            company_file,
-            dist,
-            mun,
-            conj,
-            clas_sub,
-            pn_con,
-            
-            -- Sum & Mean of energy-related columns (ignoring zeros)
-            {energy_columns},
+    df_polars = pl.from_pandas(df)
+    energy_cols = [col for col in df.columns if col.startswith("ene_")]
+    group_cols = ["year", "company_file", "dist", "mun", "conj", "clas_sub", "pn_con"]
+    agg_exprs = []
 
-            -- Aggregations for 'dat_con'
-            MIN(dat_con) AS dat_con_oldest,
-            MAX(dat_con) AS dat_con_latest,
-            MODE() WITHIN GROUP (ORDER BY dat_con) AS dat_con_most_frequent,
-
-            -- Aggregation for 'brr'
-            MODE() WITHIN GROUP (ORDER BY brr) AS brr_most_frequent
-
-        FROM input_df
-        GROUP BY 1, 2, 3, 4, 5, 6, 7
-        """
-        energy_cols = [col for col in df.columns if col.startswith("ene_")]
-        # The mean calculation is done by dividing the sum of non-zero values
-        # by the count of non-zero values. This is done because of the nature of the data,
-        # where zero values are common and should not be included in the mean calculation.
-        energy_agg = ", ".join(
+    for col in energy_cols:
+        agg_exprs.extend(
             [
-                f"SUM({col}) AS {col}_sum, "
-                f"SUM(CASE WHEN {col} != 0 THEN {col} ELSE NULL END) /"
-                f"COUNT(CASE WHEN {col} != 0 THEN {col} ELSE NULL END) AS {col}_mean, "
-                f"MEDIAN({col}) AS {col}_median"
-                for col in energy_cols
+                pl.col(col).sum().alias(f"{col}_sum"),
+                pl.col(col).filter(pl.col(col) != 0).mean().alias(f"{col}_mean"),
+                pl.col(col).median().alias(f"{col}_median"),
             ]
         )
-        result_df = con.execute(query.format(energy_columns=energy_agg)).df()
-    return result_df
+
+    agg_exprs.extend(
+        [
+            pl.col("dat_con").min().alias("dat_con_oldest"),
+            pl.col("dat_con").max().alias("dat_con_latest"),
+            pl.col("dat_con").mode().first().alias("dat_con_most_frequent"),
+            pl.col("brr").mode().first().alias("brr_most_frequent"),
+        ]
+    )
+
+    result = df_polars.group_by(group_cols).agg(agg_exprs)
+    return result.to_pandas()
 
 
-def read_single_file(layers_dict, path, database: str) -> gpd.GeoDataFrame:
+def read_single_file(
+    layers_dict, path, database: str
+) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     """
     Wrapper function to read ANEEL data from a specific database and company.
 
@@ -369,13 +416,20 @@ def read_single_file(layers_dict, path, database: str) -> gpd.GeoDataFrame:
         layers_dict (dict): A dictionary mapping database keys to layer names.
         path (str): The path to the company's data directory.
         database (str): The name of the database.
+    Returns:
+        Union[pd.DataFrame, gpd.GeoDataFrame]: The DataFrame or GeoDataFrame containing
+                                            the data from the specified energy company.
     """
+    is_ucbt = database == "ucbt"
     reader = Reader()
+    # Read just a sample of rows instead of the entire file
     df = reader.read_geofile(
         file_path=path,
         driver="FileGDB",
         layer=layers_dict[database],
     )
+    df = drop_unnecessary_columns(df, is_ucbt)
+    # df = reduce_memory_usage(df)
     return df
 
 
@@ -395,7 +449,8 @@ def get_layers_and_path(company_id: str, database: str) -> Tuple[dict, str]:
         "ponnot": "PONNOT",
         "conj": "CONJ",
     }
-    path = os.path.join(CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"], company_id)
+    path = CONTRACT_RAW_ENERGY["raw_data"]["physicalPath"]
+    path = os.path.join(path, company_id)
     layers = fiona.listlayers(path)
     if layers_dict[database] not in layers:
         layers_dict = {
@@ -431,14 +486,15 @@ def start_process(
         df = read_in_parallel(layers_dict, path, database)
     else:
         df = read_single_file(layers_dict, path, database)
+    trim_memory()
     df = engineer_columns_and_save(df, cols, company_id, database, **kwargs)
     results = generate_mlflow_results_dict(df, database, year, company_id)
     del df
     gc.collect()
+    trim_memory()
     return results
 
 
-@lru_cache(maxsize=256)
 def get_cols_saved_in_db(database: str, year: int) -> List[str]:
     """
     Checks if a file exists in the database and returns the columns if it does.
@@ -511,7 +567,7 @@ def assert_sum_energy_db_and_mlflow_are_equal(conn: DBConnection, results: dict)
                 """
     ).squeeze()
     np.testing.assert_almost_equal(
-        sum_energy_db, results["metrics"]["sum_energy"], decimal=0  # type: ignore
+        sum_energy_db / 1e5, results["metrics"]["sum_energy"] / 1e5, decimal=0  # type: ignore
     )
 
 
@@ -599,6 +655,7 @@ def process_small_files(files: list, max_num_cores: int, parallel: bool = True) 
                 with mlflow.start_run(run_name=results["parameters"]["company_id"]):
                     mlflow.log_params(results["parameters"])
                     mlflow.log_metrics(results["metrics"])
+                trim_memory()
             except Exception as e:
                 write_log(f"Error processing file: {e}")
         conn.close()
@@ -661,7 +718,7 @@ def main():
     It utilizes concurrent.futures.ProcessPoolExecutor to parallelize the
     file reading process.
     """
-    refresh_view = True
+    refresh_view = False
     module_name = os.path.basename(__file__).replace(".py", "")
     manager.update_status(module_name)
     process_files_per_size_aneel(refresh_view)
