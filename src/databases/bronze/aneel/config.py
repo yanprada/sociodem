@@ -16,7 +16,7 @@ from src.tools.managers.execution import ExecutionManagerWrapper
 
 # main run = "bronze-aneel-2025-03-13-15h51m53s"
 
-EXECUTION_ID = "bronze-aneel-2025-05-14-14h36m13s"
+EXECUTION_ID = "bronze-aneel-2025-06-30-12h15m55s"
 
 
 BASE_PARAMS = {
