@@ -1,0 +1,25 @@
+raw_data:
+  - contractName: ibge_pnad.yaml
+    tableName: pnad_trimestral
+    schema: layers
+    physicalPath: raw_data/ibge/layers/pnad/trimestral
+    description: PNAD Trimestral data from IBGE
+    queryYears: [2017, 2023]
+    ifExists: append
+
+bronze:
+  - contractName: ibge_pnad.yaml
+    tableName: pnad_trimestral
+    schema: layers
+    physicalPath: databases/bronze/ibge/layers/pnad/trimestral
+    description: PNAD Trimestral data from IBGE
+    queryYears: [2017, 2023]
+    ifExists: append
+silver:
+  - contractName: ibge_pnad.yaml
+    tableName: pnad_trimestral
+    schema: layers
+    physicalPath: databases/silver/ibge/layers/pnad/trimestral
+    description: PNAD Trimestral data from IBGE
+    queryYears: [2017, 2023]
+    ifExists: append
