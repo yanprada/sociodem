@@ -14,7 +14,6 @@ import gc
 import multiprocessing
 from dask.distributed import Client, as_completed, LocalCluster
 import duckdb
-import h3
 import pandas as pd
 from shapely import wkb
 from tqdm import tqdm
@@ -22,10 +21,10 @@ import ipdb
 
 
 from src.tools.managers.db_connector import DBConnection
-from src.tools.utils.constants import HEX_RESOLUTION, ANEEL_CLASSES
+from src.tools.utils.constants import ANEEL_CLASSES
 from src.tools.managers.saver import save_parquet_decorator
 from src.tools.utils.common import get_db_path, write_log, trim_memory
-
+from src.tools.utils.h3 import create_hex_col_from_dot
 
 from src.databases.silver.aneel.config import (
     manager,
@@ -69,9 +68,9 @@ def calculate_h3_index(df: pd.DataFrame) -> pd.DataFrame:
         "Calculating H3 index for each point in the DataFrame",
     )
     df["geometry"] = df["geometry"].apply(wkb.loads)  # type: ignore
-    df["lat"] = df["geometry"].apply(lambda point: point.y)
-    df["lng"] = df["geometry"].apply(lambda point: point.x)
-    df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
+    df["latitude"] = df["geometry"].apply(lambda point: point.y)
+    df["longitude"] = df["geometry"].apply(lambda point: point.x)
+    df = create_hex_col_from_dot(df)
     return df
 
 
@@ -87,18 +86,12 @@ def calculate_energy_consumption(df: pd.DataFrame) -> pd.DataFrame:
         energy consumption metrics.
     """
     write_log("Calculating energy consumption metrics for the DataFrame")
-    summer_sum = ["ene_12_sum", "ene_01_sum", "ene_02_sum"]
-    summer_mean = ["ene_12_mean", "ene_01_mean", "ene_02_mean"]
-    winter_sum = ["ene_05_sum", "ene_06_sum", "ene_07_sum"]
-    winter_mean = ["ene_05_mean", "ene_06_mean", "ene_07_mean"]
     df_energy_sum = df.filter(regex=r"ene_0[1-9]_sum|ene_1[0-2]_sum")
     df_energy_mean = df.filter(regex=r"ene_0[1-9]_mean|ene_1[0-2]_mean")
-    df["energy_consumption_summer"] = df[summer_sum].sum(axis=1)
-    df["mean_energy_consumption_summer"] = df[summer_mean].mean(axis=1)
-    df["energy_consumption_winter"] = df[winter_sum].sum(axis=1)
-    df["mean_energy_consumption_winter"] = df[winter_mean].sum(axis=1)
+    df_energy_median = df.filter(regex=r"ene_0[1-9]_median|ene_1[0-2]_median")
     df["energy_consumption"] = df_energy_sum.sum(axis=1)
     df["mean_energy_consumption"] = df_energy_mean.mean(axis=1)
+    df["median_energy_consumption"] = df_energy_median.mean(axis=1)
     return df
 
 
@@ -121,11 +114,8 @@ def group_columns(df: pd.DataFrame, grouped_cols: List[str]) -> pd.DataFrame:
         SELECT
             {', '.join(grouped_cols)},
             SUM(energy_consumption) AS energy_consumption,
-            SUM(energy_consumption_summer) AS energy_consumption_summer,
-            SUM(energy_consumption_winter) AS energy_consumption_winter,
             AVG(mean_energy_consumption) AS mean_energy_consumption,
-            AVG(mean_energy_consumption_winter) AS mean_energy_consumption_winter,
-            AVG(mean_energy_consumption_summer) AS mean_energy_consumption_summer,
+            AVG(median_energy_consumption) AS median_energy_consumption,
             MODE(mun) AS mun,
             MODE(brr_most_frequent) AS brr_most_frequent,
             MODE(mat) AS mat,
@@ -199,11 +189,8 @@ def group_by_hexagon(df: pd.DataFrame) -> pd.DataFrame:
     df["clas_sub"] = df["clas_sub"].apply(lambda x: ANEEL_CLASSES.get(x, "outros"))
     cols = [
         "energy_consumption",
-        "energy_consumption_summer",
-        "energy_consumption_winter",
         "mean_energy_consumption",
-        "mean_energy_consumption_summer",
-        "mean_energy_consumption_winter",
+        "median_energy_consumption",
     ]
     df = (
         group_columns(df, ["hex_col", "clas_sub"])
