@@ -16,9 +16,10 @@ import os
 import glob
 from itertools import product
 from collections import defaultdict
-from typing import List, Tuple, DefaultDict, Union
+from typing import List, Tuple, DefaultDict, Union, Dict
 from tqdm import tqdm
 import pandas as pd
+import geopandas as gpd
 
 from src.tools.utils.common import write_log, get_db_path, get_ml_flow_data
 from src.tools.managers.db_connector import DBConnection
@@ -222,7 +223,7 @@ def get_data_processed_from_db(refresh_view=False) -> pd.DataFrame:
         product(YEARS, ["ponnot", "ucbt", "conj"]), desc="Years/database"
     ):
         path = get_db_path(CONTRACT_BRONZE_ENERGY[f"{database}_{year}"])
-        path_mv = PATHS_MV["common"].format(path=path)
+        path_mv = PATHS_MV["common"].format(path=path.replace('"', "").replace(" ", ""))
         df = query_or_create_view(conn, path, path_mv)
         if not df.empty:
             df["database"] = database
@@ -252,3 +253,26 @@ def get_df_already_processed(refresh_view=False) -> pd.DataFrame:
         write_log(f"Database has {len(diff_db_mlflow)} files that are not in Mlflow")
         return df_db
     return df_db
+
+
+def check_memory_usage(df: Union[pd.DataFrame, gpd.GeoDataFrame]) -> Dict[str, float]:
+    """
+    Check memory usage of a DataFrame or GeoDataFrame.
+
+    Args:
+        df (Union[pd.DataFrame, gpd.GeoDataFrame]): The DataFrame to check.
+
+    Returns:
+        Dict[str, float]: A dictionary containing memory usage statistics in MB.
+    """
+    memory_usage = df.memory_usage(deep=True)
+    total_memory_mb = memory_usage.sum() / (1024 * 1024)
+
+    return {
+        "total_memory_mb": round(total_memory_mb, 2),
+        "num_rows": len(df),
+        "num_columns": len(df.columns),
+        "memory_per_row_kb": (
+            round((total_memory_mb * 1024) / len(df), 2) if len(df) > 0 else 0
+        ),
+    }
