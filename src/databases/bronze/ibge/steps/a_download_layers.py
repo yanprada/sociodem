@@ -47,7 +47,7 @@ def download_layers_ibge_2010(ibge_request: HttpRequesterIBGE):
         ["setores_censitarios", "subdistritos", "distritos", "municipios"],
     )
     path_to_save = CONTRACTS_RAW["mun_2010"]["physicalPath"]
-    ibge_request.request_layers_from_page(combinations, path_to_save)
+    ibge_request.request_layers_from_page(combinations, path_to_save)  # type: ignore
 
 
 def download_censo_ibge_2022(ibge_request: HttpRequesterIBGE):
@@ -61,6 +61,15 @@ def download_censo_ibge_2022(ibge_request: HttpRequesterIBGE):
     ibge_request.request_censo_from_page(path_to_save)
 
 
+def download_grade_estatistica(ibge_request: HttpRequesterIBGE):
+    """
+    Downloads the grade estatistica for the IBGE 2022 dataset.
+    """
+    path_to_save = CONTRACTS_RAW["grade_estatistica_2022"]["physicalPath"]
+    idx_list = list(str(idx).zfill(2) for idx in range(1, 94))
+    ibge_request.request_grade_from_page(idx_list, path_to_save)
+
+
 def download_info_ibge_2022():
     """
     This function is the entry point of the script and is responsible for downloading
@@ -70,10 +79,11 @@ def download_info_ibge_2022():
     """
 
     ibge_request = HttpRequesterIBGE(2022)
-    download_layers_ibge_2022(ibge_request)
+    # download_layers_ibge_2022(ibge_request)
     # download_dompp_ibge_2022(ibge_request)
     # download_states_ibge_2022(ibge_request)
-    download_censo_ibge_2022(ibge_request)
+    # download_censo_ibge_2022(ibge_request)
+    download_grade_estatistica(ibge_request)
 
 
 def download_layers_ibge_2022(ibge_request: HttpRequesterIBGE):
@@ -86,14 +96,10 @@ def download_layers_ibge_2022(ibge_request: HttpRequesterIBGE):
     """
     combinations = product(
         STATES.keys(),
-        [
-            "setores",
-            "subdistritos",
-            "distritos",
-        ],  # "municipios"],
+        ["setores", "subdistritos", "distritos", "municipios"],
     )
     path_to_save = CONTRACTS_RAW["mun_2022"]["physicalPath"].replace("municipios/", "")
-    ibge_request.request_layers_from_page(combinations, path_to_save)
+    ibge_request.request_layers_from_page(combinations, path_to_save)  # type: ignore
 
 
 def download_dompp_ibge_2022(ibge_request: HttpRequesterIBGE):
@@ -127,11 +133,18 @@ def download_states_ibge_2022(ibge_request: HttpRequesterIBGE):
     ibge_request.request_states_from_page(STATES, path_to_save)
 
 
+def download_pnad_trimestral():
+    """
+    To download the PNAD Trimestral dataset from IBGE, access:
+    https://pnadcontinua.ibge.gov.br/#/mapa/
+    """
+
+
 def main():
     """
     This is the main function that downloads the layers for the IBGE dataset.
     It calls the functions to download the layers for the years 2010 and 2022.
     """
-    # download_info_ibge_2010()
+    download_info_ibge_2010()
     download_info_ibge_2022()
-    manager.update_last_run()
+    download_pnad_trimestral()
