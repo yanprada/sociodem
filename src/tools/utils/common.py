@@ -211,7 +211,8 @@ def get_db_path(contract: dict) -> str:
     Returns:
         str: The path of the database table.
     """
-    return f"""{contract["schema"]}."{contract["tableName"]}" """
+    path = f"""{contract["schema"]}."{contract["tableName"]}" """
+    return path.replace('"', "").replace(" ", "")
 
 
 def add_year_to_contract(contract: dict, year: int) -> dict:
