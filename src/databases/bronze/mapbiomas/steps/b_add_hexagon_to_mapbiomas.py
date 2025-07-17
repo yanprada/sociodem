@@ -13,7 +13,6 @@ import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import gc
 from typing import List
-import h3
 import mlflow
 import rasterio
 import rasterio.windows
@@ -22,8 +21,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-from src.tools.utils.constants import CRS_GLOBAL, HEX_RESOLUTION
-
+from src.tools.utils.constants import CRS_GLOBAL
+from src.tools.utils.h3 import create_hex_col_from_dot
 from src.tools.managers.saver import save_parquet_decorator
 
 from src.databases.bronze.mapbiomas.config import (
@@ -47,12 +46,12 @@ def df_to_gdf(df: pd.DataFrame) -> gpd.GeoDataFrame:
     and transform it to a global CRS (EPSG:4326).
 
     Args:
-        df (pd.DataFrame): The input DataFrame with 'lat' and 'lng' columns.
+        df (pd.DataFrame): The input DataFrame with 'lat' and 'longitude' columns.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame with Point geometries in global CRS.
     """
-    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lng, df.lat))
+    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude))
     gdf.set_crs({"init": CRS_GLOBAL}, inplace=True)
     return gdf
 
@@ -82,7 +81,9 @@ def process_block(
         indices[1] += window.col_off
         x_coords, y_coords = rasterio.transform.xy(transform, indices[0], indices[1])
         values = block.flatten()
-        return pd.DataFrame({"lng": x_coords, "lat": y_coords, "value": values})
+        return pd.DataFrame(
+            {"longitude": x_coords, "latitude": y_coords, "value": values}
+        )
 
 
 def generate_windows(height: int, width: int, block_size: int):
@@ -122,7 +123,7 @@ def save_partitions(
     df = pd.concat(all_dfs, ignore_index=True)
     df["year"] = year
     df = df_to_gdf(df)
-    df["hex_col"] = df.apply(lambda x: h3.geo_to_h3(x.lat, x.lng, HEX_RESOLUTION), 1)
+    df = create_hex_col_from_dot(df)
     df = df.groupby(["hex_col", "value"], as_index=False).size()
     add_to_mlflow(df, partition)
     return df
