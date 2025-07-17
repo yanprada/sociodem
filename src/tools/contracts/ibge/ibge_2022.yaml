@@ -55,6 +55,14 @@ raw_data:
     queryYears: 2022
     ifExists: append
 
+  - contractName: censo_2022.yaml
+    tableName: grade_estatistica_2022
+    schema: sociodemographic
+    physicalPath: raw_data/ibge/sociodemographic/2022/grade_estatistica/
+    description: Sociodemographic data from the 2022 Census
+    queryYears: 2022
+    ifExists: append
+
 bronze:
   - contractName: dompp_2022.yaml
     tableName: dompp_2022
@@ -128,7 +136,13 @@ bronze:
         pessoas_quilombolas_BR,
         renda_responsavel_BR_csv,
       ]
-
+  - contractName: censo_2022.yaml
+    tableName: grade_estatistica_2022
+    schema: sociodemographic
+    physicalPath: databases/bronze/ibge/sociodemographic/2022/grade_estatistica/
+    description: Sociodemographic data from the 2022 Census
+    queryYears: 2022
+    ifExists: append
 silver:
   - contractName: dompp_2022.yaml
     tableName: dompp_per_hex_sc_2022
