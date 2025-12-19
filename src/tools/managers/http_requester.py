@@ -3,16 +3,20 @@ Module to make requests to pages.
 """
 
 import os
+import json
 from typing import Tuple, Dict, Union, Optional, List
-import duckdb as db
-from tqdm import tqdm
 import requests
+
+import duckdb as db
+import ee
+from tqdm import tqdm
 import pandas as pd
 from bs4 import BeautifulSoup
-
 from retry import retry
+
 from src.tools.utils.common import write_log
-from src.tools.utils.constants import BBOX_BRAZIL, OVERTURE_RELEASE_VERSION
+from src.tools.utils.constants import BBOX_BRAZIL, OVERTURE_RELEASE_VERSION, CRS_GLOBAL
+
 
 tqdm.pandas()
 
@@ -517,3 +521,123 @@ class HttpRequesterOvertureMaps:
             "categories.alternate AS category_alternate",
         ]
         self.download_data(cols)
+
+
+class HttpRequesterAlphaEarth:
+    """
+    Http request class to download AlphaEarth data
+    """
+
+    def __init__(self, service_account, key_file) -> None:
+        self.service_account = service_account
+        self.key_file = key_file
+        self.gee_initialized = self.initialize_gee()
+
+    def initialize_gee(self):
+        """Initialize Google Earth Engine using service account"""
+        try:
+            credentials = ee.ServiceAccountCredentials(
+                self.service_account, self.key_file
+            )
+            ee.Initialize(credentials)
+            write_log(
+                "Google Earth Engine initialized successfully with service account"
+            )
+            return True
+        except Exception as e:
+            write_log(f"Failed to initialize GEE: {e}")
+            return False
+
+    def split_region(self, region, dx, dy, city, debug=False):
+        """
+        Split a region (ee.Geometry) into tiles of size dx × dy (in degrees).
+        """
+        write_log(f"Splitting region in tiles for city: {city}")
+        bounds = region.bounds().coordinates().get(0)
+        coords = ee.List(bounds)
+
+        xs = coords.map(lambda p: ee.List(p).get(0))
+        ys = coords.map(lambda p: ee.List(p).get(1))
+
+        xmin = ee.Number(xs.reduce(ee.Reducer.min()))
+        xmax = ee.Number(xs.reduce(ee.Reducer.max()))
+        ymin = ee.Number(ys.reduce(ee.Reducer.min()))
+        ymax = ee.Number(ys.reduce(ee.Reducer.max()))
+
+        tiles = []
+
+        x = xmin
+        while x.lt(xmax).getInfo():
+            y = ymin
+            while y.lt(ymax).getInfo():
+                tile = ee.Geometry.Rectangle(
+                    [x, y, x.add(dx), y.add(dy)],
+                    proj=CRS_GLOBAL,
+                    geodesic=False,
+                )
+                tile_intersec = tile.intersection(region, ee.ErrorMargin(1))
+                if tile_intersec.area(1).getInfo() != 0:
+                    tiles.append(tile_intersec)
+                y = y.add(dy)
+            x = x.add(dx)
+        if debug:
+            for i, tile in enumerate(tiles):
+                self.save_geometry_as_geojson(
+                    geometry=tile, filename=f"tiles/tile_{city}_{i}.geojson"
+                )
+        return tiles
+
+    def save_geometry_as_geojson(self, geometry, filename):
+        """
+        Saves an ee.Geometry object as a GeoJSON file.
+        """
+        geojson_dict = geometry.getInfo()
+
+        directory = os.path.dirname(filename)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(geojson_dict, f, indent=2)
+
+        write_log(f"Saved geometry to {filename}")
+
+    def request_from_page(self, region, years: int, city_name, state, output_path: str):
+        """
+        Requests files from Google Drive.
+        """
+        geojson = json.loads(json.dumps(region.__geo_interface__))
+        municipios = ee.FeatureCollection(ee.Feature(ee.Geometry(geojson)))
+        geometry = municipios.first().geometry()
+        tiles = self.split_region(geometry, dx=0.2, dy=0.2, city=city_name)
+        embeddings = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")
+        for year in tqdm(years, desc=f"Downloading data for {city_name}-{state}"):
+            start_date = ee.Date.fromYMD(year, 1, 1)
+            end_date = start_date.advance(1, "year")
+            annual_embedding = embeddings.filter(
+                ee.Filter.date(start_date, end_date)
+            ).mosaic()
+            output_path_year = output_path.format(year=year)
+            city_dir = os.path.join(output_path_year, city_name)
+            os.makedirs(city_dir, exist_ok=True)
+
+            for i, tile in tqdm(enumerate(tiles), total=len(tiles)):
+                filename = os.path.join(city_dir, f"tile_{i}.tif")
+                if not os.path.exists(filename):
+
+                    url = annual_embedding.getDownloadURL(
+                        {
+                            "region": tile,
+                            "scale": 100,
+                            "crs": CRS_GLOBAL,
+                            "format": "GEO_TIFF",
+                        }
+                    )
+                    response = requests.get(url, timeout=180)
+                    if response.status_code == 200:
+                        with open(filename, "wb") as f:
+                            f.write(response.content)
+                    else:
+                        write_log(
+                            f"Failed to download tile {i}. Status: {response.status_code}"
+                        )
