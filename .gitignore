@@ -18,3 +18,4 @@ dist
 references/h3/*.ipynb
 build/
 mlruns/
+.private-key.json
