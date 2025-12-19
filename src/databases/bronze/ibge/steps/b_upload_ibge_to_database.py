@@ -593,34 +593,108 @@ def upload_censo_2022(run_name_id: str):
                 write_log(f"{file} data already exists.")
 
 
+def upload_pnad_trimestral(run_name_id: str):
+    """
+    Processes and uploads PNAD Trimestral data.
+    This function reads the PNAD Trimestral data from a CSV file,
+    processes it, and checks if the data already exists in MLflow.
+    Args:
+        run_name_id (str): The run name ID to check in the MLflow runs.
+    """
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_NAME)
+    if run_name_id not in mlflow_runs_df["mlflow.runName"]:
+        folder = CONTRACTS_RAW["pnad_trimestral"]["physicalPath"]
+        reader = Reader()
+        _ = reader.read_geofile(f"zip://{os.path.join(folder, 'pnad_trimestral.zip')}")
+    # Continue from here the logic
+
+
+@save_parquet_decorator(medallon="bronze")
+def get_grade_estatistica_2022(filepath: str, **kwargs):
+    """
+    Reads a zip file containing grade estatistica data and returns it as a DataFrame.
+
+    Args:
+        filepath (str): The path to the zip file containing the grade estatistica data.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        pandas.DataFrame: The DataFrame containing the grade estatistica data.
+    """
+    reader = Reader()
+    df = reader.read_geofile(f"zip://{filepath}")
+    df = df.to_crs(CRS_GLOBAL)
+    add_mlflow_metrics(df)
+    return df[["id_unico", "nome_1km", "total", "total_dom", "geometry"]]
+
+
+def upload_grade_estatistica(run_name_id: str) -> None:
+    """
+    Processes and uploads grade estatistica data for the year 2022.
+    This function reads geographical data files for each grade estatistica,
+    concatenates them into a single DataFrame,
+    and returns the combined DataFrame. It logs the processing
+    steps and uses a Reader object to read the geojson files.
+    Args:
+        run_name_id (str): The run name ID to check in the MLflow runs.
+    """
+    mlflow_runs_df = get_ml_flow_data(EXPERIMENT_NAME)
+    if run_name_id not in mlflow_runs_df["mlflow.runName"]:
+        folder = CONTRACTS_RAW["grade_estatistica_2022"]["physicalPath"]
+
+        for file in tqdm(os.listdir(folder), desc="Processing grade estatistica files"):
+            if not file.endswith(".zip"):
+                continue
+            filepath = os.path.join(folder, file)
+            file = file.replace("grade_estatistica_", "").replace(".zip", "")
+            kwargs = {
+                "filename": file,
+                "contract": CONTRACTS_BRONZE["grade_estatistica_2022"],
+            }
+            path_processed = os.path.join(
+                CONTRACTS_BRONZE["grade_estatistica_2022"]["physicalPath"], file
+            )
+            if not os.path.exists(path_processed):
+                _ = get_grade_estatistica_2022(filepath, **kwargs)
+            else:
+                write_log(f"{file} data already exists.")
+
+
 def main():
     """
     The main function that executes the script.
     """
     run_date = time.strftime("%Y-%m")
-    for layer_key in [
-        "mun_2010",
-        "mun_2022",
-        "sectors_2010",
-        "sectors_2022",
-        "districts_2010",
-        "districts_2022",
-        "subdistricts_2010",
-        "subdistricts_2022",
-    ]:
-        run_name_id = "-".join([layer_key, run_date])
-        with mlflow.start_run(run_name=run_name_id):
-            upload_ibge_data(layer_key, run_name_id)
+    # for layer_key in [
+    #     "mun_2010",
+    #     "mun_2022",
+    #     "sectors_2010",
+    #     "sectors_2022",
+    #     "districts_2010",
+    #     "districts_2022",
+    #     "subdistricts_2010",
+    #     "subdistricts_2022",
+    # ]:
+    #     run_name_id = "-".join([layer_key, run_date])
+    #     with mlflow.start_run(run_name=run_name_id):
+    #         upload_ibge_data(layer_key, run_name_id)
 
-    run_name_id = "-".join(["dompp", run_date])
-    with mlflow.start_run(run_name=run_name_id):
-        upload_dompp_2022(run_name_id)
+    # run_name_id = "-".join(["dompp", run_date])
+    # with mlflow.start_run(run_name=run_name_id):
+    #     upload_dompp_2022(run_name_id)
 
-    run_name_id = "-".join(["states", run_date])
-    with mlflow.start_run(run_name=run_name_id):
-        upload_states_2022(run_name_id)
+    # run_name_id = "-".join(["states", run_date])
+    # with mlflow.start_run(run_name=run_name_id):
+    #     upload_states_2022(run_name_id)
 
-    run_name_id = "-".join(["censo_2022", run_date])
+    # run_name_id = "-".join(["censo_2022", run_date])
+    # with mlflow.start_run(run_name=run_name_id):
+    #     upload_censo_2022(run_name_id)
+
+    # run_name_id = "-".join(["pnad_trimestral", run_date])
+    # with mlflow.start_run(run_name=run_name_id):
+    #     upload_pnad_trimestral(run_name_id)
+
+    run_name_id = "-".join(["grade_estatistica", run_date])
     with mlflow.start_run(run_name=run_name_id):
-        upload_censo_2022(run_name_id)
-    manager.update_last_run()
+        upload_grade_estatistica(run_name_id)
