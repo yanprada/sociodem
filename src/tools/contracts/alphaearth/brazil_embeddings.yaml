@@ -1,0 +1,17 @@
+raw_data:
+  contractName: contract_alphaearth.yaml
+  tableName: brasil_embeddings_{year}
+  schema:
+  physicalPath: raw_data/alphaearth/{year}/
+  description:
+  queryYears: [2017, 2024]
+  ifExists:
+
+bronze:
+  - contractName: contract_alphaearth.yaml
+    tableName: brasil_embeddings_{year}
+    schema: land_use
+    physicalPath: databases/bronze/alphaearth/brasil_embeddings_{year}/
+    description:
+    queryYears: [2017, 2024]
+    ifExists: append
