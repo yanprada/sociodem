@@ -24,7 +24,6 @@ from src.databases.silver.aneel.config import manager, CONTRACT_SILVER_ENERGY, Y
 
 
 from src.databases.silver.ibge.config import (
-    PATHS_MV as PATHS_MV_CENSO,
     CONTRACTS_SILVER as CONTRACTS_SILVER_CENSO,
 )
 
@@ -167,8 +166,7 @@ def main():
         path_already_processed = get_db_path(
             CONTRACT_SILVER_ENERGY[f"aneel_kring_hexagon_grp_{year}"]
         )
-        schema_sc = CONTRACTS_SILVER_CENSO["sectors_2022"]["schema"]
-        path_hex_sc = f"{schema_sc}.{PATHS_MV_CENSO['hex_unique_sc_2022_sc_info']}"
+        path_hex_sc = get_db_path(CONTRACTS_SILVER_CENSO["hex_unique_sc_2022_sc_info"])
         conn = DBConnection("silver")
         write_log(f"Reading municipalities from {path_hex_sc} table.")
         df_cd_mun = conn.query_database(f"SELECT DISTINCT cd_mun FROM {path_hex_sc}")
